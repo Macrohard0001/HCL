@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 直接源码链接被测服务（与启动器同一份代码） -->
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AppSettings.cs" Link="Services/AppSettings.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AuthService.cs" Link="Services/AuthService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AuthlibService.cs" Link="Services/AuthlibService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/BootLogger.cs" Link="Services/BootLogger.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/CrashHelper.cs" Link="Services/CrashHelper.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/CurseForgeService.cs" Link="Services/CurseForgeService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/DownloadEngine.cs" Link="Services/DownloadEngine.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/JavaManager.cs" Link="Services/JavaManager.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/LaunchArgs.cs" Link="Services/LaunchArgs.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/LauncherService.cs" Link="Services/LauncherService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/MirrorHttpHandler.cs" Link="Services/MirrorHttpHandler.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModrinthService.cs" Link="Services/ModrinthService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core" Version="4.1.0" />
+    <PackageReference Include="CmlLib.Core.Installer.Forge" Version="2.0.0" />
+  </ItemGroup>
+
+</Project>

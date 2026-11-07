@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>HardmacroCraftLauncher</AssemblyName>
+    <AssemblyTitle>Hardmacro Craft Launcher</AssemblyTitle>
+    <Product>Hardmacro Craft Launcher</Product>
+    <Authors>Fox_Ryn (Macrohard0001)</Authors>
+    <Copyright>Copyright (c) 2026 Fox_Ryn (Macrohard0001)</Copyright>
+    <FileDescription>Hardmacro Craft Launcher</FileDescription>
+    <RootNamespace>HardmacroCraft</RootNamespace>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- 单文件压缩：163.9MB → 70.8MB（-57%）；R2R 在本配置下未启用、Windows 不内嵌 ICU，
+         因此压缩是唯一有效的体积手段（WPF 不支持 PublishTrimmed 裁剪） -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- fix3：原生库（wpfgfx / PresentationNative 等）打进单文件并在 exe 旁自解压，
+         避免部分环境（杀软拦截临时目录 / 只读目录）下 WPF 原生库加载失败无法启动 -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="CmlLib.Core" Version="4.1.0" />
+    <PackageReference Include="CmlLib.Core.Installer.Forge" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+    <Resource Include="Assets\icon.png" />
+    <Resource Include="Assets\grass.png" />
+    <Resource Include="Assets\Anvil.png" />
+    <Resource Include="Assets\NeoForge.png" />
+    <Resource Include="Assets\Fabric.png" />
+    <Resource Include="Assets\Quilt.png" />
+  </ItemGroup>
+
+</Project>

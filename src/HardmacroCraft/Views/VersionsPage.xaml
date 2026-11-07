@@ -1,0 +1,65 @@
+<Page x:Class="HardmacroCraft.Views.VersionsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <Grid Margin="32,24,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,2">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="5" Height="24" CornerRadius="2.5"
+                        Background="{DynamicResource SystemAccentColorPrimaryBrush}"
+                        VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Ver.Title}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Ver.Subtitle}" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource HmCard}" Margin="0,0,0,12">
+            <!-- fix7：WrapPanel —— 小窗口下按钮自动换行，不再横向溢出 -->
+            <WrapPanel>
+                <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon ArrowClockwise24}" Click="BtnRefresh_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.OpenFolder}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Folder24}" Click="BtnOpenFolder_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.OpenSaves}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Save24}" Click="BtnOpenSaves_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.OpenMods}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon PuzzlePiece24}" Click="BtnOpenMods_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.OpenPacks}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Image24}" Click="BtnOpenPacks_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.Rename}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Edit24}" Click="BtnRename_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.Copy}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Copy24}" Click="BtnCopy_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.Delete}" MinHeight="36" Margin="0,0,0,8"
+                           Appearance="Danger" Icon="{ui:SymbolIcon Delete24}" Click="BtnDelete_Click" />
+            </WrapPanel>
+        </Border>
+
+        <ListBox Grid.Row="2" x:Name="LstVersions" Style="{StaticResource HmListBox}"
+                 SelectionMode="Single">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="12,9">
+                        <Border Width="32" Height="32" CornerRadius="7"
+                                Background="{DynamicResource SubtleFillColorTertiaryBrush}">
+                            <!-- PCL 式草方块图标 -->
+                            <Image Source="/Assets/grass.png" Width="24" Height="24"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                        </Border>
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding}" FontWeight="Medium"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Page>

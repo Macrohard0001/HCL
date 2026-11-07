@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    HmCore —— Hardmacro Craft Launcher 跨平台共享核心（手机端准备，v1.9.0 起）。
+
+    设计：核心服务（下载引擎 / 平台 API 客户端 / 版本与 Java 管理 / 账号存储）
+    与 UI 解耦，通过「源码链接」与 Windows 桌面端共用同一份代码（单一事实来源）。
+    未来 Android 端直接引用本工程（TargetFramework 增加 net8.0-android 即可），
+    只需替换 IO / 展示层，无需重写协议与下载逻辑。
+
+    注意：本工程不含任何 WPF / Windows 专属代码；
+    LauncherService 依赖 CmlLib.Core（netstandard2.0，跨平台可用）。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>HardmacroCraft.Services</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core" Version="4.1.0" />
+    <PackageReference Include="CmlLib.Core.Installer.Forge" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../HardmacroCraft/Services/AppSettings.cs" Link="Services/AppSettings.cs" />
+    <Compile Include="../HardmacroCraft/Services/AuthService.cs" Link="Services/AuthService.cs" />
+    <Compile Include="../HardmacroCraft/Services/BootLogger.cs" Link="Services/BootLogger.cs" />
+    <Compile Include="../HardmacroCraft/Services/CrashHelper.cs" Link="Services/CrashHelper.cs" />
+    <Compile Include="../HardmacroCraft/Services/AuthlibService.cs" Link="Services/AuthlibService.cs" />
+    <Compile Include="../HardmacroCraft/Services/CurseForgeService.cs" Link="Services/CurseForgeService.cs" />
+    <Compile Include="../HardmacroCraft/Services/DownloadEngine.cs" Link="Services/DownloadEngine.cs" />
+    <Compile Include="../HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />
+    <Compile Include="../HardmacroCraft/Services/JavaManager.cs" Link="Services/JavaManager.cs" />
+    <Compile Include="../HardmacroCraft/Services/LaunchArgs.cs" Link="Services/LaunchArgs.cs" />
+    <Compile Include="../HardmacroCraft/Services/LauncherService.cs" Link="Services/LauncherService.cs" />
+    <Compile Include="../HardmacroCraft/Services/MirrorHttpHandler.cs" Link="Services/MirrorHttpHandler.cs" />
+    <Compile Include="../HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
+    <Compile Include="../HardmacroCraft/Services/ModrinthService.cs" Link="Services/ModrinthService.cs" />
+    <Compile Include="../HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
+    <Compile Include="../HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
+    <Compile Include="../HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
+    <Compile Include="../HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
+  </ItemGroup>
+
+</Project>

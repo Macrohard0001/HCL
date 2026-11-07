@@ -1,0 +1,712 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using HardmacroCraft.Services;
+
+namespace HardmacroCraft.Views;
+
+/// <summary>搜索结果行模型（可勾选，供批量安装）。</summary>
+public sealed class ModRowItem : INotifyPropertyChanged
+{
+    private bool _isSelected;
+    public string Title { get; init; } = "";
+    public string Description { get; init; } = "";
+    public string? IconUrl { get; init; }
+    public string AuthorText { get; init; } = "";
+    public ModrinthService.SearchHit Hit { get; init; } = null!;
+    public List<string> Badges { get; init; } = new();
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected))); }
+    }
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+public partial class ModsPage : Page
+{
+    private bool _busy;
+    private readonly List<ModrinthService.SearchHit> _allHits = new();
+    private int _totalHits;
+    /// <summary>分页勾选保持：已勾选项目的 ProjectId（加载更多时恢复，新搜索时清空）。</summary>
+    private readonly HashSet<string> _selectedIds = new();
+
+    public ModsPage()
+    {
+        InitializeComponent();
+        Loaded += (_, _) => { RefreshTargets(); RefreshLocalMods(); };
+    }
+
+    private string SortIndex => (CmbSort.SelectedItem as ComboBoxItem)?.Tag as string ?? "relevance";
+    private string Platform => (CmbPlatform.SelectedItem as ComboBoxItem)?.Tag as string ?? "modrinth";
+    private string Loader => (CmbLoader.SelectedItem as ComboBoxItem)?.Tag as string ?? "any";
+    private string PlatformName => Platform == "curseforge" ? "CurseForge" : "Modrinth";
+    /// <summary>当前搜索的资源类型（本地管理列表跟随切换，PCL 同款）。</summary>
+    private string LocalType => (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+
+    private void RefreshTargets()
+    {
+        var versions = App.LauncherService.GetInstalledVersions();
+        CmbTargetVersion.ItemsSource = versions;
+        if (versions.Count > 0)
+            CmbTargetVersion.SelectedItem = versions.Contains(AppSettings.Instance.LastVersion)
+                ? AppSettings.Instance.LastVersion : versions[^1];
+    }
+
+    /// <summary>从所选版本名提取纯游戏版本号（如 1.20.1-forge-47.2.0 → 1.20.1）用于平台过滤。</summary>
+    internal static string? ExtractGameVersion(string? versionName)
+    {
+        if (string.IsNullOrWhiteSpace(versionName)) return null;
+        var m = Regex.Match(versionName, @"^\d+\.\d+(\.\d+)?");
+        return m.Success ? m.Value : null;
+    }
+
+    private void RefreshPlatformUi()
+    {
+        // CurseForge 需要用户自己的 API Key，未配置时在副标题给出引导
+        TxtSubtitle.Text = Platform == "curseforge"
+            ? string.Format(App.Current.TryFindResource("S.Mod.SubtitleCF") as string
+                ?? "从 CurseForge 搜索（需在设置中填入免费 API Key）。")
+            : App.Current.TryFindResource("S.Mod.Subtitle") as string ?? "";
+        TxtSubtitle.Text = Platform == "curseforge" && !App.CurseForge.HasKey
+            ? TxtSubtitle.Text + (App.Current.TryFindResource("S.Mod.NeedKey") as string
+                ?? "（尚未配置 API Key：请到「设置」填写，console.curseforge.com 免费申请）")
+            : TxtSubtitle.Text;
+    }
+
+    private void CmbPlatform_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        RefreshPlatformUi();
+    }
+
+    private string TargetDir(string projectType)
+    {
+        var root = AppSettings.Instance.GameRoot;
+        var version = CmbTargetVersion.SelectedItem as string;
+        if (AppSettings.Instance.VersionIsolation && version != null)
+        {
+            // 版本隔离：放入 versions/<id>/ 下的对应目录
+            var iso = Path.Combine(root, "versions", version);
+            return projectType switch
+            {
+                "mod" => Path.Combine(iso, "mods"),
+                "resourcepack" => Path.Combine(iso, "resourcepacks"),
+                "shader" => Path.Combine(iso, "shaderpacks"),
+                "datapack" => Path.Combine(iso, "datapacks"),
+                _ => iso,
+            };
+        }
+        return projectType switch
+        {
+            "mod" => Path.Combine(root, "mods"),
+            "resourcepack" => Path.Combine(root, "resourcepacks"),
+            "shader" => Path.Combine(root, "shaderpacks"),
+            "datapack" => Path.Combine(root, "datapacks"),
+            _ => root,
+        };
+    }
+
+    private void Log(string s) => Dispatcher.Invoke(() => TxtProgress.Text += s + Environment.NewLine);
+    private void ClearLog() => Dispatcher.Invoke(() => TxtProgress.Text = "");
+
+    // ---------- 本机 Mod 管理（.disabled 后缀 = 禁用，与 PCL 一致；列表跟随搜索类型切换目录） ----------
+    private void RefreshLocalMods()
+    {
+        try
+        {
+            var dir = TargetDir(LocalType);
+            if (!Directory.Exists(dir))
+            {
+                LstLocalMods.ItemsSource = Array.Empty<string>();
+                return;
+            }
+            LstLocalMods.ItemsSource = Directory.GetFiles(dir)
+                .Where(f => f.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+                         || f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                         || f.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+                .Select(Path.GetFileName)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            LstLocalMods.ItemsSource = Array.Empty<string>();
+            Log("读取目录失败: " + ex.Message);
+        }
+    }
+
+    private void BtnLocalRefresh_Click(object sender, RoutedEventArgs e) => RefreshLocalMods();
+
+    private void CmbType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // 搜索类型切换时本地管理列表跟随显示对应目录（mod / resourcepack / shaderpacks / datapacks）
+        if (IsLoaded) RefreshLocalMods();
+    }
+
+    private void BtnOpenModDir_Click(object sender, RoutedEventArgs e)
+    {
+        var dir = TargetDir(LocalType);
+        Directory.CreateDirectory(dir);
+        Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+    }
+
+    private void BtnToggleMod_Click(object sender, RoutedEventArgs e)
+    {
+        if (LstLocalMods.SelectedItem is not string name) return;
+        var dir = TargetDir(LocalType);
+        var full = Path.Combine(dir, name);
+        try
+        {
+            if (name.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+            {
+                var target = full[..^".disabled".Length];
+                File.Move(full, target);
+                Log("已启用: " + Path.GetFileName(target));
+            }
+            else
+            {
+                File.Move(full, full + ".disabled");
+                Log("已禁用: " + name);
+            }
+            RefreshLocalMods();
+        }
+        catch (Exception ex)
+        {
+            Log("切换失败: " + ex.Message);
+        }
+    }
+
+    private void BtnDeleteMod_Click(object sender, RoutedEventArgs e)
+    {
+        if (LstLocalMods.SelectedItem is not string name) return;
+        try
+        {
+            File.Delete(Path.Combine(TargetDir(LocalType), name));
+            Log("已删除: " + name);
+            RefreshLocalMods();
+        }
+        catch (Exception ex)
+        {
+            Log("删除失败: " + ex.Message);
+        }
+    }
+
+    private async void TxtQuery_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) await SearchAsync();
+    }
+
+    private async void BtnSearch_Click(object sender, RoutedEventArgs e) => await SearchAsync();
+
+    private async void CmbSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // 初始化时也会触发一次；列表为空则忽略，有结果则按新排序重查
+        if (_allHits.Count > 0) await SearchAsync();
+    }
+
+    private async Task SearchAsync() => await SearchCoreAsync(reset: true);
+
+    private async void BtnMore_Click(object sender, RoutedEventArgs e) => await SearchCoreAsync(reset: false);
+
+    private async Task SearchCoreAsync(bool reset)
+    {
+        if (_busy) return;
+        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
+        try
+        {
+            if (reset)
+            {
+                _allHits.Clear();
+                _totalHits = 0;
+            }
+            if (reset) _selectedIds.Clear();
+
+            _busy = true;
+            ClearLog();
+            Log(reset ? $"搜索 {PlatformName}..." : "加载更多...");
+            var (hits, total) = Platform == "curseforge"
+                ? await App.CurseForge.SearchAsync(TxtQuery.Text ?? "", type, SortIndex, _allHits.Count,
+                    gameVersion, Loader)
+                : await App.Modrinth.SearchAsync(TxtQuery.Text ?? "", type, SortIndex, _allHits.Count,
+                    gameVersion, Loader);
+            _totalHits = total;
+            _allHits.AddRange(hits.Where(h => !_allHits.Any(x => x.ProjectId == h.ProjectId)));
+
+            LstResults.ItemsSource = _allHits.Select(h =>
+            {
+                var item = new ModRowItem
+                {
+                    Title = h.Title,
+                    Description = h.Description,
+                    IconUrl = string.IsNullOrEmpty(h.IconUrl) ? null : h.IconUrl,
+                    AuthorText = string.IsNullOrEmpty(h.Author) ? "" : "@" + h.Author,
+                    Hit = h,
+                    Badges = BuildBadges(h),
+                };
+                // 分页勾选保持：加载更多后恢复之前勾选的行
+                item.IsSelected = _selectedIds.Contains(h.ProjectId);
+                return item;
+            }).ToList();
+            PnlBatch.Visibility = _allHits.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateBatchUi();
+
+            var moreText = App.Current?.TryFindResource("S.Mod.LoadMore") as string ?? "加载更多";
+            var noMoreText = App.Current?.TryFindResource("S.Mod.NoMore") as string ?? "没有更多结果了";
+            BtnMore.Visibility = _allHits.Count < _totalHits ? Visibility.Visible : Visibility.Collapsed;
+            BtnMore.IsEnabled = _allHits.Count < _totalHits;
+            BtnMore.Content = _allHits.Count < _totalHits
+                ? $"{moreText}（{_allHits.Count}/{_totalHits}）"
+                : noMoreText;
+            Log($"已显示 {_allHits.Count} / {_totalHits} 个结果。");
+        }
+        catch (Exception ex)
+        {
+            Log("搜索失败: " + ex.Message);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>PCL 式徽章行：平台 / 分类 / 下载量 / 关注 / 更新时间 / 支持版本</summary>
+    internal static List<string> BuildBadges(ModrinthService.SearchHit h)
+    {
+        var res = App.Current?.TryFindResource("S.Mod.BadgeDownloads") as string ?? "{0:N0} 下载";
+        var follows = App.Current?.TryFindResource("S.Mod.BadgeFollows") as string ?? "{0:N0} 关注";
+        var updated = App.Current?.TryFindResource("S.Mod.BadgeUpdated") as string ?? "更新于 {0}";
+        var supports = App.Current?.TryFindResource("S.Mod.BadgeSupports") as string ?? "支持 {0}+";
+
+        var badges = new List<string> { h.Source == "curseforge" ? "CurseForge" : "Modrinth" };
+        foreach (var c in h.Categories.Take(3))
+            badges.Add(c);
+        badges.Add(string.Format(res, h.Downloads));
+        if (h.Follows > 0) badges.Add(string.Format(follows, h.Follows));
+        if (h.DateModified != default)
+            badges.Add(string.Format(updated, h.DateModified.ToLocalTime().ToString("yyyy-MM-dd")));
+        var top = h.Versions
+            .Where(v => v.StartsWith("1.", StringComparison.Ordinal))
+            .OrderByDescending(v => v, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        if (top != null) badges.Add(string.Format(supports, top));
+        return badges;
+    }
+
+    private async void BtnDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        ModRowItem? item = null;
+        if (LstResults.SelectedItem is ModRowItem sel) item = sel;
+        else if (sender is System.Windows.Controls.Button btn) item = btn.DataContext as ModRowItem;
+        if (item == null) return;
+        var hit = item.Hit;
+        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
+
+        _busy = true;
+        try
+        {
+            ClearLog();
+
+            // 1. 拉取版本 / 文件列表 → 弹出版本选择对话框（PCL 式）
+            var rows = Platform == "curseforge"
+                ? await BuildCfRowsAsync(hit)
+                : await BuildModrinthRowsAsync(hit);
+            if (rows.Count == 0)
+            {
+                Log("没有可下载的版本。");
+                return;
+            }
+            var picked = ModVersionWindow.Show(Window.GetWindow(this), hit.Title, rows);
+            if (picked == null) return;
+
+            // 2. 下载所选文件
+            var dir = TargetDir(type);
+            Directory.CreateDirectory(dir);
+            if (type == "datapack")
+                Log(App.Current.TryFindResource("S.Mod.DataDirHint") as string
+                    ?? "提示：数据包需放入具体存档的 datapacks 文件夹才会生效。");
+
+            await DownloadOneAsync(hit.Title, dir, picked);
+
+            // 3. 必需依赖自动补齐（PCL 式批量；Modrinth / CurseForge 均支持）
+            if (type == "mod")
+            {
+                if (Platform == "modrinth" && picked.MrVersion != null)
+                    await ResolveDependenciesAsync(picked.MrVersion, dir, gameVersion);
+                else if (Platform == "curseforge" && picked.Cf != null)
+                    await ResolveCfDependenciesAsync(picked.Cf, dir,
+                        gameVersion, Loader);
+            }
+
+            RefreshLocalMods();
+        }
+        catch (Exception ex)
+        {
+            Log("下载失败: " + ex.Message);
+        }
+        finally
+        {
+            _busy = false;
+            Dispatcher.Invoke(() => PbProgress.Value = 0);
+        }
+    }
+
+    private async Task<List<ModVersionRow>> BuildModrinthRowsAsync(ModrinthService.SearchHit hit)
+    {
+        Log($"获取 {hit.Title} 的版本（Modrinth）...");
+        var versions = await App.Modrinth.GetVersionsAsync(hit.Slug);
+        return versions.Select(v =>
+        {
+            var file = v.Files.FirstOrDefault(f => f.Primary != null) ?? v.Files.FirstOrDefault();
+            var badges = new List<string>();
+            if (v.GameVersions.Length > 0)
+                badges.Add(v.GameVersions[0] + (v.GameVersions.Length > 1 ? "+" : ""));
+            if (v.Loaders.Length > 0) badges.Add(string.Join("/", v.Loaders));
+            if (v.DatePublished != default)
+                badges.Add(v.DatePublished.ToLocalTime().ToString("yyyy-MM-dd"));
+            if (file != null && file.Size > 0) badges.Add(FormatSize(file.Size));
+            if (file?.Primary != null) badges.Add("primary");
+            return new ModVersionRow
+            {
+                Title = v.VersionNumber,
+                ReleaseType = v.VersionType,
+                Badges = badges,
+                MrVersion = v,
+                MrFile = file,
+            };
+        }).Where(r => r.MrFile != null).ToList();
+    }
+
+    private async Task<List<ModVersionRow>> BuildCfRowsAsync(ModrinthService.SearchHit hit)
+    {
+        Log($"获取 {hit.Title} 的文件（CurseForge）...");
+        if (!int.TryParse(hit.ProjectId, out var modId))
+            throw new Exception("项目 id 无效。");
+        var files = await App.CurseForge.GetFilesAsync(modId);
+        return files.Select(f =>
+        {
+            var badges = new List<string>();
+            var gvs = f.GameVersions.Where(v => v.StartsWith("1.", StringComparison.Ordinal)).ToList();
+            if (gvs.Count > 0)
+            {
+                badges.Add(gvs[0] + (gvs.Count > 1 ? "+" : ""));
+                foreach (var l in f.GameVersions.Except(gvs).Take(1)) badges.Add(l);
+            }
+            if (f.DateModified != default)
+                badges.Add(f.DateModified.ToLocalTime().ToString("yyyy-MM-dd"));
+            if (f.Size > 0) badges.Add(FormatSize(f.Size));
+            return new ModVersionRow
+            {
+                Title = f.DisplayName,
+                ReleaseType = f.ReleaseType,
+                Badges = badges,
+                Cf = f,
+            };
+        }).ToList();
+    }
+
+    internal static string FormatSize(long bytes) => bytes switch
+    {
+        >= 1 << 20 => $"{bytes / 1048576.0:0.#} MB",
+        >= 1 << 10 => $"{bytes / 1024.0:0.#} KB",
+        _ => $"{bytes} B",
+    };
+
+    /// <summary>下载单个文件到目录（统一进度条 / 任务中心 / 日志）。</summary>
+    private async Task DownloadOneAsync(string projectTitle, string dir, ModVersionRow row)
+    {
+        string url, filename;
+        Func<string, string, IProgress<long>?, System.Threading.CancellationToken, Task> doDownload;
+        if (row.Cf != null)
+        {
+            filename = row.Cf.FileName;
+            doDownload = (_, dest, bytes, ct) => App.CurseForge.DownloadAsync(row.Cf, dest, bytes, ct);
+        }
+        else
+        {
+            var f = row.MrFile!;
+            url = f.Url;
+            filename = f.Filename;
+            doDownload = (_, dest, bytes, ct) => App.Modrinth.DownloadAsync(url, dest, bytes, ct);
+        }
+
+        var dest = Path.Combine(dir, filename);
+        if (File.Exists(dest))
+        {
+            Log("已存在，跳过下载: " + filename);
+            return;
+        }
+
+        var task = DownloadTaskService.Instance.StartCancellable(
+            string.Format(App.Current.TryFindResource("S.Mod.TaskTitle") as string ?? "Mod 下载：{0}", projectTitle),
+            filename);
+        var dlCt = DownloadTaskService.Instance.TokenFor(task);
+        long total = 1, done = 0;
+        if (row.Cf != null) total = Math.Max(1, row.Cf.Size);
+        else if (row.MrFile != null) total = Math.Max(1, row.MrFile.Size);
+
+        var progress = new Progress<long>(delta => Dispatcher.Invoke(() =>
+        {
+            done += delta;
+            PbProgress.IsIndeterminate = false;
+            PbProgress.Value = Math.Min(100, done * 100.0 / total);
+            DownloadTaskService.Instance.Update(task, done * 100.0 / total);
+        }));
+
+        Log($"下载 {filename} → {dir}");
+        try
+        {
+            await doDownload(projectTitle, dest, progress, dlCt);
+            DownloadTaskService.Instance.Complete(task, FormatSize(total));
+            Log("下载完成: " + dest);
+        }
+        catch (OperationCanceledException) when (dlCt.IsCancellationRequested)
+        {
+            // fix7：用户在任务中心取消下载 —— 清理半成品并标记「已取消」（PCL 同款）
+            try { File.Delete(dest); } catch { }
+            DownloadTaskService.Instance.Cancel(task, "已取消");
+            Log("下载已取消: " + filename);
+        }
+        catch (Exception ex)
+        {
+            DownloadTaskService.Instance.Fail(task, ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Modrinth 必需依赖自动批量下载（PCL 式）：广度优先解析 required 依赖，
+    /// 每个依赖取与所选游戏版本 / 加载器最兼容的文件，已存在同名文件自动跳过。
+    /// </summary>
+    private async Task ResolveDependenciesAsync(
+        ModrinthService.ProjectVersion root, string modsDir, string? gameVersion)
+    {
+        var required = root.Dependencies.Where(d => d.DepType == "required" && d.ProjectId.Length > 0)
+            .Select(d => d.ProjectId).Distinct().ToList();
+        if (required.Count == 0) return;
+
+        var loader = root.Loaders.Length > 0 ? root.Loaders[0] : null;
+        var visited = new HashSet<string>();
+        var queue = new Queue<string>(required);
+        var depCount = 0;
+
+        Log($"正在解析必需依赖（{required.Count} 个）...");
+        while (queue.Count > 0 && visited.Count < 15)
+        {
+            var projectId = queue.Dequeue();
+            if (!visited.Add(projectId)) continue;
+            var found = await App.Modrinth.GetLatestCompatibleFileAsync(projectId, gameVersion, loader);
+            if (found == null)
+            {
+                Log($"  跳过依赖 {projectId}（没有与所选版本兼容的文件）");
+                continue;
+            }
+            var (v, f) = found.Value;
+            await DownloadOneAsync(v.Name, modsDir, new ModVersionRow
+            {
+                Title = v.VersionNumber,
+                ReleaseType = v.VersionType,
+                Badges = new List<string> { "依赖" },
+                MrVersion = v,
+                MrFile = f,
+            });
+            depCount++;
+            foreach (var d in v.Dependencies.Where(d => d.DepType == "required"))
+                queue.Enqueue(d.ProjectId);
+        }
+        Log(depCount > 0
+            ? string.Format(App.Current.TryFindResource("S.Mod.DepsDone") as string ?? "已补齐 {0} 个必需依赖。", depCount)
+            : "没有需要补齐的依赖。");
+    }
+
+    /// <summary>
+    /// CurseForge 必需依赖自动批量下载（v1.10.0 起，与 Modrinth 同款 BFS）：
+    /// 文件依赖 relationType==3（Required）→ GetLatestCompatibleFileAsync 挑最兼容文件
+    /// → 依赖的依赖继续入队，上限 15 个，同名文件自动跳过。
+    /// </summary>
+    private async Task ResolveCfDependenciesAsync(
+        CurseForgeService.CfFile root, string modsDir, string? gameVersion, string loader)
+    {
+        var required = root.Dependencies.Where(d => d.RelationType == 3)
+            .Select(d => d.ModId).Distinct().ToList();
+        if (required.Count == 0) return;
+
+        var names = await App.CurseForge.GetModsAsync(required);
+        var visited = new HashSet<int>();
+        var queue = new Queue<int>(required);
+        var depCount = 0;
+
+        Log(string.Format(
+            App.Current.TryFindResource("S.Mod.CfDepsStart") as string
+                ?? "正在解析 CurseForge 必需依赖（{0} 个）...", required.Count));
+        while (queue.Count > 0 && visited.Count < 15)
+        {
+            var modId = queue.Dequeue();
+            if (!visited.Add(modId)) continue;
+            var file = await App.CurseForge.GetLatestCompatibleFileAsync(modId, gameVersion, loader);
+            var depName = names.TryGetValue(modId, out var n) && n.Name.Length > 0 ? n.Name : $"#{modId}";
+            if (file == null)
+            {
+                Log(string.Format(
+                    App.Current.TryFindResource("S.Mod.DepSkip") as string
+                        ?? "  跳过依赖 {0}（没有与所选版本兼容的文件）", depName));
+                continue;
+            }
+            await DownloadOneAsync(depName, modsDir, new ModVersionRow
+            {
+                Title = file.DisplayName,
+                ReleaseType = file.ReleaseType,
+                Badges = new List<string> { "依赖" },
+                Cf = file,
+            });
+            depCount++;
+            foreach (var d in file.Dependencies.Where(d => d.RelationType == 3))
+                queue.Enqueue(d.ModId);
+        }
+        Log(depCount > 0
+            ? string.Format(App.Current.TryFindResource("S.Mod.DepsDone") as string
+                ?? "已补齐 {0} 个必需依赖。", depCount)
+            : "没有需要补齐的依赖。");
+    }
+
+    // ---------- 批量安装（PCL 式：勾选 → 一键全部安装最新兼容版） ----------
+
+    private IEnumerable<ModRowItem> Rows => LstResults.ItemsSource as IEnumerable<ModRowItem>
+        ?? Enumerable.Empty<ModRowItem>();
+
+    private int SelectedCount => Rows.Count(r => r.IsSelected);
+
+    private void UpdateBatchUi()
+    {
+        var n = SelectedCount;
+        BtnBatchDownload.IsEnabled = n > 0 && !_busy;
+        var go = App.Current?.TryFindResource("S.Mod.BatchGo") as string ?? "下载已选（{0}）";
+        BtnBatchDownload.Content = string.Format(go, n);
+    }
+
+    private void ChkSelect_Changed(object sender, RoutedEventArgs e)
+    {
+        // 勾选状态同步到 _selectedIds（分页加载更多后可恢复）
+        if (sender is System.Windows.Controls.CheckBox cb && cb.DataContext is ModRowItem item)
+        {
+            if (item.IsSelected) _selectedIds.Add(item.Hit.ProjectId);
+            else _selectedIds.Remove(item.Hit.ProjectId);
+        }
+        UpdateBatchUi();
+    }
+
+    private void BtnSelectAll_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var r in Rows)
+        {
+            r.IsSelected = true;
+            _selectedIds.Add(r.Hit.ProjectId);
+        }
+        UpdateBatchUi();
+    }
+
+    private void BtnClearSelect_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var r in Rows)
+        {
+            r.IsSelected = false;
+            _selectedIds.Remove(r.Hit.ProjectId);
+        }
+        UpdateBatchUi();
+    }
+
+    private async void BtnBatchDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        var selected = Rows.Where(r => r.IsSelected).Select(r => r.Hit).ToList();
+        if (selected.Count == 0) return;
+
+        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
+        var dir = TargetDir(type);
+        Directory.CreateDirectory(dir);
+
+        _busy = true;
+        BtnBatchDownload.IsEnabled = false;
+        int okCount = 0, failCount = 0;
+        try
+        {
+            ClearLog();
+            Log(string.Format(
+                App.Current.TryFindResource("S.Mod.BatchStart") as string
+                    ?? "批量安装 {0} 个项目到 {1} ...", selected.Count, dir));
+            foreach (var hit in selected)
+            {
+                try
+                {
+                    await BatchInstallOneAsync(hit, type, gameVersion, dir);
+                    okCount++;
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    Log($"  ✗ {hit.Title}: {ex.Message}");
+                }
+            }
+            Log(string.Format(
+                App.Current.TryFindResource("S.Mod.BatchDone") as string
+                    ?? "批量安装完成：{0} 成功，{1} 失败。", okCount, failCount));
+            RefreshLocalMods();
+        }
+        finally
+        {
+            _busy = false;
+            UpdateBatchUi();
+            Dispatcher.Invoke(() => PbProgress.Value = 0);
+        }
+    }
+
+    /// <summary>批量安装单个项目：自动挑最新兼容文件（不弹版本对话框），mod 类型自动补依赖。</summary>
+    private async Task BatchInstallOneAsync(
+        ModrinthService.SearchHit hit, string type, string? gameVersion, string dir)
+    {
+        Log($"▶ {hit.Title}");
+        if (Platform == "curseforge")
+        {
+            if (!int.TryParse(hit.ProjectId, out var modId))
+                throw new Exception("项目 id 无效");
+            var file = await App.CurseForge.GetLatestCompatibleFileAsync(modId, gameVersion, Loader)
+                ?? throw new Exception(App.Current.TryFindResource("S.Mod.BatchNoCompat") as string
+                    ?? "没有与所选版本兼容的文件");
+            await DownloadOneAsync(hit.Title, dir, new ModVersionRow
+            {
+                Title = file.DisplayName,
+                ReleaseType = file.ReleaseType,
+                Badges = new List<string> { "最新兼容" },
+                Cf = file,
+            });
+            if (type == "mod" && file.Dependencies.Count > 0)
+                await ResolveCfDependenciesAsync(file, dir, gameVersion, Loader);
+        }
+        else
+        {
+            var found = await App.Modrinth.GetLatestCompatibleFileAsync(hit.Slug, gameVersion, Loader)
+                ?? throw new Exception(App.Current.TryFindResource("S.Mod.BatchNoCompat") as string
+                    ?? "没有与所选版本兼容的文件");
+            var (v, f) = found;
+            await DownloadOneAsync(hit.Title, dir, new ModVersionRow
+            {
+                Title = v.VersionNumber,
+                ReleaseType = v.VersionType,
+                Badges = new List<string> { "最新兼容" },
+                MrVersion = v,
+                MrFile = f,
+            });
+            if (type == "mod")
+                await ResolveDependenciesAsync(v, dir, gameVersion);
+        }
+    }
+}
