@@ -228,9 +228,11 @@ public partial class HomePage : Page
 
     private void BtnOfflineLogin_Click(object sender, RoutedEventArgs e)
     {
-        var name = Prompt.Show(FindResource("S.Home.OfflineName") as string ?? "玩家名",
-            FindResource("S.Home.OfflineLogin") as string ?? "", Window.GetWindow(this));
-        name = AuthService.NormalizeOfflineName(name);
+        // 登录系统全面检查：改用带实时校验的专用窗口（非法输入就地红字提示）。
+        // 此前通用 Prompt + 静默丢弃非法名：填错点确定毫无反应，像按钮坏了。
+        var current = AccountStore.Instance.Current;
+        var name = OfflineNameWindow.Show(Window.GetWindow(this),
+            current is { Type: "offline" } ? current.Name : null);
         if (name == null) return;
         var session = AuthService.OfflineSession(name);
         AccountStore.Instance.Upsert(new StoredAccount

@@ -169,6 +169,34 @@ public class AuthService
         return name.Length is > 0 and <= 16 ? name : null;
     }
 
+    /// <summary>离线玩家名校验错误类型（登录系统全面检查）。</summary>
+    public enum OfflineNameError
+    {
+        None,
+        Empty,        // 没填
+        TooShort,     // 少于 3 字符（Java 版官方规则）
+        TooLong,      // 超过 16 字符
+        InvalidChars, // 含字母 / 数字 / 下划线以外的字符（如中文、空格、符号）
+    }
+
+    /// <summary>
+    /// 离线玩家名完整校验（登录系统全面检查）：规则与 Java 版官方玩家名一致 ——
+    /// 3-16 个字符，仅限字母 / 数字 / 下划线。返回清洗后的名字与错误类型，
+    /// Error == None 表示可用。此前 UI 层对非法输入静默丢弃（点确定毫无反应），
+    /// 现在把"为什么不行"返回给界面就地提示。
+    /// </summary>
+    public static (string? Name, OfflineNameError Error) ValidateOfflineName(string? input)
+    {
+        var name = NormalizeOfflineName(input);
+        if (name == null)
+            return (null, string.IsNullOrWhiteSpace(input) ? OfflineNameError.Empty : OfflineNameError.TooLong);
+        if (name.Length < 3) return (name, OfflineNameError.TooShort);
+        foreach (var c in name)
+            if (!(char.IsAsciiLetterOrDigit(c) || c == '_'))
+                return (name, OfflineNameError.InvalidChars);
+        return (name, OfflineNameError.None);
+    }
+
     /// <summary>离线 UUID：MD5("OfflinePlayer:" + name) 的 UUID v3（与官方离线模式一致）。</summary>
     public static string OfflineUuid(string username)
     {

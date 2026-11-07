@@ -275,11 +275,18 @@ public class AccountStore
             System.Text.Json.JsonSerializer.Serialize(this, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
     }
 
-    /// <summary>按（名字 + 类型）入列：同名离线 / 第三方账号互不顶替（v0.1.3 修复）。</summary>
+    /// <summary>按（名字 + 类型）入列：同名离线 / 第三方账号互不顶替（v0.1.3 修复）。
+    /// 重登同名账号时保留旧账号的自定义皮肤路径（登录系统全面检查：
+    /// 此前 Upsert 新建对象会静默清掉 SkinPath，离线账号换个姿势重登皮肤就没了）。</summary>
     public void Upsert(StoredAccount acc)
     {
         var old = Accounts.FirstOrDefault(a => a.Name == acc.Name && a.Type == acc.Type);
-        if (old != null) Accounts.Remove(old);
+        if (old != null)
+        {
+            if (string.IsNullOrWhiteSpace(acc.SkinPath) && !string.IsNullOrWhiteSpace(old.SkinPath))
+                acc.SkinPath = old.SkinPath;
+            Accounts.Remove(old);
+        }
         Accounts.Add(acc);
         CurrentName = acc.Name;
         CurrentType = acc.Type;

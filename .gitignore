@@ -1,4 +1,1 @@
-bin/
-obj/
-.vs/
-*.user
+tool-results/

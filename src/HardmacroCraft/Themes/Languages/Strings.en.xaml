@@ -79,6 +79,12 @@
     <sys:String x:Key="S.Login.Done">Signed in as {0}</sys:String>
     <sys:String x:Key="S.Login.Failed">Login failed:</sys:String>
     <sys:String x:Key="S.Login.Copied">Code copied. Paste it into the login page.</sys:String>
+    <!-- Login system full check: offline username validation -->
+    <sys:String x:Key="S.Login.Ok">OK</sys:String>
+    <sys:String x:Key="S.Login.NameRule">3-16 chars: letters, digits, underscore only</sys:String>
+    <sys:String x:Key="S.Login.NameTooShort">Username needs at least 3 characters.</sys:String>
+    <sys:String x:Key="S.Login.NameTooLong">Username can be at most 16 characters.</sys:String>
+    <sys:String x:Key="S.Login.NameInvalidChars">Only letters, digits and underscore are allowed.</sys:String>
 
     <!-- Download game -->
     <sys:String x:Key="S.Dl.Title">Download Game</sys:String>

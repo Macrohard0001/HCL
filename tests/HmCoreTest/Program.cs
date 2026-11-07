@@ -1421,6 +1421,39 @@ try
 }
 catch (Exception ex) { Check("fix9 文案 / 简介键检查", false, ex.Message); }
 
+// ==================== 第 23 节 · 登录系统全面检查：离线用户名校验 ====================
+Console.WriteLine("\n---- 第 23 节 · 登录系统全面检查（ValidateOfflineName）----");
+try
+{
+    // 23.1 合法名字
+    Check("合法名 Steve → None", AuthService.ValidateOfflineName("Steve").Error == AuthService.OfflineNameError.None);
+    Check("合法名含下划线数字 → None", AuthService.ValidateOfflineName("St_eve1").Error == AuthService.OfflineNameError.None);
+    Check("首尾空格被清洗", AuthService.ValidateOfflineName("  Steve  ").Name == "Steve");
+    Check("内部空白被合并清洗", AuthService.ValidateOfflineName("S t e v e").Name == "Steve");
+    Check("16 字符合法上限", AuthService.ValidateOfflineName(new string('a', 16)).Error == AuthService.OfflineNameError.None);
+    Check("3 字符合法下限", AuthService.ValidateOfflineName("abc").Error == AuthService.OfflineNameError.None);
+
+    // 23.2 空值
+    Check("null → Empty", AuthService.ValidateOfflineName(null).Error == AuthService.OfflineNameError.Empty);
+    Check("空串 → Empty", AuthService.ValidateOfflineName("").Error == AuthService.OfflineNameError.Empty);
+    Check("纯空格 → Empty", AuthService.ValidateOfflineName("   ").Error == AuthService.OfflineNameError.Empty);
+
+    // 23.3 长度（官方规则 3-16）
+    Check("2 字符 → TooShort", AuthService.ValidateOfflineName("ab").Error == AuthService.OfflineNameError.TooShort);
+    Check("17 字符 → TooLong", AuthService.ValidateOfflineName(new string('a', 17)).Error == AuthService.OfflineNameError.TooLong);
+    Check("超长含空格合并后仍判长", AuthService.ValidateOfflineName(new string('a', 10) + " " + new string('b', 10)).Error == AuthService.OfflineNameError.TooLong);
+
+    // 23.4 非法字符（此前静默丢弃的根因场景：中文 / 符号）
+    Check("中文名 → InvalidChars", AuthService.ValidateOfflineName("中文玩家").Error == AuthService.OfflineNameError.InvalidChars);
+    Check("含符号 → InvalidChars", AuthService.ValidateOfflineName("Steve!").Error == AuthService.OfflineNameError.InvalidChars);
+    Check("数字符号混合 → InvalidChars", AuthService.ValidateOfflineName("a@b c").Error == AuthService.OfflineNameError.InvalidChars);
+    Check("TooShort 优先于 InvalidChars（短中文）", AuthService.ValidateOfflineName("中").Error == AuthService.OfflineNameError.TooShort);
+
+    // 23.5 返回值约定：非法时 Name 非 null 但 Error 非 None（UI 只认 Error）
+    Check("校验失败时 Error 与 Name 解耦", AuthService.ValidateOfflineName("Steve!") == ("Steve!", AuthService.OfflineNameError.InvalidChars));
+}
+catch (Exception ex) { Check("第 23 节 离线用户名校验", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

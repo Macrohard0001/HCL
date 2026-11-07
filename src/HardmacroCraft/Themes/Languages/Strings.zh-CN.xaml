@@ -79,6 +79,12 @@
     <sys:String x:Key="S.Login.Done">登录成功：{0}</sys:String>
     <sys:String x:Key="S.Login.Failed">登录失败：</sys:String>
     <sys:String x:Key="S.Login.Copied">验证码已复制，请粘贴到登录网页。</sys:String>
+    <!-- 登录系统全面检查：离线用户名校验 -->
+    <sys:String x:Key="S.Login.Ok">确定</sys:String>
+    <sys:String x:Key="S.Login.NameRule">3-16 位，仅限字母、数字、下划线</sys:String>
+    <sys:String x:Key="S.Login.NameTooShort">用户名至少需要 3 个字符。</sys:String>
+    <sys:String x:Key="S.Login.NameTooLong">用户名最多 16 个字符。</sys:String>
+    <sys:String x:Key="S.Login.NameInvalidChars">只能使用字母、数字和下划线。</sys:String>
 
     <!-- 下载游戏 -->
     <sys:String x:Key="S.Dl.Title">下载游戏</sys:String>

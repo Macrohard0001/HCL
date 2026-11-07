@@ -122,9 +122,10 @@ public static class AccountManager
         };
         btnOffline.Click += (_, _) =>
         {
-            var name = AuthService.NormalizeOfflineName(Prompt.Show(
-                App.Current.TryFindResource("S.Home.OfflineName") as string ?? "玩家名",
-                App.Current.TryFindResource("S.Home.OfflineLogin") as string ?? "", win));
+            // 登录系统全面检查：专用窗口实时校验 + 就地报错（此前非法输入被静默丢弃）
+            var current = AccountStore.Instance.Current;
+            var name = OfflineNameWindow.Show(win,
+                current is { Type: "offline" } ? current.Name : null);
             if (name == null) return;
             var session = AuthService.OfflineSession(name);
             AccountStore.Instance.Upsert(new StoredAccount
