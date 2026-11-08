@@ -12,14 +12,27 @@ namespace HardmacroCraft.Views;
 public partial class HomePage : Page
 {
     private bool _loaded;
-    private bool _launching;
-    private DownloadTaskService.TaskItem? _currentCenterTask;
+    // v0.1.1：启动状态改为静态 —— Wpf-UI 导航每次新建页面实例，
+    // 实例字段会让"切回来"的新实例误以为没有启动在进行（进度丢失的根因之一）
+    private static bool _launching;
+    private static DownloadTaskService.TaskItem? _currentCenterTask;
     /// <summary>fix7：当前启动流程的取消令牌（取消按钮 / 任务中心都能触发）。</summary>
-    private System.Threading.CancellationToken _launchCt;
+    private static System.Threading.CancellationToken _launchCt;
+    private object? _btnLaunchDefault;
 
     public HomePage()
     {
         InitializeComponent();
+        _btnLaunchDefault = BtnLaunch.Content;
+        // v0.1.1：订阅启动进度中枢 —— 启动中切页再回来，新实例立即回放当前进度
+        LaunchProgressHub.Changed += ApplyLaunchUi;
+        LaunchProgressHub.CancelRequested += OnHubCancelRequested;
+        Unloaded += (_, _) =>
+        {
+            LaunchProgressHub.Changed -= ApplyLaunchUi;
+            LaunchProgressHub.CancelRequested -= OnHubCancelRequested;
+        };
+        ApplyLaunchUi();
         Loaded += async (_, _) =>
         {
             if (!_loaded)
@@ -70,6 +83,44 @@ public partial class HomePage : Page
         {
             Log("自动登录失败（可在登录窗口重新登录）: " + ex.Message);
         }
+    }
+
+    /// <summary>v0.1.1：把启动进度中枢的快照回放到本实例的控件上。</summary>
+    private void ApplyLaunchUi()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(ApplyLaunchUi); return; }
+        var s = LaunchProgressHub.Current;
+        if (!s.Running)
+        {
+            BtnLaunch.Content = _btnLaunchDefault;
+            BtnLaunch.IsEnabled = true;
+            BtnCancelLaunch.Visibility = Visibility.Collapsed;
+            BtnCancelLaunch.IsEnabled = true;
+            TxtStage.Visibility = Visibility.Collapsed;
+            return;
+        }
+        BtnLaunch.Content = string.IsNullOrEmpty(s.ButtonText) ? _btnLaunchDefault : s.ButtonText;
+        BtnLaunch.IsEnabled = false;
+        if (s.Indeterminate) PbProgress.IsIndeterminate = true;
+        else { PbProgress.IsIndeterminate = false; PbProgress.Value = s.Percent; }
+        TxtProgress.Text = s.ProgressLine;
+        if (!string.IsNullOrEmpty(s.StageLine))
+        {
+            TxtStage.Text = s.StageLine;
+            TxtStage.Visibility = Visibility.Visible;
+        }
+        else TxtStage.Visibility = Visibility.Collapsed;
+        BtnCancelLaunch.Visibility = s.CancelVisible ? Visibility.Visible : Visibility.Collapsed;
+        BtnCancelLaunch.IsEnabled = s.CancelEnabled;
+    }
+
+    /// <summary>v0.1.1：任意页面实例的取消请求统一从中枢进来。</summary>
+    private void OnHubCancelRequested()
+    {
+        if (!_launching) return;
+        Log("正在取消...");
+        _currentCenterTask?.RequestCancel();
+        LaunchProgressHub.Update(s => s.CancelEnabled = false);
     }
 
     /// <summary>主页最近启动快捷键（PCL/HMCL 式）。</summary>
@@ -293,8 +344,7 @@ public partial class HomePage : Page
         }
 
         _launching = true;
-        var launchBtnContent = BtnLaunch.Content;
-        BtnLaunch.IsEnabled = false;
+        LaunchProgressHub.Begin(version); // v0.1.1：进度入库（跨页面存活），本实例与新实例都会回放
         try
         {
             // fix6：内存显示实际生效值（自动检测 / 手动），与启动日志一致
@@ -391,8 +441,7 @@ public partial class HomePage : Page
             {
                 var name = App.Current.TryFindResource(resourceKey) as string ?? fallback;
                 var txt = $"{name}【{step}/{total}】";
-                TxtStage.Text = txt;
-                TxtStage.Visibility = Visibility.Visible;
+                LaunchProgressHub.Update(s => s.StageLine = txt);
                 DownloadTaskService.Instance.Update(centerTask, taskPct, txt);
                 Log(txt);
             }
@@ -406,11 +455,14 @@ public partial class HomePage : Page
                 {
                     var pct = p.TotalTasks > 0 ? p.ProgressedTasks * 100.0 / p.TotalTasks : 0;
                     taskPct = pct;
-                    PbProgress.IsIndeterminate = false;
-                    PbProgress.Value = pct;
-                    // fix7：当前下载的文件 + 阶段行同时显示（不互相覆盖）
-                    TxtProgress.Text = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}";
-                    BtnLaunch.Content = $"下载中 {pct:0}%";
+                    // v0.1.1：写进进度中枢（本实例与导航切换后的新实例同步回放）
+                    LaunchProgressHub.Update(s =>
+                    {
+                        s.Indeterminate = false;
+                        s.Percent = pct;
+                        s.ProgressLine = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}";
+                        s.ButtonText = $"下载中 {pct:0}%";
+                    });
                     DownloadTaskService.Instance.Update(centerTask, pct, $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}");
                 }));
             var meter = new SpeedMeter();
@@ -419,10 +471,13 @@ public partial class HomePage : Page
                 {
                     if (p.TotalBytes <= 0) return;
                     var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
-                    PbProgress.IsIndeterminate = false;
-                    PbProgress.Value = pct;
-                    TxtProgress.Text = $"下载中 {pct:0}% · {SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(meter.Observe(p.ProgressedBytes))}";
-                    BtnLaunch.Content = $"下载中 {pct:0}%";
+                    LaunchProgressHub.Update(s =>
+                    {
+                        s.Indeterminate = false;
+                        s.Percent = pct;
+                        s.ProgressLine = $"下载中 {pct:0}% · {SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(meter.Observe(p.ProgressedBytes))}";
+                        s.ButtonText = $"下载中 {pct:0}%";
+                    });
                     DownloadTaskService.Instance.Update(centerTask, pct,
                         $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)}");
                 }));
@@ -473,10 +528,13 @@ public partial class HomePage : Page
                 {
                     var jp = new Progress<double>(p => Dispatcher.Invoke(() =>
                     {
-                        PbProgress.IsIndeterminate = false;
-                        PbProgress.Value = p;
-                        TxtProgress.Text = $"下载 Java {installMajor}: {p:0}%";
-                        BtnLaunch.Content = $"Java {p:0}%";
+                        LaunchProgressHub.Update(s =>
+                        {
+                            s.Indeterminate = false;
+                            s.Percent = p;
+                            s.ProgressLine = $"下载 Java {installMajor}: {p:0}%";
+                            s.ButtonText = $"Java {p:0}%";
+                        });
                         DownloadTaskService.Instance.Update(jTask, p, $"下载中 {p:0}%");
                     }));
                     javaToUse = await JavaManager.EnsureJreAsync(installMajor, App.LauncherService.Http, jp, Log, askDir, launchCt);
@@ -503,8 +561,8 @@ public partial class HomePage : Page
                 return;
             }
 
-            Log("正在检查并补全游戏文件（jar / 资源 / 库）...");
-            BtnLaunch.Content = (string)FindResource("S.Home.Starting");
+            Log("正在检查游戏文件（jar / 资源 / 库）...");
+            LaunchProgressHub.Update(s => s.ButtonText = (string)FindResource("S.Home.Starting"));
             // 离线皮肤（PCL 式）：离线账号设置过皮肤时，文件校验完成后注入 client jar
             string? offlineSkinPath = acc.Type == "offline"
                 && !string.IsNullOrWhiteSpace(acc.SkinPath) && System.IO.File.Exists(acc.SkinPath)
@@ -522,8 +580,12 @@ public partial class HomePage : Page
             DownloadTaskService.Instance.Complete(centerTask, (string)FindResource("S.Task.Ready"));
             _currentCenterTask = null;
             Log("游戏已启动，PID = " + process.Process?.Id);
-            PbProgress.Value = 0;
-            TxtProgress.Text = "游戏运行中，可关闭窗口（日志继续记录）";
+            LaunchProgressHub.Update(s =>
+            {
+                s.Indeterminate = false;
+                s.Percent = 0;
+                s.ProgressLine = "游戏运行中，可关闭窗口（日志继续记录）";
+            });
             // 记录最近启动（主页快捷启动，最新在前）
             AppSettings.Instance.RecordLaunch(version);
             RefreshRecent();
@@ -568,8 +630,12 @@ public partial class HomePage : Page
         {
             // fix7：用户取消启动（取消按钮 / 任务中心）—— 收尾并恢复 UI（PCL/HMCL 同款）
             Log("启动已取消。");
-            PbProgress.Value = 0;
-            TxtProgress.Text = "已取消";
+            LaunchProgressHub.Update(s =>
+            {
+                s.Indeterminate = false;
+                s.Percent = 0;
+                s.ProgressLine = "已取消";
+            });
             if (_currentCenterTask != null)
                 DownloadTaskService.Instance.Cancel(_currentCenterTask, "已取消");
             _currentCenterTask = null;
@@ -577,7 +643,12 @@ public partial class HomePage : Page
         catch (Exception ex)
         {
             Log("启动失败: " + ex.Message);
-            PbProgress.Value = 0;
+            LaunchProgressHub.Update(s =>
+            {
+                s.Indeterminate = false;
+                s.Percent = 0;
+                s.ProgressLine = "启动失败：" + ex.Message;
+            });
             if (_currentCenterTask != null)
                 DownloadTaskService.Instance.Fail(_currentCenterTask, "启动失败: " + ex.Message);
             _currentCenterTask = null;
@@ -585,22 +656,16 @@ public partial class HomePage : Page
         finally
         {
             _launching = false;
-            BtnLaunch.IsEnabled = true;
-            BtnLaunch.Content = launchBtnContent;
-            BtnCancelLaunch.Visibility = Visibility.Collapsed;
-            BtnCancelLaunch.IsEnabled = true;
-            TxtStage.Visibility = Visibility.Collapsed;
+            LaunchProgressHub.End(); // v0.1.1：复位快照 → 所有实例恢复空闲 UI（含切页后的新实例）
             _launchCt = default;
         }
     }
 
-    /// <summary>fix7：取消启动（下载/安装/补全文件阶段生效；游戏进程创建后不可取消）。</summary>
+    /// <summary>fix7：取消启动（下载/安装/补全文件阶段生效；游戏进程创建后不可取消）。
+    /// v0.1.1：改由进度中枢广播 —— 任何页面实例上的取消按钮都能命中同一个启动流程。</summary>
     private void BtnCancelLaunch_Click(object sender, RoutedEventArgs e)
     {
-        if (!_launching) return;
-        Log("正在取消...");
-        _currentCenterTask?.RequestCancel();
-        BtnCancelLaunch.IsEnabled = false;
+        LaunchProgressHub.RequestCancel();
     }
 
     private async void BtnRefreshVersions_Click(object sender, RoutedEventArgs e)

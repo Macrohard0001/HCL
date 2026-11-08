@@ -744,3 +744,23 @@ Task: fix5 批次
 - 版本号 0.1.0-fix5（用户指定；csproj Version + GameLauncherVersion）
 - 测试 183/183（新增 26.2/26.3 → Java 25 断言）；提交 e942fdb
 - qu.ax：DX2CH 便携 / cYYbb 单文件 / JOnhU 源码；MD5：eb427c0c / 228ae471 / 9d06b860
+
+## Task 26 · v0.1.1（多线程下载 / 校验缓存 / 进度中枢）
+
+日期：2026-11-08 · 测试：301/301 全绿（新增第 24 节 15 项）
+
+- 多线程下载：设置页新增「下载线程数」（1-32，默认 8，DownloadThreads）；
+  LauncherService.PrefetchGameFilesAsync 把 client jar / 全链 libraries（含 natives-windows）/
+  全部 assets 对象列成批量清单，走 DownloadEngine.DownloadBatchAsync 并发预取
+  （sha1/大小校验，已完整自动跳过；远古版 legacy/pre-1.6 virtual 索引交给内置安装器；
+  预取失败不阻断，CmlLib InstallAsync 兜底），设置 1 线程 = 旧行为
+- 校验缓存（每次启动都重新补全的根治）：VerifyStamp（config/verify-cache/），
+  戳 = 版本 json mtime+size+启动器版本+游戏根目录；写戳前校验版本目录存在 jar；
+  DeleteVersion/Invalidate 清戳；设置页可开「每次启动重新校验」强制全量
+- 进度中枢 LaunchProgressHub：启动进度单一事实来源，HomePage 每个实例订阅回放 ——
+  修复"启动中切标签页回来进度丢失"（Wpf-UI 导航每次新建页面实例的根因）；
+  _launching/_currentCenterTask/_launchCt 改静态，任意页面实例可取消
+- 取消增强：RunInInstallGateAsync 支持 ct（等安装闸门排队期间可取消，不再干等 15 分钟）
+- README：v1.x 时代残留的内部版本号标记全部清理，头部对齐 v0.1.1
+- 打包：单文件 70MB 自包含自检 + 便携版 hostfxr/coreclr 自检；便携 zip 带根目录
+  HardmacroCraft/ + 内置「!运行说明.txt」（杜绝压缩包内直接双击 exe 误报缺运行时）

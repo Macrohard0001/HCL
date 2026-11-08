@@ -26,6 +26,9 @@ public partial class SettingsPage : Page
             ChkJvmOptimize.IsChecked = AppSettings.Instance.JvmOptimize;
             TxtGameArgs.Text = AppSettings.Instance.CustomGameArgs;
             ChkFullscreen.IsChecked = AppSettings.Instance.GameFullscreen;
+            // v0.1.1：下载线程数 / 每次启动重新校验
+            NumDownloadThreads.Value = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 32);
+            ChkVerifyFiles.IsChecked = AppSettings.Instance.VerifyFilesEveryLaunch;
             SldMemory.Value = AppSettings.Instance.MemoryMb;
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
             // fix6：自动检测模式下滑杆禁用，显示检测到的物理内存与推荐值
@@ -250,6 +253,10 @@ public partial class SettingsPage : Page
         s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
         s.CustomGameArgs = TxtGameArgs.Text.Trim();
         s.GameFullscreen = ChkFullscreen.IsChecked == true;
+        // v0.1.1：下载线程数（1-32，非法输入回退默认 8）/ 每次启动重新校验
+        s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 32
+            ? (int)NumDownloadThreads.Value!.Value : 8;
+        s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
         s.MemoryAuto = ChkMemAuto.IsChecked == true;
         s.MemoryMb = (int)SldMemory.Value;
         s.UseMirror = ChkMirror.IsChecked == true;

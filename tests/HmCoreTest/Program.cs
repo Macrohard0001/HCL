@@ -1454,6 +1454,61 @@ try
 }
 catch (Exception ex) { Check("第 23 节 离线用户名校验", false, ex.Message); }
 
+// ==================== 第 24 节 · v0.1.1：校验缓存 / 进度中枢 / 下载线程数 ====================
+Console.WriteLine("\n---- 第 24 节 · v0.1.1（VerifyStamp / LaunchProgressHub）----");
+try
+{
+    // 24.1 VerifyStamp（临时目录注入，不碰真实 config/）
+    var stampRoot = Path.Combine(Path.GetTempPath(), "hmc-test-stamp-" + Guid.NewGuid().ToString("N")[..8]);
+    var stampCfg = Path.Combine(stampRoot, "config");
+    var verDir = Path.Combine(stampRoot, "versions", "1.20.1");
+    Directory.CreateDirectory(verDir);
+    File.WriteAllText(Path.Combine(verDir, "1.20.1.json"), "{}");
+    var stampVersion = "1.20.1";
+
+    Check("无戳 → 不可跳过", !VerifyStamp.IsValid(stampRoot, stampVersion, stampCfg));
+    VerifyStamp.Write(stampRoot, stampVersion, stampCfg); // 无 jar → 应拒绝写戳
+    Check("无 jar → 写戳被拒绝", !File.Exists(VerifyStamp.StampPath(stampRoot, stampVersion, stampCfg)));
+    File.WriteAllText(Path.Combine(verDir, "1.20.1.jar"), "fake-jar");
+    VerifyStamp.Write(stampRoot, stampVersion, stampCfg);
+    Check("有 json + jar 写戳成功", File.Exists(VerifyStamp.StampPath(stampRoot, stampVersion, stampCfg)));
+    Check("写戳后 → 可跳过", VerifyStamp.IsValid(stampRoot, stampVersion, stampCfg));
+    var mtime = new FileInfo(Path.Combine(verDir, "1.20.1.json")).LastWriteTimeUtc;
+    File.WriteAllText(Path.Combine(verDir, "1.20.1.json"), "{\"patched\":true}"); // 版本 json 变化
+    File.SetLastWriteTimeUtc(Path.Combine(verDir, "1.20.1.json"), mtime.AddMinutes(1));
+    Check("版本 json 变化 → 戳自动失效", !VerifyStamp.IsValid(stampRoot, stampVersion, stampCfg));
+    VerifyStamp.Write(stampRoot, stampVersion, stampCfg);
+    Check("重写后再次有效", VerifyStamp.IsValid(stampRoot, stampVersion, stampCfg));
+    VerifyStamp.Invalidate(stampRoot, stampVersion, stampCfg);
+    Check("Invalidate → 戳删除", !File.Exists(VerifyStamp.StampPath(stampRoot, stampVersion, stampCfg)));
+    Check("版本目录不存在 → 不可跳过", !VerifyStamp.IsValid(stampRoot, "ghost", stampCfg));
+    Check("Encode 纯字母数字保留", VerifyStamp.Encode("1.20.1") != "1.20.1" && VerifyStamp.Encode("abc").Length == 3);
+    Check("Encode 空串安全", VerifyStamp.Encode("").Length > 0);
+
+    // 24.2 LaunchProgressHub 快照流转
+    int fired = 0;
+    void CountChanged() => fired++;
+    LaunchProgressHub.Changed += CountChanged;
+    var before = fired;
+    LaunchProgressHub.Begin("1.20.1");
+    Check("Begin → Running / 取消可见", LaunchProgressHub.Current.Running && LaunchProgressHub.Current.CancelVisible);
+    Check("Begin 触发 Changed", fired > before);
+    LaunchProgressHub.Update(s => { s.Percent = 50; s.Indeterminate = false; s.ProgressLine = "[10/20] a.ogg"; });
+    Check("Update 写入快照", !LaunchProgressHub.Current.Indeterminate
+        && LaunchProgressHub.Current.Percent == 50
+        && LaunchProgressHub.Current.ProgressLine == "[10/20] a.ogg");
+    LaunchProgressHub.End();
+    Check("End → 快照复位", !LaunchProgressHub.Current.Running && LaunchProgressHub.Current.ProgressLine == "");
+    bool cancelHit = false;
+    void OnCancel() => cancelHit = true;
+    LaunchProgressHub.CancelRequested += OnCancel;
+    LaunchProgressHub.RequestCancel();
+    LaunchProgressHub.CancelRequested -= OnCancel;
+    LaunchProgressHub.Changed -= CountChanged;
+    Check("RequestCancel → 事件到达", cancelHit);
+}
+catch (Exception ex) { Check("第 24 节 v0.1.1", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

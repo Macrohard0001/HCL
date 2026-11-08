@@ -123,6 +123,27 @@
                     <TextBlock Text="{DynamicResource S.Set.GameArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
                     <ui:TextBox x:Name="TxtGameArgs" MinHeight="38" FontFamily="Consolas"
                                 PlaceholderText="--fullscreen --demo" />
+
+                    <!-- v0.1.1：下载线程数（多线程预取） -->
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource S.Set.DownloadThreads}" FontWeight="Medium" />
+                            <TextBlock Text="{DynamicResource S.Set.DownloadThreadsHint}" Style="{StaticResource HmHint}"
+                                       Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="36"
+                                      VerticalAlignment="Center" Minimum="1" Maximum="32" Value="8"
+                                      SmallChange="1" LargeChange="4" />
+                    </Grid>
+
+                    <!-- v0.1.1：每次启动重新校验文件 -->
+                    <CheckBox x:Name="ChkVerifyFiles" Content="{DynamicResource S.Set.VerifyEvery}" Margin="0,16,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.VerifyEveryHint}" Style="{StaticResource HmHint}" Margin="24,0,0,10"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

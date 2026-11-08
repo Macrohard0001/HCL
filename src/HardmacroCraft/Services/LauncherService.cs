@@ -28,11 +28,21 @@ public class LauncherService : IDisposable
     /// </summary>
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
+    /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
+    public const string LauncherVersion = "0.1.1";
+
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
+        => await RunInInstallGateAsync(CancellationToken.None, work);
+
+    /// <summary>v0.1.1：支持取消 —— 等闸门期间用户点「取消」立即退出（以前会干等 15 分钟超时）。</summary>
+    private static async Task<T> RunInInstallGateAsync<T>(CancellationToken ct, Func<Task<T>> work)
     {
-        if (!await InstallGate.WaitAsync(TimeSpan.FromMinutes(15)))
+        while (true)
+        {
+            if (await InstallGate.WaitAsync(TimeSpan.FromMinutes(15), ct)) break;
             throw new InvalidOperationException(
                 "另一个安装任务超过 15 分钟仍未结束，本次操作已取消。可到任务中心查看进行中的任务，或重启启动器后重试。");
+        }
         try { return await work(); }
         finally { InstallGate.Release(); }
     }
@@ -40,10 +50,14 @@ public class LauncherService : IDisposable
     private static Task RunInInstallGateAsync(Func<Task> work)
         => RunInInstallGateAsync<object?>(async () => { await work(); return null; });
 
+    /// <summary>v0.1.1：Action 版 + 取消令牌（等待闸门期间可取消）。</summary>
+    private static Task RunInInstallGateAsync(CancellationToken ct, Func<Task> work)
+        => RunInInstallGateAsync<object?>(ct, async () => { await work(); return null; });
+
     public LauncherService()
     {
         Http = new HttpClient(new MirrorHttpHandler());
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("HardmacroCraftLauncher/0.1.0-beta");
+        Http.DefaultRequestHeaders.UserAgent.ParseAdd($"HardmacroCraftLauncher/{LauncherVersion}");
     }
 
     public string RootPath => AppSettings.Instance.GameRoot;
@@ -94,7 +108,7 @@ public class LauncherService : IDisposable
                 {
                     Timeout = TimeSpan.FromSeconds(30),
                 };
-                _directHttp.DefaultRequestHeaders.UserAgent.ParseAdd("HardmacroCraftLauncher/0.1.0-beta");
+                _directHttp.DefaultRequestHeaders.UserAgent.ParseAdd($"HardmacroCraftLauncher/{LauncherVersion}");
                 _directLauncher ??= BuildLauncher(_directHttp);
                 return await _directLauncher.GetAllVersionsAsync();
             }
@@ -357,7 +371,7 @@ public class LauncherService : IDisposable
             Session = session,
             VersionType = "HardmacroCraft",
             GameLauncherName = "HardmacroCraft",
-            GameLauncherVersion = "0.1.0",
+            GameLauncherVersion = LauncherVersion,
         };
 
         // fix6：游戏内存自动检测（PCL 同款「自动分配」）。自动模式下每次启动按当前
@@ -470,10 +484,39 @@ public class LauncherService : IDisposable
 
         // 先安装文件（jar / assets / libraries），再构建并启动进程。
         // 过全局安装闸门：装载器安装等任务未结束时排队等待（而不是抛 Already installing），
-        // 用户可在日志里看到等待原因。
-        onLog?.Invoke("[启动] 检查并补全游戏文件（jar / assets / libraries）...");
+        // 用户可在日志里看到等待原因；v0.1.1 起排队期间可取消。
+        // v0.1.1 校验缓存：上次启动成功校验过的版本直接跳过补全（以前每次启动都对全部
+        // 2800+ 文件重新算哈希，看起来像"每次都重新补全所有游戏文件"）。
+        onLog?.Invoke("[启动] 检查游戏文件（jar / assets / libraries）...");
         onStage?.Invoke(2); // fix7：阶段回调 → 主页显示「正在补全游戏文件【2/3】」
-        await RunInInstallGateAsync(() => Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask());
+        var stampOk = !AppSettings.Instance.VerifyFilesEveryLaunch
+                      && VerifyStamp.IsValid(AppSettings.Instance.GameRoot, versionName);
+        if (stampOk)
+        {
+            onLog?.Invoke("[启动] 游戏文件已校验过，快速启动（跳过补全）。重新校验可在设置中开启，或删除 config/verify-cache/。");
+        }
+        else
+        {
+            await RunInInstallGateAsync(ct, async () =>
+            {
+                // v0.1.1 多线程预取：CmlLib 内置安装器逐个下载，2800+ 个资源文件串行极慢；
+                // 先按设置页线程数并发预取（已完整的自动跳过），失败不中断（内置安装器兜底）。
+                try
+                {
+                    await PrefetchGameFilesAsync(option.Path, versionName, onLog, fileProgress, byteProgress, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception pex)
+                {
+                    onLog?.Invoke("[启动] 多线程预取中断，改由内置安装器继续: " + pex.Message);
+                }
+                await Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask();
+            });
+            VerifyStamp.Write(AppSettings.Instance.GameRoot, versionName);
+        }
 
         // 离线皮肤（PCL 式）：安装完成后再打补丁 —— CmlLib 对 client jar 做 SHA1 校验，
         // 补丁必须落在校验之后才不会被重新下载覆盖。失败只记日志，绝不阻断启动。
@@ -530,6 +573,132 @@ public class LauncherService : IDisposable
         }
         wrapper.StartWithEvents();
         return wrapper;
+    }
+
+    /// <summary>
+    /// v0.1.1 多线程预取：把 client jar / libraries / assets 里缺失的文件列出来，
+    /// 用 DownloadEngine 按「设置 → 下载线程数」并发预下载。
+    /// - 已完整的文件自动跳过（sha1 / 大小校验）；
+    /// - 远古版（virtual / resources 映射资源索引）结构特殊，直接交给内置安装器；
+    /// - 任何失败都不阻断启动（CmlLib 内置安装器会接着补）。
+    /// </summary>
+    private async Task PrefetchGameFilesAsync(
+        MinecraftPath path, string versionName, Action<string>? onLog,
+        IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
+        IProgress<CmlLib.Core.ByteProgress>? byteProgress, CancellationToken ct)
+    {
+        var threads = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 32);
+        if (threads <= 1) return; // 单线程：直接用内置安装器，行为与旧版一致
+
+        var mv = await Launcher.GetVersionAsync(versionName, ct);
+        var items = new List<DownloadEngine.BatchItem>();
+
+        // 1) client jar（主 jar；MainJarId 与版本 id 可能不同）
+        var client = mv.Client;
+        var jarId = !string.IsNullOrEmpty(mv.MainJarId) ? mv.MainJarId : mv.Id;
+        var jarPath = !string.IsNullOrEmpty(client?.Path) ? client.Path : $"{jarId}/{jarId}.jar";
+        if (!string.IsNullOrEmpty(client?.Url))
+        {
+            var jarDest = System.IO.Path.Combine(path.Versions, jarPath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+            if (!File.Exists(jarDest))
+                items.Add(new DownloadEngine.BatchItem
+                {
+                    Url = client!.Url, Dest = jarDest, DisplayName = jarId + ".jar",
+                    Sha1 = string.IsNullOrEmpty(client.Sha1) ? null : client.Sha1, Size = client.Size,
+                });
+        }
+
+        // 2) libraries（整条 inheritsFrom 链；跳过纯服务端库； natives-windows 一并预取）
+        var libs = new List<CmlLib.Core.Version.MLibrary>();
+        for (CmlLib.Core.Version.IVersion? cur = mv; cur != null; cur = cur.ParentVersion)
+            libs.AddRange(cur.Libraries);
+        foreach (var lib in libs)
+        {
+            if (lib.IsServerRequired) continue;
+            var artifact = lib.Artifact;
+            if (!string.IsNullOrEmpty(artifact?.Url) && !string.IsNullOrEmpty(artifact.Path))
+            {
+                var dest = System.IO.Path.Combine(path.Library, artifact.Path.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                if (!File.Exists(dest))
+                    items.Add(new DownloadEngine.BatchItem
+                    {
+                        Url = artifact.Url, Dest = dest,
+                        DisplayName = "libraries/" + artifact.Path,
+                        Sha1 = string.IsNullOrEmpty(artifact.Sha1) ? null : artifact.Sha1, Size = artifact.Size,
+                    });
+            }
+            if (lib.Natives != null && lib.Natives.TryGetValue("windows", out var nw)
+                && lib.Classifiers != null && lib.Classifiers.TryGetValue(nw, out var nat)
+                && !string.IsNullOrEmpty(nat?.Url) && !string.IsNullOrEmpty(nat.Path))
+            {
+                var dest = System.IO.Path.Combine(path.Library, nat.Path.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                if (!File.Exists(dest))
+                    items.Add(new DownloadEngine.BatchItem
+                    {
+                        Url = nat.Url, Dest = dest,
+                        DisplayName = "libraries/" + nat.Path,
+                        Sha1 = string.IsNullOrEmpty(nat.Sha1) ? null : nat.Sha1, Size = nat.Size,
+                    });
+            }
+        }
+
+        // 3) assets（资源索引 + 全部资源对象；远古版 virtual 索引（legacy/pre-1.6）结构特殊，跳过交给内置安装器）
+        var assetIndex = mv.AssetIndex;
+        var isLegacyAssetIndex = assetIndex != null && (assetIndex.Id == "legacy" || assetIndex.Id == "pre-1.6");
+        if (!string.IsNullOrEmpty(assetIndex?.Url) && !isLegacyAssetIndex)
+        {
+            var indexDest = System.IO.Path.Combine(path.Assets, "indexes", assetIndex.Id + ".json");
+            if (!File.Exists(indexDest))
+            {
+                items.Add(new DownloadEngine.BatchItem
+                {
+                    Url = assetIndex.Url, Dest = indexDest, DisplayName = "assets/indexes/" + assetIndex.Id + ".json",
+                    Sha1 = string.IsNullOrEmpty(assetIndex.Sha1) ? null : assetIndex.Sha1, Size = assetIndex.Size,
+                });
+            }
+            if (File.Exists(indexDest))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(indexDest));
+                    if (doc.RootElement.TryGetProperty("objects", out var objects))
+                    {
+                        foreach (var obj in objects.EnumerateObject())
+                        {
+                            if (obj.Value.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                            var hash = obj.Value.TryGetProperty("hash", out var h) ? h.GetString() : null;
+                            var size = obj.Value.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var s) ? s : 0;
+                            if (string.IsNullOrEmpty(hash) || hash.Length < 2) continue;
+                            var dest = System.IO.Path.Combine(path.Assets, "objects", hash[..2], hash);
+                            if (File.Exists(dest)) continue;
+                            items.Add(new DownloadEngine.BatchItem
+                            {
+                                Url = "https://resources.download.minecraft.net/" + hash[..2] + "/" + hash,
+                                Dest = dest, DisplayName = "assets/objects/" + hash[..2] + "/" + hash,
+                                Sha1 = hash, Size = size,
+                            });
+                        }
+                    }
+                }
+                catch (Exception aex)
+                {
+                    onLog?.Invoke("[启动] 资源索引解析失败（交给内置安装器）: " + aex.Message);
+                }
+            }
+        }
+
+        if (items.Count == 0) return;
+        onLog?.Invoke($"[启动] 多线程预取：待下载 {items.Count} 个文件（{threads} 线程）...");
+
+        var prog = new Progress<DownloadEngine.BatchProgress>(p =>
+        {
+            byteProgress?.Report(new CmlLib.Core.ByteProgress(p.TotalBytes, p.DoneBytes));
+            fileProgress?.Report(new CmlLib.Core.Installers.InstallerProgressChangedEventArgs(
+                p.TotalFiles, p.DoneFiles, p.CurrentFile, CmlLib.Core.Installers.InstallerEventType.Queued));
+        });
+        await DownloadEngine.DownloadBatchAsync(Http, items, threads, prog,
+            null, ct); // 不逐文件写日志（2800 行会刷屏）；文件名经 fileProgress 进度行显示
+        onLog?.Invoke("[启动] 多线程预取完成。");
     }
 
     /// <summary>
@@ -592,6 +761,7 @@ public class LauncherService : IDisposable
     {
         var dir = Path.Combine(AppSettings.Instance.GameRoot, "versions", versionName);
         if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        VerifyStamp.Invalidate(AppSettings.Instance.GameRoot, versionName);
     }
 
     /// <summary>把版本目录内的 json/jar 文件名与 json 中的 id 字段改为新版本名。</summary>
