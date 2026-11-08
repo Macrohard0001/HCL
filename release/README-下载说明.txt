@@ -9,13 +9,13 @@ Hardmacro Craft Launcher 0.1.1 下载说明（独立开源 Minecraft 启动器�
 2. HardmacroCraft-Launcher-0.1.1-Portable.zip（66MB）
    · 解压后是 HardmacroCraft 文件夹（含全部 DLL），启动略快
    · 内置「!运行说明.txt」；整个文件夹拷走即迁移
-3. HardmacroCraft-source-0.1.1.zip（294KB）
+3. HardmacroCraft-source-0.1.1.zip（295KB）
    · 完整源码（src + tests + docs），开发者 / 自审用
 
 【下载直链（qu.ax）】
-· 单文件版   https://qu.ax/seKT9
-· 便携文件夹 https://qu.ax/CjAAK
-· 源码包     https://qu.ax/ZKNVt
+· 单文件版   https://qu.ax/ItSTv
+· 便携文件夹 https://qu.ax/5U4BA
+· 源码包     https://qu.ax/o8miJ
 
 【⚠ 下载姿势很重要 —— 否则会得到「损坏的压缩包」】
 qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链，
@@ -33,14 +33,15 @@ qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链
 · 单文件版：运行时已内嵌，任何位置双击即可；如杀毒软件拦截请加白名单。
 
 【SHA1 校验（与 qu.ax 服务端返回一致）】
-· Portable   4e9bc9994e0ad90bf14d2228221067361932346d
-· SingleFile 3e9281843a687b12425cb0943ebe85324d226912
-· Source     704143a2f758da87b2e1e70ef7d7271d06efe795
+· Portable   726929af0e437ee3684253528a26cb95c8b8c51f
+· SingleFile 134635efe80547f2d134221a78005e53aca0463c
+· Source     ba92c531cdeec0fd8dbd7ae6d575ba5370b2c5de
 本地校验：certutil -hashfile 文件名 SHA1（Windows）或 sha1sum 文件名（Linux/macOS）
 
 【0.1.1 更新内容】
-· 多线程下载：设置页新增「下载线程数」（1-32，默认 8）；启动补全 / 资源
-  预下载按线程数并发（已完整的文件自动跳过），首次安装 2800+ 资源文件明显提速
+· 多线程下载：设置页新增「下载线程数」（1-256，默认 64，与 PCL 同档位）；
+  启动补全 / 资源预下载按线程数并发（已完整的文件自动跳过），
+  首次安装 2800+ 资源文件明显提速
 · 校验缓存：每个版本完整校验一次后直接快速启动，不再每次启动都重新
   补全全部游戏文件；怀疑文件损坏可在设置中开启「每次启动重新校验」
 · 修复切换标签页丢进度：启动进度改为全局进度中枢跨页面回放，
@@ -52,7 +53,7 @@ qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链
 1. 启动一个已装过的版本 → 日志应出现「游戏文件已校验过，快速启动（跳过补全）」
 2. 删除某版本的 assets 后再启动 → 应看到「多线程预取」只补缺失文件
 3. 启动下载过程中切到「版本」页再回主页 → 进度条 / 阶段行应原样恢复
-4. 设置页 → 应有「下载线程数」（1-32）与「每次启动重新校验文件」两个新选项
+4. 设置页 → 应有「下载线程数」（1-256）与「每次启动重新校验文件」两个新选项
 
 【已知限制】
 · 微软正版登录需自备 Azure Client ID（设置页有获取引导，免费，约 3 分钟）

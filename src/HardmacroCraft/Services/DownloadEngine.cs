@@ -225,6 +225,9 @@ public static class DownloadEngine
 
         await Task.WhenAll(tasks);
 
+        // 终态汇总：保证最后一条进度回调一定是全量完成态（并发交错时中间报告顺序不定）
+        progress?.Report(new BatchProgress(currentFile, doneFiles, items.Count, doneBytes, totalBytes));
+
         if (failed.Count > 0)
             throw new InvalidOperationException(
                 $"有 {failed.Count} 个文件下载失败：\n- " + string.Join("\n- ", failed.Take(8))

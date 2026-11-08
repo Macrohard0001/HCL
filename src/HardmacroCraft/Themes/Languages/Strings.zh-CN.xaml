@@ -369,7 +369,7 @@
     <sys:String x:Key="S.Set.FullscreenHint">游戏以全屏模式打开（--fullscreen），忽略上方的窗口分辨率设置。</sys:String>
     <!-- v0.1.1：多线程下载 + 校验缓存 -->
     <sys:String x:Key="S.Set.DownloadThreads">下载线程数</sys:String>
-    <sys:String x:Key="S.Set.DownloadThreadsHint">启动补全 / 预下载资源时的并发数（1-32，默认 8）。调大下载更快，但对劣质网络可能更容易超时；设为 1 时退回串行下载。</sys:String>
+    <sys:String x:Key="S.Set.DownloadThreadsHint">启动补全 / 预下载资源时的并发数（1-256，默认 64）。调大下载更快，但对劣质网络可能更容易超时；设为 1 时退回串行下载。</sys:String>
     <sys:String x:Key="S.Set.VerifyEvery">每次启动都重新校验游戏文件</sys:String>
     <sys:String x:Key="S.Set.VerifyEveryHint">默认关闭：每个版本完整校验一次后直接快速启动（不再每次重算全部文件哈希）。怀疑文件损坏或游戏行为异常时再开启。</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->

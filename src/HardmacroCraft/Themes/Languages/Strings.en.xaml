@@ -369,7 +369,7 @@
     <sys:String x:Key="S.Set.FullscreenHint">Start the game in fullscreen (--fullscreen), ignoring the resolution above.</sys:String>
     <!-- v0.1.1: multithreaded download + verify cache -->
     <sys:String x:Key="S.Set.DownloadThreads">Download threads</sys:String>
-    <sys:String x:Key="S.Set.DownloadThreadsHint">Concurrency for file completion / asset prefetch (1-32, default 8). Higher is faster but may time out on poor networks; 1 falls back to serial download.</sys:String>
+    <sys:String x:Key="S.Set.DownloadThreadsHint">Concurrency for file completion / asset prefetch (1-256, default 64). Higher is faster but may time out on poor networks; 1 falls back to serial download.</sys:String>
     <sys:String x:Key="S.Set.VerifyEvery">Re-verify game files on every launch</sys:String>
     <sys:String x:Key="S.Set.VerifyEveryHint">Off by default: each version is fully verified once, then launches skip the check (no more hashing every file every time). Enable if you suspect corrupted files.</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->
