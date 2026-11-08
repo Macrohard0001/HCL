@@ -62,6 +62,16 @@ public class AppSettings
     public string CustomGameArgs { get; set; } = "";
     /// <summary>全屏启动（fix8，PCL 同款）：以 --fullscreen 启动，忽略窗口分辨率设置。</summary>
     public bool GameFullscreen { get; set; }
+    /// <summary>
+    /// v0.1.1 下载线程数（1-32）：启动补全 / 资源多线程预取的并发数。默认 8。
+    /// 设为 1 时退回内置安装器的单文件串行下载。
+    /// </summary>
+    public int DownloadThreads { get; set; } = 8;
+    /// <summary>
+    /// v0.1.1 每次启动都重新校验游戏文件。默认关（校验过一次的版本直接快速启动）；
+    /// 怀疑文件损坏 / 游戏异常时再开启。
+    /// </summary>
+    public bool VerifyFilesEveryLaunch { get; set; }
 
     /// <summary>Java 自动选择：启动时按版本需要自动挑选托管 Java（用户手填 Java 路径时仍以手填优先）。</summary>
     public bool AutoJavaSelect { get; set; } = true;

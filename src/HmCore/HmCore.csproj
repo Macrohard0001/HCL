@@ -35,6 +35,8 @@
     <Compile Include="../HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />
     <Compile Include="../HardmacroCraft/Services/JavaManager.cs" Link="Services/JavaManager.cs" />
     <Compile Include="../HardmacroCraft/Services/LaunchArgs.cs" Link="Services/LaunchArgs.cs" />
+    <Compile Include="../HardmacroCraft/Services/LaunchProgressHub.cs" Link="Services/LaunchProgressHub.cs" />
+    <Compile Include="../HardmacroCraft/Services/VerifyStamp.cs" Link="Services/VerifyStamp.cs" />
     <Compile Include="../HardmacroCraft/Services/LauncherService.cs" Link="Services/LauncherService.cs" />
     <Compile Include="../HardmacroCraft/Services/MirrorHttpHandler.cs" Link="Services/MirrorHttpHandler.cs" />
     <Compile Include="../HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
