@@ -587,7 +587,7 @@ public class LauncherService : IDisposable
         IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
         IProgress<CmlLib.Core.ByteProgress>? byteProgress, CancellationToken ct)
     {
-        var threads = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 32);
+        var threads = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256);
         if (threads <= 1) return; // 单线程：直接用内置安装器，行为与旧版一致
 
         var mv = await Launcher.GetVersionAsync(versionName, ct);

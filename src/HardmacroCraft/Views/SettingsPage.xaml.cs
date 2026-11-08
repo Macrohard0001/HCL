@@ -27,7 +27,7 @@ public partial class SettingsPage : Page
             TxtGameArgs.Text = AppSettings.Instance.CustomGameArgs;
             ChkFullscreen.IsChecked = AppSettings.Instance.GameFullscreen;
             // v0.1.1：下载线程数 / 每次启动重新校验
-            NumDownloadThreads.Value = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 32);
+            NumDownloadThreads.Value = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256);
             ChkVerifyFiles.IsChecked = AppSettings.Instance.VerifyFilesEveryLaunch;
             SldMemory.Value = AppSettings.Instance.MemoryMb;
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
@@ -253,9 +253,9 @@ public partial class SettingsPage : Page
         s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
         s.CustomGameArgs = TxtGameArgs.Text.Trim();
         s.GameFullscreen = ChkFullscreen.IsChecked == true;
-        // v0.1.1：下载线程数（1-32，非法输入回退默认 8）/ 每次启动重新校验
-        s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 32
-            ? (int)NumDownloadThreads.Value!.Value : 8;
+        // v0.1.1：下载线程数（1-256，非法输入回退默认 64）/ 每次启动重新校验
+        s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 256
+            ? (int)NumDownloadThreads.Value!.Value : 64;
         s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
         s.MemoryAuto = ChkMemAuto.IsChecked == true;
         s.MemoryMb = (int)SldMemory.Value;

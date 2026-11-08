@@ -136,8 +136,8 @@
                                        Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                         <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="36"
-                                      VerticalAlignment="Center" Minimum="1" Maximum="32" Value="8"
-                                      SmallChange="1" LargeChange="4" />
+                                      VerticalAlignment="Center" Minimum="1" Maximum="256" Value="64"
+                                      SmallChange="1" LargeChange="16" />
                     </Grid>
 
                     <!-- v0.1.1：每次启动重新校验文件 -->

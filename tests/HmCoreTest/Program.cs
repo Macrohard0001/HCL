@@ -541,7 +541,9 @@ try
     var lastProgress = default(DownloadEngine.BatchProgress);
     var bp = new Progress<DownloadEngine.BatchProgress>(p => lastProgress = p);
     await DownloadEngine.DownloadBatchAsync(engineHttp, batch, 4, bp, null);
-    await Task.Delay(150); // Progress 回调是异步投递，稍等落定
+    // Progress 回调是异步投递（ThreadPool 排队），轮询等待终态，最长 3 秒
+    for (var wait = 0; wait < 60 && lastProgress is not { DoneFiles: 2, TotalFiles: 2 }; wait++)
+        await Task.Delay(50);
     Check("批量下载完成且跳过已存在文件", File.Exists(batch[1].Dest) && Interlocked.Read(ref hits) == hitsBefore + 1,
         $"服务端请求 {Interlocked.Read(ref hits) - hitsBefore} 次（应为 1）");
     Check("批量进度统计正确（完成 2/2）", lastProgress is { DoneFiles: 2, TotalFiles: 2 }, lastProgress?.ToString() ?? "null");
@@ -1506,6 +1508,17 @@ try
     LaunchProgressHub.CancelRequested -= OnCancel;
     LaunchProgressHub.Changed -= CountChanged;
     Check("RequestCancel → 事件到达", cancelHit);
+
+    // 24.3 下载线程数（1-256，默认 64，对齐 PCL）
+    Check("DownloadThreads 默认 64", new AppSettings().DownloadThreads == 64);
+    var tSaved = AppSettings.Instance.DownloadThreads;
+    AppSettings.Instance.DownloadThreads = 999;
+    Check("999 被 Clamp 到上限 256", Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256) == 256);
+    AppSettings.Instance.DownloadThreads = 0;
+    Check("0 被 Clamp 到下限 1", Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256) == 1);
+    AppSettings.Instance.DownloadThreads = 1;
+    Check("1 = 串行（≤1 走内置安装器）", Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256) <= 1);
+    AppSettings.Instance.DownloadThreads = tSaved;
 }
 catch (Exception ex) { Check("第 24 节 v0.1.1", false, ex.Message); }
 

@@ -63,10 +63,10 @@ public class AppSettings
     /// <summary>全屏启动（fix8，PCL 同款）：以 --fullscreen 启动，忽略窗口分辨率设置。</summary>
     public bool GameFullscreen { get; set; }
     /// <summary>
-    /// v0.1.1 下载线程数（1-32）：启动补全 / 资源多线程预取的并发数。默认 8。
+    /// v0.1.1 下载线程数（1-256，对齐 PCL）：启动补全 / 资源多线程预取的并发数。默认 64。
     /// 设为 1 时退回内置安装器的单文件串行下载。
     /// </summary>
-    public int DownloadThreads { get; set; } = 8;
+    public int DownloadThreads { get; set; } = 64;
     /// <summary>
     /// v0.1.1 每次启动都重新校验游戏文件。默认关（校验过一次的版本直接快速启动）；
     /// 怀疑文件损坏 / 游戏异常时再开启。
