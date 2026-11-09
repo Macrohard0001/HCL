@@ -39,23 +39,24 @@
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
-            <!-- 卡片容器 -->
+            <!-- 卡片容器（微软式：8px 圆角，与 Fluent 卡片规范一致） -->
             <Style x:Key="HmCard" TargetType="{x:Type Border}">
                 <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="CornerRadius" Value="8" />
                 <Setter Property="Padding" Value="20,16" />
                 <Setter Property="Margin" Value="0,0,0,14" />
             </Style>
 
-            <!-- 强调图标芯片（卡片标题左侧） -->
-            <Style x:Key="HmIconChip" TargetType="{x:Type Border}">
-                <Setter Property="Width" Value="36" />
-                <Setter Property="Height" Value="36" />
-                <Setter Property="CornerRadius" Value="9" />
-                <Setter Property="Background" Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
-                <Setter Property="Opacity" Value="0.9" />
+            <!-- 可点击卡片（微软式：悬停仅背景微亮，不用彩色描边 / 阴影） -->
+            <Style x:Key="HmCardAction" TargetType="{x:Type Border}" BasedOn="{StaticResource HmCard}">
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}" />
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <!-- 列表项：圆角 + 悬停 + 选中描边（PCL/HMCL 式） -->
@@ -83,8 +84,6 @@
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter TargetName="Root" Property="Background"
                                             Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-                                    <Setter TargetName="Root" Property="BorderBrush"
-                                            Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

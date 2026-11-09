@@ -17,12 +17,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,2">
-            <StackPanel Orientation="Horizontal">
-                <Border Width="5" Height="24" CornerRadius="2.5"
-                        Background="{DynamicResource SystemAccentColorPrimaryBrush}"
-                        VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Mod.Title}" />
-            </StackPanel>
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Mod.Title}" />
             <TextBlock x:Name="TxtSubtitle" Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Mod.Subtitle}" />
         </StackPanel>
 

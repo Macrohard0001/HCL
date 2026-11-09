@@ -1654,6 +1654,46 @@ try
 }
 catch (Exception ex) { Check("第 25 节 v0.1.2（Hub）", false, ex.Message); }
 
+try
+{
+    // ==================== 第 26 节 v0.1.3 内存优化 ====================
+
+    // 26.1 OptimizeNow：可执行、返回值合理（两轮 GC + LOH 压缩在 Linux / Windows 均可用）
+    var (mBefore, mAfter) = MemoryManager.OptimizeNow();
+    Check("OptimizeNow 可执行且返回非负托管堆", mBefore >= 0 && mAfter >= 0, $"{mBefore}/{mAfter}");
+    Check("优化后堆不大于优化前", mAfter <= mBefore, $"{mAfter} > {mBefore}");
+    Check("WorkingSetMb 为正", MemoryManager.WorkingSetMb > 0, MemoryManager.WorkingSetMb + " MB");
+
+    // 26.2 IsLauncherBusy：任务中心运行中任务 → 忙碌；全部落定 → 空闲
+    LaunchProgressHub.End(); // 确保上一节残留快照复位
+    var busyTask = DownloadTaskService.Instance.Start("26.2 忙碌探测");
+    Check("运行中任务 → IsLauncherBusy=true", MemoryManager.IsLauncherBusy());
+    DownloadTaskService.Instance.Complete(busyTask);
+    Check("任务落定 → IsLauncherBusy=false", !MemoryManager.IsLauncherBusy());
+
+    // 26.3 设置默认值：内存优化默认开
+    Check("AutoMemoryOptimize 默认开启", new AppSettings().AutoMemoryOptimize);
+
+    // 26.4 OptimizeAfterHeavyOp：关闭开关时不动作、开启时不抛异常（延迟 1.5s 后台执行）
+    var savedOpt = AppSettings.Instance.AutoMemoryOptimize;
+    try
+    {
+        AppSettings.Instance.AutoMemoryOptimize = false;
+        MemoryManager.OptimizeAfterHeavyOp(); // 不动作路径
+        AppSettings.Instance.AutoMemoryOptimize = true;
+        MemoryManager.OptimizeAfterHeavyOp(); // 调度路径（不等它跑完）
+        Check("OptimizeAfterHeavyOp 两路径不抛异常", true);
+    }
+    finally { AppSettings.Instance.AutoMemoryOptimize = savedOpt; }
+
+    // 26.5 完成收尾挂钩：Complete(done) 后延迟优化被调度（通过无异常 + 幂等复验间接覆盖）
+    var hookTask = DownloadTaskService.Instance.Start("26.5 收尾挂钩");
+    DownloadTaskService.Instance.Complete(hookTask, "done 路径触发 OptimizeAfterHeavyOp");
+    Check("Complete(done) 收尾挂钩不破坏任务状态", hookTask.Status == "done" && !hookTask.IsActive);
+}
+catch (Exception ex) { Check("第 26 节 v0.1.3（内存优化）", false, ex.Message); }
+
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

@@ -99,6 +99,9 @@ public partial class App : Application
         Modpacks = new ModpackService(LauncherService.Http);
         Services.BootLogger.Info("服务初始化完成");
 
+        // v0.1.3 内存优化：空闲时段定时回收（重大操作后的即时优化在各业务收尾处触发）
+        Services.MemoryManager.Initialize();
+
         // 滚轮滚动全局兜底：在最外层 ScrollViewer 上直接手动滚动。
         // 这不依赖滚轮事件链（ScrollInfo 接线差异、内层 ListBox 的空滚动器吞事件、
         // 第三方控件模板差异等任何一层失效都能工作），只要偏移量接口存在即可。

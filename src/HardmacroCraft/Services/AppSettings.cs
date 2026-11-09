@@ -79,6 +79,11 @@ public class AppSettings
     public string JavaRuntimeDir { get; set; } = "";
     /// <summary>第三方登录窗口默认服务器（记住上次使用，PCL 同款）。</summary>
     public string LastAuthlibServer { get; set; } = "";
+    /// <summary>
+    /// v0.1.3 启动器内存优化：重大操作后与空闲时段自动回收内存并压缩物理内存占用。
+    /// 默认开；关闭后启动器常驻内存可能更高。
+    /// </summary>
+    public bool AutoMemoryOptimize { get; set; } = true;
     /// <summary>游戏窗口宽度（0 = 游戏默认）。</summary>
     public int GameWidth { get; set; }
     /// <summary>游戏窗口高度（0 = 游戏默认）。</summary>

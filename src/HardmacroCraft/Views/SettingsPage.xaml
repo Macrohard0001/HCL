@@ -6,22 +6,14 @@
     <ScrollViewer Style="{StaticResource HmScrollViewer}">
         <StackPanel Margin="32,24,32,24" MaxWidth="880" HorizontalAlignment="Stretch">
 
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                <Border Width="5" Height="24" CornerRadius="2.5"
-                        Background="{DynamicResource SystemAccentColorPrimaryBrush}"
-                        VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Set.Title}" />
-            </StackPanel>
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Set.Title}" Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Set.Subtitle}" />
 
             <!-- 外观（主题切换：即时生效，字体颜色跟随主题资源） -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <ui:SymbolIcon Symbol="DarkTheme24" FontSize="18" Foreground="White" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.Appearance}" />
                             <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.ThemeHint}" />
                         </StackPanel>
@@ -43,10 +35,7 @@
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <ui:SymbolIcon Symbol="Folder24" FontSize="18" Foreground="White" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.GameRoot}" />
                             <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.GameRootHint}" />
                         </StackPanel>
@@ -67,10 +56,7 @@
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <ui:SymbolIcon Symbol="Games24" FontSize="18" Foreground="White" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.Memory}" />
                                 <TextBlock x:Name="TxtMemValue" Style="{StaticResource HmSectionTitle}" Margin="8,0,0,0"
@@ -144,6 +130,13 @@
                     <CheckBox x:Name="ChkVerifyFiles" Content="{DynamicResource S.Set.VerifyEvery}" Margin="0,16,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.VerifyEveryHint}" Style="{StaticResource HmHint}" Margin="24,0,0,10"
                                TextWrapping="Wrap" />
+
+                    <!-- v0.1.3：启动器内存优化（重大操作后 + 空闲时段自动回收） -->
+                    <CheckBox x:Name="ChkLauncherMemOpt" Content="{DynamicResource S.Set.LauncherMemOpt}" Margin="0,6,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.LauncherMemOptHint}" Style="{StaticResource HmHint}" Margin="24,0,0,6"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}" Margin="0,0,0,0"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </StackPanel>
             </Border>
 
@@ -151,10 +144,7 @@
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <ui:SymbolIcon Symbol="DrinkCoffee24" FontSize="18" Foreground="White" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.JavaManage}" />
                             <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.JavaManageHint}" />
                         </StackPanel>
@@ -202,10 +192,7 @@
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="White" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.Behavior}" />
                         </StackPanel>
                     </StackPanel>

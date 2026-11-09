@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.2";
+    public const string LauncherVersion = "0.1.3";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);

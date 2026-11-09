@@ -63,15 +63,16 @@ public partial class TaskCenterPage : Page
         Grid.SetColumn(title, 0);
         head.Children.Add(title);
 
-        var (statusText, statusBrush) = StatusBadge(t);
+        var (statusText, statusBg, statusFg) = StatusBadge(t);
+        // 微软式状态徽章：Fluent 语义色 subtle 背景 + 语义色文字（不再用 Material 彩色药丸）
         var badge = new Border
         {
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(8, 1, 8, 2),
-            Background = statusBrush,
+            Background = statusBg,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        badge.Child = new TextBlock { Text = statusText, FontSize = 10.5, Foreground = Brushes.White };
+        badge.Child = new TextBlock { Text = statusText, FontSize = 10.5, Foreground = statusFg };
         Grid.SetColumn(badge, 1);
 
         // fix7：可取消任务的「取消」按钮（PCL/HMCL 同款），替代状态徽章的位置
@@ -128,15 +129,20 @@ public partial class TaskCenterPage : Page
         return card;
     }
 
-    private static (string, Brush) StatusBadge(DownloadTaskService.TaskItem t)
+    private static (string, Brush, Brush) StatusBadge(DownloadTaskService.TaskItem t)
     {
         var res = App.Current.TryFindResource;
         return t.Status switch
         {
-            "running" => ((string)res("S.Task.Running")!, new SolidColorBrush(Color.FromRgb(0x1E, 0x88, 0xE5))),
-            "done" => ((string)res("S.Task.Done")!, new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50))),
-            "failed" => ((string)res("S.Task.Failed")!, new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35))),
-            _ => ((string)res("S.Task.Canceled")!, new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0x9E))),
+            // Fluent 语义色（Wpf-Ui 主题字典）：进行中强调蓝 / 成功绿 / 失败红 / 已取消灰
+            "running" => ((string)res("S.Task.Running")!,
+                (Brush)res("SubtleFillColorSecondaryBrush")!, (Brush)res("SystemAccentColorPrimaryBrush")!),
+            "done" => ((string)res("S.Task.Done")!,
+                (Brush)res("SystemFillColorSuccessBackgroundBrush")!, (Brush)res("SystemFillColorSuccessBrush")!),
+            "failed" => ((string)res("S.Task.Failed")!,
+                (Brush)res("SystemFillColorCriticalBackgroundBrush")!, (Brush)res("SystemFillColorCriticalBrush")!),
+            _ => ((string)res("S.Task.Canceled")!,
+                (Brush)res("SubtleFillColorSecondaryBrush")!, (Brush)res("TextFillColorSecondaryBrush")!),
         };
     }
 

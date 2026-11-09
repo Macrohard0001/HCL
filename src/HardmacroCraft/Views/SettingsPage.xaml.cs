@@ -29,6 +29,9 @@ public partial class SettingsPage : Page
             // v0.1.1：下载线程数 / 每次启动重新校验
             NumDownloadThreads.Value = Math.Clamp(AppSettings.Instance.DownloadThreads, 1, 256);
             ChkVerifyFiles.IsChecked = AppSettings.Instance.VerifyFilesEveryLaunch;
+            // v0.1.3：启动器内存优化 + 当前占用展示
+            ChkLauncherMemOpt.IsChecked = AppSettings.Instance.AutoMemoryOptimize;
+            RefreshLauncherMem();
             SldMemory.Value = AppSettings.Instance.MemoryMb;
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
             // fix6：自动检测模式下滑杆禁用，显示检测到的物理内存与推荐值
@@ -88,6 +91,15 @@ public partial class SettingsPage : Page
         var tpl = (string)TryFindResource("S.Set.MemDetected") ??
                   "检测到物理内存 {0} MB，推荐分配 {1} MB";
         TxtMemDetected.Text = string.Format(tpl, total, rec);
+    }
+
+    /// <summary>v0.1.3：显示启动器当前物理内存占用（每次进入设置页时刷新一次）。</summary>
+    private void RefreshLauncherMem()
+    {
+        if (TxtLauncherMem == null) return;
+        var tpl = (string)TryFindResource("S.Set.LauncherMemNow") ??
+                  "启动器当前内存占用：{0} MB";
+        TxtLauncherMem.Text = string.Format(tpl, Services.MemoryManager.WorkingSetMb);
     }
 
     /// <summary>主题切换：即时应用并持久化，所有 DynamicResource 颜色（含字体）随之变化。</summary>
@@ -257,6 +269,8 @@ public partial class SettingsPage : Page
         s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 256
             ? (int)NumDownloadThreads.Value!.Value : 64;
         s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
+        // v0.1.3：启动器内存优化开关；关闭后立即做一次优化以便用户看到变化
+        s.AutoMemoryOptimize = ChkLauncherMemOpt.IsChecked == true;
         s.MemoryAuto = ChkMemAuto.IsChecked == true;
         s.MemoryMb = (int)SldMemory.Value;
         s.UseMirror = ChkMirror.IsChecked == true;

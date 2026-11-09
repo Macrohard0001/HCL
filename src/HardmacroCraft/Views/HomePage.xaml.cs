@@ -170,11 +170,24 @@ public partial class HomePage : Page
         }
     }
 
+    private const int LogCapLines = 500;   // v0.1.3：日志超过 600 行时修剪回 500 行，防长会话撑爆内存
+    private const int LogTrimToLines = 500;
+    private readonly List<string> _logLines = new();
+
     private void Log(string line)
     {
         Dispatcher.Invoke(() =>
         {
-            TxtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {line}{Environment.NewLine}");
+            _logLines.Add($"[{DateTime.Now:HH:mm:ss}] {line}");
+            if (_logLines.Count > LogCapLines + 100)
+            {
+                // v0.1.3 环形修剪：只保留最近 500 行（游戏输出 / 补全日志可达数千行）
+                _logLines.RemoveRange(0, _logLines.Count - LogTrimToLines);
+                TxtLog.Text = string.Join(Environment.NewLine, _logLines);
+                TxtLog.ScrollToEnd();
+                return;
+            }
+            TxtLog.AppendText(_logLines[^1] + Environment.NewLine);
             TxtLog.ScrollToEnd();
         });
     }
@@ -661,6 +674,9 @@ public partial class HomePage : Page
             _launching = false;
             LaunchProgressHub.End(); // v0.1.1：复位快照 → 所有实例恢复空闲 UI（含切页后的新实例）
             _launchCt = default;
+            // v0.1.3：启动流程（含补全 / 安装 / 取消）收尾后回收内存 —— 补全几千个文件的
+            // 下载缓冲与 JSON 解析残留集中释放，不阻塞收尾渲染（内部延迟 1.5s）
+            Services.MemoryManager.OptimizeAfterHeavyOp();
         }
     }
 
