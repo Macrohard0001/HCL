@@ -1,8 +1,10 @@
 # Hardmacro Craft Launcher
 
-**v0.1.3** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
+**v0.1.4** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
 
 > **开发者：Fox_Ryn（Macrohard0001）** · 仓库：https://github.com/Macrohard0001/HCL · License: MIT
+
+> **v0.1.4 更新说明**：紧急修复 v0.1.2 / v0.1.3 发布包在部分真机上启动即崩的问题（双击后闪退 / 弹异常窗口，日志为 XamlParseException → TypeLoadException @ FindMimeFromData）。根因是 v0.1.2 起对自包含发布启用了 .NET 裁剪（PublishTrimmed partial）以进一步减小体积——WPF 不支持裁剪（官方会报 NETSDK1168），裁剪破坏了 WPF 加载内嵌图标资源所依赖的互操作链路，导致主窗口 XAML 初始化阶段崩溃；沙盒中的 323 项测试运行在未裁剪的普通构建上，无法暴露该问题，特此记录并永久禁用裁剪。v0.1.4 撤销裁剪、仅保留单文件压缩：单文件版体积由 40.2MB 回升至约 70MB（仍较未压缩的 163.9MB 小 57%），自包含免安装 .NET 特性不变，便携版不受体积变化影响。其余功能与 v0.1.3 完全一致，v0.1.2 / v0.1.3 用户请务必更新。
 
 > **v0.1.3 更新说明**：启动器内存优化（参考 PCL / HMCL 的内存管理思路）——版本安装 / 整合包导入 / 批量下载 / 游戏启动等重大操作结束后自动回收内存，空闲时段每 5 分钟定时清理（启动器忙碌时绝不干扰），显式声明工作站并发 GC；主页日志环形修剪（只保留最近 500 行，长会话不再撑爆内存）；设置页新增「启动器内存优化」开关（默认开）并显示当前内存占用。UI 对齐微软式 Fluent 风格：移除页面标题彩色强调条与卡片彩色图标芯片（更收敛的纯文字标题层级），卡片圆角统一为 Fluent 规范的 8px，任务中心状态徽章改用 Fluent 语义色（成功绿 / 失败红 / 强调蓝的 subtle 背景 + 彩色文字），快捷入口卡片新增悬停反馈，主页图标去彩色化。323 测试全绿。
 
