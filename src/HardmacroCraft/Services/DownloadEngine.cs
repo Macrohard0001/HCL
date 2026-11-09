@@ -34,7 +34,7 @@ public static class DownloadEngine
         {
             try
             {
-                var resumed = await TryDownloadOnceAsync(http, url, part, byteProgress, ct);
+                var resumed = await TryDownloadOnceAsync(http, url, part, byteProgress, ct, expectedSize);
                 // 校验：sha1 优先，其次大小
                 var reason = await VerifyAsync(part, sha1, expectedSize, ct);
                 if (reason != null)
@@ -65,11 +65,23 @@ public static class DownloadEngine
     /// <summary>执行一次下载；若 part 已存在且服务器支持 Range 则断点续传。</summary>
     private static async Task<bool> TryDownloadOnceAsync(
         HttpClient http, string url, string part,
-        IProgress<long>? byteProgress, CancellationToken ct)
+        IProgress<long>? byteProgress, CancellationToken ct, long expectedSize = 0)
     {
         long resumeFrom = 0;
         if (File.Exists(part))
-            resumeFrom = new FileInfo(part).Length;
+        {
+            var partLen = new FileInfo(part).Length;
+            // v0.1.2 修复：part 已达 / 超过目标大小（上次下载后校验前中断等）时，
+            // Range 请求会得到 416 或空响应，重试 3 次同因失败 —— 直接丢弃 part 从头下。
+            if (expectedSize > 0 && partLen >= expectedSize)
+            {
+                try { File.Delete(part); } catch { }
+            }
+            else
+            {
+                resumeFrom = partLen;
+            }
+        }
 
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Range = resumeFrom > 0
@@ -79,7 +91,11 @@ public static class DownloadEngine
         using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
         if (resumeFrom > 0 && resp.StatusCode != System.Net.HttpStatusCode.PartialContent)
         {
-            // 服务器不支持续传 → 从头下
+            // 服务器不支持续传 → 从头下。
+            // v0.1.2 修复：此前已实时上报的字节增量不会自动回退，重下后进度会重复累计
+            // 超过 100%（批量汇总 doneBytes 直接膨胀）—— 这里报一个负增量抵消。
+            if (byteProgress != null && resumeFrom > 0)
+                byteProgress.Report(-resumeFrom);
             resumeFrom = 0;
             resp.EnsureSuccessStatusCode();
         }

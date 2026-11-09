@@ -13,10 +13,24 @@ namespace HardmacroCraft.Services;
 /// </summary>
 public static class VerifyStamp
 {
-    /// <summary>戳文件路径（configDir 可注入便于测试）。</summary>
+    /// <summary>戳文件路径（configDir 可注入便于测试）。
+    /// v0.1.2 修复：Encode 会把所有非字母数字折叠成下划线并截断 80 字符，
+    /// 不同 gameRoot / 版本名可能产生相同文件名（A 的戳被 B 误用 → 跳过校验但文件缺失），
+    /// 追加 FNV-1a 指纹消除碰撞。</summary>
     public static string StampPath(string gameRoot, string versionName, string? configDir = null)
         => Path.Combine(configDir ?? AppSettings.ConfigDir, "verify-cache",
-            Encode(gameRoot) + "_" + Encode(versionName) + ".stamp");
+            Encode(gameRoot) + "_" + Encode(versionName) + "_" + Fnv1a(gameRoot + "|" + versionName).ToString("x8") + ".stamp");
+
+    /// <summary>FNV-1a 32 位哈希（碰撞防护指纹，非安全用途）。</summary>
+    private static uint Fnv1a(string s)
+    {
+        unchecked
+        {
+            uint h = 2166136261;
+            foreach (var c in s) { h ^= c; h *= 16777619; }
+            return h;
+        }
+    }
 
     /// <summary>期望的戳内容（版本 json 未变 + 启动器版本 + 游戏根目录一致）。</summary>
     public static string ExpectedStamp(string gameRoot, string versionName)

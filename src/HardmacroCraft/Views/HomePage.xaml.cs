@@ -97,6 +97,9 @@ public partial class HomePage : Page
             BtnCancelLaunch.Visibility = Visibility.Collapsed;
             BtnCancelLaunch.IsEnabled = true;
             TxtStage.Visibility = Visibility.Collapsed;
+            // v0.1.2：空闲时回放上次启动的终态文案（已取消 / 启动失败 / 游戏运行中），
+            // 与启动结束时的旧实例显示保持一致（此前切页回来是空白）
+            TxtProgress.Text = LaunchProgressHub.LastProgressLine;
             return;
         }
         BtnLaunch.Content = string.IsNullOrEmpty(s.ButtonText) ? _btnLaunchDefault : s.ButtonText;
