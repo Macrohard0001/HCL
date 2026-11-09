@@ -1,23 +1,32 @@
-Hardmacro Craft Launcher 0.1.3 下载说明（独立开源 Minecraft 启动器，MIT 协议）
+Hardmacro Craft Launcher 0.1.4 下载说明（独立开源 Minecraft 启动器，MIT 协议）
 开发者：Fox_Ryn（Macrohard0001） · 仓库：https://github.com/Macrohard0001/HCL
 ====================================================================
 
+【⚠ v0.1.2 / v0.1.3 用户必读：本版为紧急修复版】
+v0.1.2 / v0.1.3 的发布包在部分真机上启动即崩（双击后闪退或弹出异常窗口，
+日志为 XamlParseException → TypeLoadException @ FindMimeFromData）。
+根因：v0.1.2 起对自包含发布启用了 .NET 裁剪（PublishTrimmed partial）以进一步
+减小体积，而 WPF 官方不支持裁剪，裁剪破坏了 WPF 加载内嵌图标资源所依赖的
+互操作链路，主窗口 XAML 初始化阶段即崩溃。v0.1.4 已撤销裁剪并永久禁用。
+如果你手里的 v0.1.2 / v0.1.3 能正常启动，属于「未被裁剪问题命中的环境」，
+仍然建议更新到 v0.1.4 以避免潜在的隐性异常。
+
 【三个文件怎么选】
-1. HardmacroCraft-Launcher-0.1.3-SingleFile.zip（33MB，推荐大多数用户）
+1. HardmacroCraft-Launcher-v0.1.4-SingleFile.zip（65MB，推荐大多数用户）
    · 解压后只有一个 HardmacroCraftLauncher.exe，双击即用
-   · 自带 .NET 运行时（自包含，已打包自检），无需安装任何依赖
-2. HardmacroCraft-Launcher-0.1.3-Portable.zip（37MB）
-   · 解压后是 HardmacroCraft 文件夹（含全部 DLL），启动略快
+   · 自带 .NET 运行时（自包含），无需安装任何依赖
+2. HardmacroCraft-Launcher-v0.1.4-Portable.zip（69MB）
+   · 解压后是文件夹（含全部 DLL），启动略快
    · 内置「!运行说明.txt」；整个文件夹拷走即迁移
-3. HardmacroCraft-source-0.1.3.zip（304KB）
+3. HardmacroCraft-source-v0.1.4.zip（311KB）
    · 完整源码（src + tests + docs），开发者 / 自审用
 
 【下载直链（qu.ax）】
-· 单文件版   https://qu.ax/UBRms
-· 便携文件夹 https://qu.ax/Ilxyr
-· 源码包     https://qu.ax/PHG0I
+· 单文件版   https://qu.ax/J2jLd
+· 便携文件夹 https://qu.ax/Nz1BO
+· 源码包     https://qu.ax/Z7RGX
 · GitHub Release（无防盗链，可直连下载器）：
-  https://github.com/Macrohard0001/HCL/releases/tag/v0.1.3
+  https://github.com/Macrohard0001/HCL/releases/tag/v0.1.4
 
 【⚠ 下载姿势很重要 —— 否则会得到「损坏的压缩包」】
 qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链，
@@ -35,25 +44,28 @@ qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链
 · 单文件版：运行时已内嵌，任何位置双击即可；如杀毒软件拦截请加白名单。
 
 【SHA1 校验（与 qu.ax 服务端返回一致）】
-· Portable   ac5c7e789b3cf6eee8379531b92cd44484d17e5d
-· SingleFile ac411765a57d1652ca3c9a09efe73953e3acbb13
-· Source     22c892f4eea3271273c042e0486fba912beb1056
+· SingleFile 3def460a04e3a3173b9c3bc50601c7864718b186
+· Portable   c2cc8671539ec0485e9def51b0bd20a97ffc893f
+· Source     c3c0a60c6faf723d0e6533abc13ae833668ccaa6
 
 ====================================================================
-【v0.1.3 更新内容】
+【v0.1.4 更新内容】
 
-■ 内存优化（参考 PCL / HMCL 的内存管理思路）
-· 重大操作（版本安装 / 整合包导入 / 批量下载 / 游戏启动）结束后，
-  自动回收下载缓冲与临时对象占用的内存，并把物理内存还给系统
-· 空闲时段每 5 分钟定时清理（启动器忙碌时绝不干扰，不影响下载 / 启动）
-· 主页日志环形修剪：只保留最近 500 行，长会话不再撑爆内存
-· 显式声明工作站并发 GC（桌面应用最优策略）
-· 设置页新增「启动器内存优化」开关（默认开）+ 当前内存占用显示
+■ 紧急修复：撤销 .NET 裁剪，修复启动即崩
+· 移除 PublishTrimmed（partial 裁剪）：WPF 不支持裁剪（NETSDK1168），
+  裁剪破坏了 WPF 加载内嵌图标资源依赖的互操作链路，导致主窗口
+  XAML 初始化阶段 TypeLoadException 崩溃
+· 单文件版体积由 40.2MB 回升至约 70MB（仍比未压缩的 163.9MB 小 57%），
+  单文件压缩保留，自包含免安装 .NET 特性不变
+· 教训记录：沙盒中的自动化测试运行在未裁剪的普通构建上，无法暴露
+  publish 产物特有的裁剪问题，裁剪相关开关自此永久禁用
 
-■ UI 对齐微软式 Fluent 风格
-· 移除页面标题彩色强调条与卡片彩色图标芯片，改为更收敛的纯文字标题
-· 卡片圆角统一为 Fluent 规范的 8px
-· 任务中心状态徽章改用 Fluent 语义色（成功绿 / 失败红 / 强调蓝）
-· 快捷入口卡片新增悬停反馈；主页图标去彩色化
+■ 保留 v0.1.3 全部特性
+· 内存优化：重大操作后自动回收 / 空闲每 5 分钟定时清理（忙碌不干扰）/
+  日志环形修剪（最近 500 行）/ 工作站并发 GC / 设置页内存开关与占用显示
+· UI 对齐微软式 Fluent 风格：纯文字标题层级、8px 圆角、语义色徽章、
+  悬停反馈、图标去彩色化
+· 多线程下载（1-256 可调）、校验缓存、进度中枢跨页回放
 
-■ 质量保障：323 项自动化测试全绿（新增 8 项内存优化用例）
+■ 质量保障：321 项自动化测试通过 / 0 失败（1 项环境条件用例跳过）
+====================================================================
