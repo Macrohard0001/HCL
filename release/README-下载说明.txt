@@ -1,32 +1,27 @@
-Hardmacro Craft Launcher 0.1.4 下载说明（独立开源 Minecraft 启动器，MIT 协议）
+Hardmacro Craft Launcher 0.1.5 下载说明（独立开源 Minecraft 启动器，MIT 协议）
 开发者：Fox_Ryn（Macrohard0001） · 仓库：https://github.com/Macrohard0001/HCL
 ====================================================================
 
-【⚠ v0.1.2 / v0.1.3 用户必读：本版为紧急修复版】
-v0.1.2 / v0.1.3 的发布包在部分真机上启动即崩（双击后闪退或弹出异常窗口，
-日志为 XamlParseException → TypeLoadException @ FindMimeFromData）。
-根因：v0.1.2 起对自包含发布启用了 .NET 裁剪（PublishTrimmed partial）以进一步
-减小体积，而 WPF 官方不支持裁剪，裁剪破坏了 WPF 加载内嵌图标资源所依赖的
-互操作链路，主窗口 XAML 初始化阶段即崩溃。v0.1.4 已撤销裁剪并永久禁用。
-如果你手里的 v0.1.2 / v0.1.3 能正常启动，属于「未被裁剪问题命中的环境」，
-仍然建议更新到 v0.1.4 以避免潜在的隐性异常。
+【版本线说明】
+· v0.1.4 为启动崩溃紧急修复版（撤销 .NET 裁剪），v0.1.5 在其上叠加本页全部新特性；
+  v0.1.2 / v0.1.3 用户请直接更新到 v0.1.5（含 v0.1.4 的崩溃修复）。
 
 【三个文件怎么选】
-1. HardmacroCraft-Launcher-v0.1.4-SingleFile.zip（65MB，推荐大多数用户）
+1. HardmacroCraft-Launcher-v0.1.5-SingleFile.zip（65MB，推荐大多数用户）
    · 解压后只有一个 HardmacroCraftLauncher.exe，双击即用
    · 自带 .NET 运行时（自包含），无需安装任何依赖
-2. HardmacroCraft-Launcher-v0.1.4-Portable.zip（69MB）
+2. HardmacroCraft-Launcher-v0.1.5-Portable.zip（69MB）
    · 解压后是文件夹（含全部 DLL），启动略快
    · 内置「!运行说明.txt」；整个文件夹拷走即迁移
-3. HardmacroCraft-source-v0.1.4.zip（311KB）
+3. HardmacroCraft-source-v0.1.5.zip（330KB）
    · 完整源码（src + tests + docs），开发者 / 自审用
 
 【下载直链（qu.ax）】
-· 单文件版   https://qu.ax/J2jLd
-· 便携文件夹 https://qu.ax/Nz1BO
-· 源码包     https://qu.ax/Z7RGX
+· 单文件版   https://qu.ax/qDuOo
+· 便携文件夹 https://qu.ax/cghg0
+· 源码包     https://qu.ax/8XI1Y
 · GitHub Release（无防盗链，可直连下载器）：
-  https://github.com/Macrohard0001/HCL/releases/tag/v0.1.4
+  https://github.com/Macrohard0001/HCL/releases/tag/v0.1.5
 
 【⚠ 下载姿势很重要 —— 否则会得到「损坏的压缩包」】
 qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链，
@@ -44,28 +39,38 @@ qu.ax 开启了全站防盗链：直接用 IDM / wget / 某些下载器抓短链
 · 单文件版：运行时已内嵌，任何位置双击即可；如杀毒软件拦截请加白名单。
 
 【SHA1 校验（与 qu.ax 服务端返回一致）】
-· SingleFile 3def460a04e3a3173b9c3bc50601c7864718b186
-· Portable   c2cc8671539ec0485e9def51b0bd20a97ffc893f
-· Source     c3c0a60c6faf723d0e6533abc13ae833668ccaa6
+· SingleFile d480769538c2dea6d418eefeaef904269bbcd8dc
+· Portable   177446fc22c26d3b643b64f0334cf29b251b506f
+· Source     4be6980dc2c67382d4f6115630ed93d36d6e7d04
 
 ====================================================================
-【v0.1.4 更新内容】
+【v0.1.5 更新内容】
 
-■ 紧急修复：撤销 .NET 裁剪，修复启动即崩
-· 移除 PublishTrimmed（partial 裁剪）：WPF 不支持裁剪（NETSDK1168），
-  裁剪破坏了 WPF 加载内嵌图标资源依赖的互操作链路，导致主窗口
-  XAML 初始化阶段 TypeLoadException 崩溃
-· 单文件版体积由 40.2MB 回升至约 70MB（仍比未压缩的 163.9MB 小 57%），
-  单文件压缩保留，自包含免安装 .NET 特性不变
-· 教训记录：沙盒中的自动化测试运行在未裁剪的普通构建上，无法暴露
-  publish 产物特有的裁剪问题，裁剪相关开关自此永久禁用
+■ 修复模组加载器版本获取（重点 NeoForge）
+· 自研 NeoForge 官方目录源：补齐 1.20.1 专属 artifact（net/neoforged/forge，
+  此前 1.20.1 的 NeoForge 版本列表恒为空——整合包最主流版本）；
+· 支持 2026 新版本线（26.x）与愚人节快照特例的版本映射，beta 版本排序列于正式版之后；
+· NeoForge 安装改为自构安装器直链（不再依赖 CmlLib 的 NeoForge 目录，
+  1.20.1 可正常安装），并接上详细进度（文件数 / 字节 / 速度，此前只有任务级状态）。
 
-■ 保留 v0.1.3 全部特性
-· 内存优化：重大操作后自动回收 / 空闲每 5 分钟定时清理（忙碌不干扰）/
-  日志环形修剪（最近 500 行）/ 工作站并发 GC / 设置页内存开关与占用显示
-· UI 对齐微软式 Fluent 风格：纯文字标题层级、8px 圆角、语义色徽章、
-  悬停反馈、图标去彩色化
-· 多线程下载（1-256 可调）、校验缓存、进度中枢跨页回放
+■ 模组页对齐 PCL
+· 单击搜索结果行直接进入模组详情页：简介全文 / 图标 / 徽章 / 下载 /
+  打开网页，一键返回列表（勾选框与下载按钮点击不会误入详情）；
+· 搜索时显示「正在搜索…」过渡层，期间锁定列表防误点；
+· 空结果给出友好提示；平台 / 资源类型 / 加载器筛选会被记住（下次自动恢复）。
 
-■ 质量保障：321 项自动化测试通过 / 0 失败（1 项环境条件用例跳过）
+■ 新增：模组预设（一键装机单）
+· 模组页勾选 → 「保存预设」命名存档（存便携 config/mod-presets.json）；
+· 换机器 / 换版本后点「预设安装」：按当前游戏版本与加载器自动匹配
+  最新兼容版本批量下载并自动补齐必需依赖，预设支持删除管理。
+
+■ 账号体验对齐 PCL
+· 主页三种登录入口（微软正版 / 第三方验证站 / 离线）合并为
+  「账号管理」一个按钮的子页面；
+· 头像全面对齐 PCL：有皮肤显示皮肤脸部（像素风锐利缩放），
+  无皮肤按 UUID 奇偶显示 Steve / Alex 默认脸（与游戏内选脸规则一致），
+  主页与账号管理面板同步生效。
+
+■ 质量保障：356 项自动化测试全绿（新增 NeoForge 目录源 / 模组预设 /
+  默认头像选脸 / 详情 HTML 清理共 27 项用例）
 ====================================================================

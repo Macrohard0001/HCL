@@ -263,6 +263,51 @@ public class CurseForgeService
         return PickCompatibleFile(files, gameVersion, loader);
     }
 
+
+    /// <summary>拉取项目详情并投影为统一模型（GET /v1/mods/{id} + /description，HTML 已转纯文本）。</summary>
+    public async Task<ModrinthService.ProjectDetail> GetModDetailAsync(int modId, CancellationToken ct = default)
+    {
+        using var resp = await _http.SendAsync(
+            Req(HttpMethod.Get, $"{ApiBase}/v1/mods/{modId}"), ct);
+        resp.EnsureSuccessStatusCode();
+        var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        var m = json.GetProperty("data");
+        var name = m.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : $"#{modId}";
+        var slug = m.TryGetProperty("slug", out var sl) ? sl.GetString() ?? "" : "";
+        var summary = m.TryGetProperty("summary", out var su) ? su.GetString() ?? "" : "";
+        var downloads = m.TryGetProperty("downloadCount", out var dc) && dc.TryGetInt64(out var d) ? d : 0;
+        var icon = "";
+        if (m.TryGetProperty("logo", out var lg) && lg.TryGetProperty("thumbnailUrl", out var tu)
+            && tu.ValueKind == JsonValueKind.String)
+            icon = tu.GetString() ?? "";
+        var author = "";
+        if (m.TryGetProperty("authors", out var aus) && aus.ValueKind == JsonValueKind.Array
+            && aus.GetArrayLength() > 0)
+            author = aus[0].TryGetProperty("name", out var an) ? an.GetString() ?? "" : "";
+        var webUrl = "";
+        if (m.TryGetProperty("links", out var lk) && lk.TryGetProperty("websiteUrl", out var wu)
+            && wu.ValueKind == JsonValueKind.String)
+            webUrl = wu.GetString() ?? "";
+        var body = summary;
+        try
+        {
+            using var dresp = await _http.SendAsync(
+                Req(HttpMethod.Get, $"{ApiBase}/v1/mods/{modId}/description"), ct);
+            if (dresp.IsSuccessStatusCode)
+            {
+                var djson = await dresp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+                if (djson.TryGetProperty("data", out var db) && db.ValueKind == JsonValueKind.String)
+                {
+                    var html = db.GetString() ?? "";
+                    if (html.Trim().Length > 0) body = ModrinthService.StripHtml(html);
+                }
+            }
+        }
+        catch { /* 详情正文失败时退回简介 */ }
+        return new ModrinthService.ProjectDetail(modId.ToString(), slug, name, body,
+            icon.Length > 0 ? icon : null, downloads, 0, author, webUrl, "curseforge");
+    }
+
     /// <summary>下载文件：downloadUrl 缺失时回退官方 CDN 规则地址。</summary>
     public Task DownloadAsync(CfFile file, string destFile, IProgress<long>? bytes = null, CancellationToken ct = default)
     {

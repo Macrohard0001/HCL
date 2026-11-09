@@ -1693,6 +1693,144 @@ try
 }
 catch (Exception ex) { Check("第 26 节 v0.1.3（内存优化）", false, ex.Message); }
 
+try
+{
+    // ==================== 第 27 节 v0.1.5 NeoForge 目录源 ====================
+
+    // 27.1 目录 JSON 解析
+    var neoCatalogJson = "{\"isSnapshot\":false,\"versions\":[\"20.4.51\",\"20.4.9-beta\",\"26.3.0.101\",\"0.25w14craftmine.3-beta\",\"nonsense\"]}";
+    var forgeCatalogJson = "{\"versions\":[\"1.20.1-47.1.106\",\"1.20.1-47.1.99\",\"47.1.82\"]}";
+    var parsed = LauncherService.NeoForgeCatalog.ParseVersions(neoCatalogJson);
+    Check("ParseVersions 解析 versions 数组", parsed.Length == 5 && parsed[0] == "20.4.51", string.Join(",", parsed));
+
+    // 27.2 版本名 → MC 版本映射（官方规则：20/21 → 1.x.y；26.x.y.z → x.y.z；0.快照 → 快照名）
+    var map = LauncherService.NeoForgeCatalog.MapCatalogVersionToMc;
+    Check("21.1.265 → 1.21.1", map("21.1.265") == "1.21.1", map("21.1.265") ?? "null");
+    Check("20.4.51 → 1.20.4", map("20.4.51") == "1.20.4", map("20.4.51") ?? "null");
+    Check("26.3.0.101 → 26.3", map("26.3.0.101") == "26.3", map("26.3.0.101") ?? "null");
+    Check("0.25w14craftmine.3-beta → 25w14craftmine", map("0.25w14craftmine.3-beta") == "25w14craftmine", map("0.25w14craftmine.3-beta") ?? "null");
+    Check("1.20.1-47.1.106 → null（forge artifact 名不走通用映射）", map("1.20.1-47.1.106") == null, map("1.20.1-47.1.106") ?? "null");
+    Check("乱串 → null（宽容跳过不抛异常）", map("nonsense") == null, map("nonsense") ?? "null");
+
+    // 27.3 MC 版本规范化
+    var norm = LauncherService.NeoForgeCatalog.NormalizeMc;
+    Check("NormalizeMc 1.21.0 → 1.21", norm("1.21.0") == "1.21", norm("1.21.0"));
+    Check("NormalizeMc 1.20.1 不变", norm("1.20.1") == "1.20.1", norm("1.20.1"));
+
+    // 27.4 安装器直链：1.20.1 走 net/neoforged/forge，其余走 net/neoforged/neoforge
+    var url1201 = "";
+    var full1201 = LauncherService.NeoForgeCatalog.InstallerArtifact("1.20.1", "47.1.106", out url1201);
+    Check("1.20.1 安装器 artifact = forge 全名", full1201 == "1.20.1-47.1.106", full1201);
+    Check("1.20.1 安装器 URL 指向 net/neoforged/forge",
+        url1201 == "https://maven.neoforged.net/releases/net/neoforged/forge/1.20.1-47.1.106/forge-1.20.1-47.1.106-installer.jar", url1201);
+    var urlModern = "";
+    LauncherService.NeoForgeCatalog.InstallerArtifact("1.21.1", "21.1.265", out urlModern);
+    Check("1.21.1 安装器 URL 指向 net/neoforged/neoforge",
+        urlModern == "https://maven.neoforged.net/releases/net/neoforged/neoforge/21.1.265/neoforge-21.1.265-installer.jar", urlModern);
+
+    // 27.5 排序：正式版优先 + 语义降序（20.4.100 > 20.4.51 > 20.4.9）
+    var sorted = LauncherService.NeoForgeCatalog.SortDescending(
+        new List<string> { "20.4.51", "20.4.9-beta", "20.4.9", "20.4.100" });
+    Check("SortDescending 正式版优先 + 版本号降序",
+        string.Join("|", sorted) == "20.4.100|20.4.51|20.4.9|20.4.9-beta", string.Join("|", sorted));
+
+    // 27.6 GetVersionsAsync（拦截式回放）：1.20.1 走 forge 目录并剥前缀，其余走 neoforge 目录
+    var neoHttp = new HttpClient(new InterceptingHandler((req, ct) =>
+    {
+        var body = req.RequestUri!.AbsolutePath.EndsWith("/net/neoforged/forge")
+            ? forgeCatalogJson : neoCatalogJson;
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        { Content = new StringContent(body) });
+    }));
+    var v1201 = await LauncherService.NeoForgeCatalog.GetVersionsAsync(neoHttp, "1.20.1");
+    Check("1.20.1 版本列表来自 forge artifact（剥前缀，降序）",
+        string.Join("|", v1201) == "47.1.106|47.1.99", string.Join("|", v1201));
+    var v204 = await LauncherService.NeoForgeCatalog.GetVersionsAsync(neoHttp, "1.20.4");
+    Check("1.20.4 版本列表来自 neoforge 目录（beta 靠后）",
+        string.Join("|", v204) == "20.4.51|20.4.9-beta", string.Join("|", v204));
+    var v263 = await LauncherService.NeoForgeCatalog.GetVersionsAsync(neoHttp, "26.3");
+    Check("26.3 版本列表（新版线映射）", string.Join("|", v263) == "26.3.0.101", string.Join("|", v263));
+}
+catch (Exception ex) { Check("第 27 节 v0.1.5（NeoForge 目录）", false, ex.Message); }
+
+try
+{
+    // ==================== 第 28 节 v0.1.5 模组预设存储 ====================
+    var path = Path.Combine(Path.GetTempPath(), $"hmc-test-presets-{Guid.NewGuid():N}.json");
+    try
+    {
+        // 28.1 空文件加载
+        Check("预设文件不存在 → 空列表", ModPresetStore.Load(path).Count == 0);
+
+        // 28.2 Upsert 同名覆盖 + 置顶
+        var presets = new List<ModPreset>();
+        var items1 = new List<ModPresetItem>
+        {
+            new() { Platform = "modrinth", ProjectId = "aaaa", Slug = "sodium", Title = "Sodium", Type = "mod" },
+            new() { Platform = "curseforge", ProjectId = "361427", Slug = "jei", Title = "JEI", Type = "mod" },
+        };
+        ModPresetStore.Upsert(presets, "生存整合", items1);
+        ModPresetStore.Upsert(presets, "光影包", new List<ModPresetItem>
+            { new() { Platform = "modrinth", ProjectId = "bbbb", Slug = "iris", Title = "Iris", Type = "shader" } });
+        ModPresetStore.Upsert(presets, "生存整合", new List<ModPresetItem>
+            { new() { Platform = "modrinth", ProjectId = "cccc", Slug = "lithium", Title = "Lithium", Type = "mod" } });
+        Check("Upsert 同名覆盖", presets.Count == 2 && presets[0].Name == "生存整合", string.Join(",", presets.Select(p => p.Name)));
+        Check("覆盖后条目为最新一组", presets[0].Items[0].Slug == "lithium", presets[0].Items[0].Slug);
+
+        // 28.3 落盘 + 回读（同名覆盖后：生存整合只剩 lithium 一条，光影包为 iris）
+        ModPresetStore.Save(path, presets);
+        var loaded = ModPresetStore.Load(path);
+        Check("Save → Load 往返一致",
+            loaded.Count == 2 && loaded[0].Name == "生存整合" && loaded[0].Items[0].Slug == "lithium"
+            && loaded[1].Name == "光影包" && loaded[1].Items[0].Platform == "modrinth",
+            string.Join(",", loaded.Select(p => p.Name + ":" + p.Items.Count)));
+
+        // 28.4 OfType 过滤（安装时跳过类型不符条目的依据）
+        Check("OfType 只返回匹配类型", loaded[1].OfType("shader").Count() == 1 && loaded[1].OfType("mod").Count() == 0);
+
+        // 28.5 损坏文件：返回空列表并留 .bak，不抛异常
+        File.WriteAllText(path, "{ 这不是合法 JSON ");
+        Check("损坏 JSON → 空列表不抛异常", ModPresetStore.Load(path).Count == 0);
+        Check("损坏 JSON 留有 .bak 备份", File.Exists(path + ".bak"));
+    }
+    finally
+    {
+        try { File.Delete(path); } catch { }
+        try { File.Delete(path + ".bak"); } catch { }
+    }
+}
+catch (Exception ex) { Check("第 28 节 v0.1.5（模组预设）", false, ex.Message); }
+
+try
+{
+    // ==================== 第 29 节 v0.1.5 默认头像（Steve/Alex）与详情工具 ====================
+
+    // 29.1 已知 UUID 的选脸结果（与 Java UUID.hashCode 奇偶规则一致；与 python 参照实现交叉验证）
+    // MHF_SteVe 官方维护号 → Steve；MHF_Alex → Alex；离线玩家名与选脸无关（UUID 奇偶决定）
+    Check("MHF_Steve uuid → Steve", !SkinService.PicksAlexDefault("c06f89064c8a49119c29ea1dbd1aab82"));
+    Check("MHF_Alex uuid → Alex", SkinService.PicksAlexDefault("6ab4317889fd490597f60f67d9d76fd9"));
+    Check("离线 Steve 的 uuid → Alex（按 uuid 而非名字）",
+        SkinService.PicksAlexDefault("5627dd98-e6be-3c21-b8a8-e92344183641"));
+    Check("离线 Alex 的 uuid → Steve（按 uuid 而非名字）",
+        !SkinService.PicksAlexDefault("36532b5e-c442-3dbb-a24c-c7e55d0f979a"));
+    Check("带横线与不带横线结果一致",
+        SkinService.PicksAlexDefault("6ab43178-89fd-4905-97f6-0f67d9d76fd9") == SkinService.PicksAlexDefault("6ab4317889fd490597f60f67d9d76fd9"));
+    Check("非法 uuid → Steve 兜底不抛异常", !SkinService.PicksAlexDefault("不是uuid"));
+    Check("DefaultFacePath 对应资源存在",
+        SkinService.DefaultFacePath("6ab4317889fd490597f60f67d9d76fd9") == "/Assets/alex.png"
+        && SkinService.DefaultFacePath("c06f89064c8a49119c29ea1dbd1aab82") == "/Assets/steve.png");
+
+    // 29.2 StripHtml：CF 详情 HTML → 纯文本
+    var html = "<h1>标题</h1><p>第一段 &amp; 说明</p><script>evil()</script><style>.x{}</style><br/>第二行<b>加粗</b>&nbsp;结尾";
+    var text = ModrinthService.StripHtml(html);
+    Check("StripHtml 去标签保留换行", text.Contains("标题") && text.Contains("第一段 & 说明") && text.Contains("第二行加粗"),
+        text.Replace("\n", "\\n"));
+    Check("StripHtml 去掉 script/style 与实体",
+        !text.Contains("evil") && !text.Contains(".x{") && !text.Contains("&amp;") && !text.Contains("&nbsp;"));
+    Check("StripHtml 空输入安全", ModrinthService.StripHtml("") == "" && ModrinthService.StripHtml(null!) == "");
+}
+catch (Exception ex) { Check("第 29 节 v0.1.5（默认头像与详情工具）", false, ex.Message); }
+
 
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");

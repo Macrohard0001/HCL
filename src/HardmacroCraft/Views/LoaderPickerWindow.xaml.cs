@@ -228,7 +228,8 @@ public partial class LoaderPickerWindow : FluentWindow
                     await App.LauncherService.ForgeInstallAsync(_mcVersion, loaderVersion!, fileProgress, byteProgress, ct);
                     break;
                 case "neoforge":
-                    await App.LauncherService.NeoForgeInstallAsync(_mcVersion, loaderVersion!, ct);
+                    // v0.1.5：NeoForge 安装也接上详细进度（此前只有任务级状态）
+                    await App.LauncherService.NeoForgeInstallAsync(_mcVersion, loaderVersion!, fileProgress, byteProgress, ct);
                     break;
                 case "fabric":
                     await App.LauncherService.FabricInstallAsync(_mcVersion, loaderVersion, ct);

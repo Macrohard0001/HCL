@@ -27,6 +27,7 @@
     <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
         <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/MemoryManager.cs" Link="Services/MemoryManager.cs" />
 <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModrinthService.cs" Link="Services/ModrinthService.cs" />
+    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModPresetStore.cs" Link="Services/ModPresetStore.cs" />
     <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
     <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
     <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />

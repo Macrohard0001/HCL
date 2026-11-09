@@ -199,6 +199,7 @@ public partial class HomePage : Page
         {
             TxtAvatar.Text = "?";
             ImgAvatar.Visibility = Visibility.Collapsed;
+            TxtAvatar.Visibility = Visibility.Visible; // v0.1.5：切到无账号态时恢复字母头像可见性
             TxtAccount.Text = (string)FindResource("S.Home.NoAccount")!;
             TxtAccountType.Text = (string)FindResource("S.Home.NoAccountHint")!;
         }
@@ -216,33 +217,51 @@ public partial class HomePage : Page
         }
     }
 
-    /// <summary>拉取皮肤并裁剪头部作为头像（失败静默回退首字母）。</summary>
+    /// <summary>
+    /// 拉取皮肤并裁剪头部作为头像（v0.1.5 全面对齐 PCL）：
+    /// 有皮肤 → 皮肤脸部（NearestNeighbor 像素风缩放）；
+    /// 无皮肤 / 无网络 → 按 UUID 奇偶回退 Steve / Alex 默认脸（与游戏内一致）；
+    /// 全部失败 → 首字母圆形。
+    /// </summary>
     private async Task LoadAvatarAsync(StoredAccount acc)
     {
         try
         {
             var skinUrl = await SkinService.GetSkinUrlAsync(acc, App.LauncherService.Http);
-            if (skinUrl == null) return;
-            var skin = await SkinService.DownloadSkinAsync(skinUrl, App.LauncherService.Http);
-            if (skin == null) return;
-            // 封送回 UI 线程后解码裁剪：64×64 皮肤中头部位于 (8,8)-(16,16)
-            var cropped = Dispatcher.Invoke(() =>
+            byte[]? skin = skinUrl == null ? null : await SkinService.DownloadSkinAsync(skinUrl, App.LauncherService.Http);
+            System.Windows.Media.Imaging.CroppedBitmap? cropped = null;
+            if (skin != null)
             {
-                var bmp = new System.Windows.Media.Imaging.BitmapImage();
-                using var ms = new MemoryStream(skin);
-                bmp.BeginInit();
-                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                bmp.StreamSource = ms;
-                bmp.EndInit();
-                bmp.Freeze();
-                if (bmp.PixelWidth < 32 || bmp.PixelHeight < 32) return null;
-                return new System.Windows.Media.Imaging.CroppedBitmap(bmp,
-                    new Int32Rect(8, 8, Math.Min(8, bmp.PixelWidth / 8), Math.Min(8, bmp.PixelHeight / 8)));
+                // 封送回 UI 线程后解码裁剪：64×64 皮肤中头部位于 (8,8)-(16,16)
+                cropped = Dispatcher.Invoke(() =>
+                {
+                    var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                    using var ms = new MemoryStream(skin);
+                    bmp.BeginInit();
+                    bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bmp.StreamSource = ms;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    if (bmp.PixelWidth < 32 || bmp.PixelHeight < 32) return null;
+                    return new System.Windows.Media.Imaging.CroppedBitmap(bmp,
+                        new Int32Rect(8, 8, Math.Min(8, bmp.PixelWidth / 8), Math.Min(8, bmp.PixelHeight / 8)));
+                });
+            }
+            // 无皮肤：Steve / Alex 默认脸（UUID 奇偶，PCL 同款；离线账号 uuid 亦适用）
+            var facePath = SkinService.DefaultFacePath(acc.Uuid);
+            var fallback = new System.Windows.Media.Imaging.BitmapImage();
+            fallback.BeginInit();
+            fallback.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            fallback.UriSource = new Uri(facePath, UriKind.Relative);
+            fallback.EndInit();
+            fallback.Freeze();
+            Dispatcher.Invoke(() =>
+            {
+                RenderOptions.SetBitmapScalingMode(ImgAvatar, BitmapScalingMode.NearestNeighbor);
+                ImgAvatar.Source = cropped ?? (ImageSource)fallback;
+                ImgAvatar.Visibility = Visibility.Visible;
+                TxtAvatar.Visibility = Visibility.Collapsed;
             });
-            if (cropped == null) return;
-            ImgAvatar.Source = cropped;
-            ImgAvatar.Visibility = Visibility.Visible;
-            TxtAvatar.Visibility = Visibility.Collapsed;
         }
         catch { /* 网络异常等保持字母头像 */ }
     }
@@ -266,49 +285,9 @@ public partial class HomePage : Page
         await Task.CompletedTask;
     }
 
-    // ---------- 微软正版登录（PCL 式设备码） ----------
-    private void BtnMicrosoftLogin_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(AppSettings.Instance.AzureClientId))
-        {
-            // v0.1.3：不再只丢一句日志——弹出分步引导，教用户免费注册拿 ID
-            Log("未配置 Azure Client ID：已打开获取引导（免费，约 3 分钟）...");
-            new AzureGuideWindow { Owner = Window.GetWindow(this) }.ShowDialog();
-            return;
-        }
-        var dlg = new MicrosoftLoginWindow(AppSettings.Instance.AzureClientId) { Owner = Window.GetWindow(this) };
-        dlg.ShowDialog();
-        RefreshAccountUi();
-        Log(dlg.ResultName != null ? $"微软正版登录成功: {dlg.ResultName}" : "微软登录已取消。");
-    }
-
-    // ---------- 第三方验证站登录（authlib-injector，PCL 同款） ----------
-    private void BtnAuthlibLogin_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new AuthlibLoginWindow(new AuthlibService(App.LauncherService.Http)) { Owner = Window.GetWindow(this) };
-        dlg.ShowDialog();
-        RefreshAccountUi();
-        Log(dlg.Result != null
-            ? $"第三方登录成功: {dlg.Result.Name}（{(string)FindResource("S.Authlib.Title")}）"
-            : "第三方登录已取消。");
-    }
-
-    private void BtnOfflineLogin_Click(object sender, RoutedEventArgs e)
-    {
-        // 登录系统全面检查：改用带实时校验的专用窗口（非法输入就地红字提示）。
-        // 此前通用 Prompt + 静默丢弃非法名：填错点确定毫无反应，像按钮坏了。
-        var current = AccountStore.Instance.Current;
-        var name = OfflineNameWindow.Show(Window.GetWindow(this),
-            current is { Type: "offline" } ? current.Name : null);
-        if (name == null) return;
-        var session = AuthService.OfflineSession(name);
-        AccountStore.Instance.Upsert(new StoredAccount
-        {
-            Type = "offline", Name = session.Username, Uuid = session.UUID,
-        });
-        RefreshAccountUi();
-        Log("离线登录: " + session.Username);
-    }
+    // ---------- 登录入口（v0.1.5 变更） ----------
+    // 微软正版 / 第三方验证站 / 离线 三种登录已全部并入「账号管理」子页（AccountManager），
+    // 主页只保留一个入口，与 PCL 的账户体验一致。原三个独立按钮及其事件处理已移除。
 
     // ---------- 账号管理面板（PCL 式：多账号切换 / 删除） ----------
     private void BtnManageAccounts_Click(object sender, RoutedEventArgs e)

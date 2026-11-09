@@ -97,6 +97,33 @@ public static class SkinService
         }
     }
 
+    // ==================== 默认头像（PCL 式 Steve / Alex 回退） ====================
+    // 原版规则：账号 UUID 的 Java hashCode 为奇数 → Alex（纤细），偶数 → Steve（宽臂）。
+    // 无皮肤账号（离线 / 未上传皮肤的正版）的头像即由此选择，与游戏内默认皮肤一致。
+
+    /// <summary>UUID 是否应使用 Alex 默认皮肤（Java UUID.hashCode 奇偶，与原版客户端一致）。</summary>
+    public static bool PicksAlexDefault(string? uuid)
+    {
+        try
+        {
+            var hex = (uuid ?? "").Replace("-", "");
+            if (hex.Length != 32) return false;
+            var most = Convert.ToInt64(hex[..16], 16);
+            var least = Convert.ToInt64(hex[16..], 16);
+            long hilo = most ^ least;
+            var hash = (int)(hilo >> 32) ^ (int)hilo; // Java UUID.hashCode()
+            return Math.Abs(hash % 2) == 1;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>默认头像资源路径（WPF pack URI 相对路径），PicksAlexDefault ? alex : steve。</summary>
+    public static string DefaultFacePath(string? uuid)
+        => PicksAlexDefault(uuid) ? "/Assets/alex.png" : "/Assets/steve.png";
+
     // ==================== 离线皮肤（PCL 式本机注入） ====================
     // 原理与 PCL 一致：离线玩家没有服务端身份，客户端渲染默认皮肤（Steve/Alex）。
     // 启动前把用户 PNG 写入游戏 jar 内的默认皮肤贴图条目，即可"本地伪装"。

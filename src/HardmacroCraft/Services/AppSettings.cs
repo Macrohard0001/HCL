@@ -45,6 +45,10 @@ public class AppSettings
     /// <summary>版本隔离：每个版本独立的存档 / mod / 资源包目录（类似 PCL 的版本隔离）。</summary>
     public bool VersionIsolation { get; set; } = true;
     public string LastVersion { get; set; } = "";
+    /// <summary>模组页记忆（v0.1.5，PCL 式记住筛选）：上次使用的平台 / 资源类型 / 加载器。</summary>
+    public string LastModPlatform { get; set; } = "modrinth";
+    public string LastModType { get; set; } = "mod";
+    public string LastModLoader { get; set; } = "any";
     /// <summary>主题：dark / light / system（跟随 Windows 深浅色）。fix6 起新装默认跟随系统。</summary>
     public string Theme { get; set; } = "system";
     /// <summary>最近启动的版本（主页快捷启动，最新在前，最多 6 个）。</summary>

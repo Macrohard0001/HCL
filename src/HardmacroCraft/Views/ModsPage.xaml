@@ -31,7 +31,7 @@
                     </Grid.ColumnDefinitions>
                     <ui:TextBox x:Name="TxtQuery" MinHeight="38" MinWidth="160"
                                 PlaceholderText="{DynamicResource S.Mod.SearchHint}" KeyDown="TxtQuery_KeyDown" />
-                    <ui:Button Grid.Column="1" MinHeight="38" MinWidth="96" Margin="8,0,0,0"
+                    <ui:Button Grid.Column="1" x:Name="BtnSearch" MinHeight="38" MinWidth="96" Margin="8,0,0,0"
                                Content="{DynamicResource S.Mod.Search}"
                                Appearance="Primary" Icon="{ui:SymbolIcon Search24}" Click="BtnSearch_Click" />
                 </Grid>
@@ -57,6 +57,7 @@
                         <ComboBoxItem Content="{DynamicResource S.Mod.TypeData}" Tag="datapack" />
                     </ComboBox>
                     <ComboBox x:Name="CmbLoader" MinHeight="38" MinWidth="104" Margin="0,0,8,4"
+                              SelectionChanged="CmbLoader_SelectionChanged"
                               ToolTip="{DynamicResource S.Mod.LoaderHint}">
                         <ComboBoxItem Content="{DynamicResource S.Mod.LoaderAll}" IsSelected="True" Tag="any" />
                         <ComboBoxItem Content="Forge" Tag="forge" />
@@ -69,61 +70,133 @@
             </StackPanel>
         </Border>
 
-        <!-- 搜索结果（PCL 式信息卡行；fix5：限高使页面可整体滚动） -->
-        <ListBox Grid.Row="2" x:Name="LstResults" Style="{StaticResource HmListBox}" MaxHeight="460">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="12,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="34" />
-                            <ColumnDefinition Width="56" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                  VerticalAlignment="Center" HorizontalAlignment="Center"
-                                  Checked="ChkSelect_Changed" Unchecked="ChkSelect_Changed" />
-                        <Border Grid.Column="1" Width="52" Height="52" CornerRadius="9"
-                                Background="{DynamicResource ControlFillColorSecondaryBrush}">
-                            <Image Source="{Binding IconUrl}" Stretch="UniformToFill" />
-                        </Border>
-                        <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14.5"
-                                           VerticalAlignment="Center"
+        <!-- 搜索结果（PCL 式信息卡行；fix5：限高使页面可整体滚动）
+             v0.1.5：同一格子叠放 搜索过渡层 / 空结果提示 / 模组详情页（覆盖层，PCL 式页内切换） -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ListBox Grid.Row="0" x:Name="LstResults" Style="{StaticResource HmListBox}" MaxHeight="460"
+                     PreviewMouseLeftButtonUp="LstResults_PreviewMouseUp">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="12,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                      Checked="ChkSelect_Changed" Unchecked="ChkSelect_Changed" />
+                            <Border Grid.Column="1" Width="52" Height="52" CornerRadius="9"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                <Image Source="{Binding IconUrl}" Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14.5"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{Binding AuthorText}" FontSize="11.5" Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" FontSize="12" Margin="0,2,0,5"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" MaxHeight="34" TextWrapping="Wrap" />
+                                <!-- 徽章行：分类 / 下载 / 关注 / 更新时间 / 支持版本 -->
+                                <ItemsControl ItemsSource="{Binding Badges}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="4" Padding="6,1.5" Margin="0,0,6,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <TextBlock Text="{Binding}" FontSize="10.5"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <ui:Button Grid.Column="3" Content="{DynamicResource S.Mod.Download}"
+                                       Appearance="Primary" MinHeight="36" VerticalAlignment="Center"
+                                       Click="BtnDownload_Click" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 空结果提示（v0.1.5，PCL 式） -->
+            <StackPanel Grid.Row="0" x:Name="PnlEmpty" Visibility="Collapsed" Margin="0,40"
+                        HorizontalAlignment="Center">
+                <ui:SymbolIcon Symbol="SearchInfo24" FontSize="34" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock x:Name="TxtEmpty" Margin="0,10,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- 搜索过渡层（v0.1.5，PCL 式「正在搜索」） -->
+            <Border Grid.RowSpan="2" x:Name="PnlSearching" Visibility="Collapsed"
+                    Background="{DynamicResource ApplicationBackgroundBrush}" Opacity="0.82" CornerRadius="8"
+                    KeyboardNavigation.TabNavigation="None" Focusable="False">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ui:ProgressRing Width="42" Height="42" IsIndeterminate="True" />
+                    <TextBlock x:Name="TxtSearching" Margin="0,12,0,0" HorizontalAlignment="Center" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- 模组详情页（v0.1.5，PCL 式：单击结果行进入，返回按钮回列表） -->
+            <Border Grid.RowSpan="2" x:Name="PnlDetail" Visibility="Collapsed"
+                    Background="{DynamicResource ApplicationBackgroundBrush}" CornerRadius="8">
+                <ScrollViewer Style="{StaticResource HmScrollViewer}">
+                    <StackPanel Margin="4,2,4,8">
+                        <Grid Margin="0,0,0,10">
+                            <ui:Button x:Name="BtnDetailBack" Content="{DynamicResource S.Mod.DetailBack}"
+                                       Icon="{ui:SymbolIcon ArrowLeft24}" MinHeight="34"
+                                       HorizontalAlignment="Left" Click="BtnDetailBack_Click" />
+                            <ui:Button Content="{DynamicResource S.Mod.DetailOpenWeb}"
+                                       Icon="{ui:SymbolIcon Link24}" MinHeight="34"
+                                       HorizontalAlignment="Right" Click="BtnDetailOpenWeb_Click" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Border Width="64" Height="64" CornerRadius="10"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                <Grid>
+                                    <Image x:Name="ImgDetailIcon" Stretch="UniformToFill" Visibility="Collapsed" />
+                                    <ui:SymbolIcon x:Name="IcoDetailFallback" Symbol="PuzzlePiece24" FontSize="26"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtDetailTitle" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="{Binding AuthorText}" FontSize="11.5" Margin="10,0,0,0"
-                                           VerticalAlignment="Center"
+                                <TextBlock x:Name="TxtDetailAuthor" FontSize="12" Margin="0,3,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtDetailBadges" FontSize="11.5" Margin="0,3,0,0"
                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                             </StackPanel>
-                            <TextBlock Text="{Binding Description}" FontSize="12" Margin="0,2,0,5"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       TextTrimming="CharacterEllipsis" MaxHeight="34" TextWrapping="Wrap" />
-                            <!-- 徽章行：分类 / 下载 / 关注 / 更新时间 / 支持版本 -->
-                            <ItemsControl ItemsSource="{Binding Badges}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="4" Padding="6,1.5" Margin="0,0,6,0"
-                                                Background="{DynamicResource SubtleFillColorSecondaryBrush}">
-                                            <TextBlock Text="{Binding}" FontSize="10.5"
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
                         </StackPanel>
-                        <ui:Button Grid.Column="3" Content="{DynamicResource S.Mod.Download}"
-                                   Appearance="Primary" MinHeight="36" VerticalAlignment="Center"
-                                   Click="BtnDownload_Click" />
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                        <ui:Button x:Name="BtnDetailDownload" Content="{DynamicResource S.Mod.Download}"
+                                   Appearance="Primary" Icon="{ui:SymbolIcon ArrowDownload24}" MinHeight="38"
+                                   HorizontalAlignment="Left" Click="BtnDetailDownload_Click" />
+                        <Border Margin="0,12,0,0" CornerRadius="8" Padding="14,10"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}">
+                            <TextBlock x:Name="TxtDetailBody" FontSize="12.5" TextWrapping="Wrap" LineHeight="20"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
 
         <!-- 本机 Mod 管理（PCL 式：列出 / 禁用 / 启用 / 删除） -->
         <!-- 批量操作条（PCL 式：勾选后一键批量安装） -->
@@ -142,6 +215,17 @@
                            Appearance="Primary" MinHeight="34" MinWidth="130" Margin="0,0,8,0"
                            Icon="{ui:SymbolIcon ArrowDownload24}" IsEnabled="False"
                            Click="BtnBatchDownload_Click" />
+                <!-- v0.1.5：模组预设（PCL 式一键装机单） -->
+                <ui:Button x:Name="BtnSavePreset" Content="{DynamicResource S.Mod.PresetSave}"
+                           MinHeight="34" MinWidth="96" Margin="0,0,8,0"
+                           Icon="{ui:SymbolIcon Save24}" IsEnabled="False"
+                           Click="BtnSavePreset_Click"
+                           ToolTip="{DynamicResource S.Mod.PresetSaveTip}" />
+                <ui:Button x:Name="BtnPresets" Content="{DynamicResource S.Mod.Presets}"
+                           MinHeight="34" MinWidth="96" Margin="0,0,8,0"
+                           Icon="{ui:SymbolIcon BookmarkMultiple24}"
+                           Click="BtnPresets_Click"
+                           ToolTip="{DynamicResource S.Mod.PresetsTip}" />
                 <TextBlock Text="{DynamicResource S.Mod.BatchHint}" FontSize="11.5" VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             </StackPanel>
