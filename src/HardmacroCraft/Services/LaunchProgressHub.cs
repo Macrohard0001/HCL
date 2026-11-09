@@ -27,6 +27,12 @@ public static class LaunchProgressHub
     /// <summary>当前快照（永远返回同一实例，读方按字段读）。</summary>
     public static Snapshot Current { get; private set; } = new();
 
+    /// <summary>
+    /// 最近一次启动的终态文案（End 时的进度行）。v0.1.2 修复：此前启动结束后
+    /// 切页再回来，新实例回放的是空白 —— 旧实例上原本能看到「已取消 / 启动失败 /
+    /// 游戏运行中」等终态，现在保留下来，切页后也一致。</summary>
+    public static string LastProgressLine { get; private set; } = "";
+
     /// <summary>快照变化（UI 线程触发）。</summary>
     public static event Action? Changed;
 
@@ -53,9 +59,11 @@ public static class LaunchProgressHub
         Fire();
     }
 
-    /// <summary>启动流程结束（成功 / 取消 / 失败）——快照复位，订阅页面恢复空闲 UI。</summary>
+    /// <summary>启动流程结束（成功 / 取消 / 失败）——快照复位，订阅页面恢复空闲 UI。
+    /// 终态进度行保留在 LastProgressLine 供切页后的新实例回放。</summary>
     public static void End()
     {
+        LastProgressLine = Current.ProgressLine;
         Current = new Snapshot();
         Fire();
     }

@@ -1522,6 +1522,138 @@ try
 }
 catch (Exception ex) { Check("第 24 节 v0.1.1", false, ex.Message); }
 
+// ==================== 第 25 节 · v0.1.2：续传回退 / 416 修复 / 戳碰撞防护 / 终态回放 ====================
+Console.WriteLine("\n---- 第 25 节 · v0.1.2（DownloadEngine 续传修复 / VerifyStamp 指纹 / Hub 终态）----");
+try
+{
+    var payload2 = System.Text.Encoding.UTF8.GetBytes(new string('V', 60_000) + "HMC-V012");
+    var sha1V = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(payload2)).ToLowerInvariant();
+
+    // 25.1 VerifyStamp 碰撞防护：Encode 折叠后同名的不同路径/版本 → 戳文件名必须不同
+    Check("戳路径：gameRoot 空格/下划线碰撞已消除",
+        VerifyStamp.StampPath(@"C:\g1 a", "1.20.1") != VerifyStamp.StampPath(@"C:\g1_a", "1.20.1"));
+    Check("戳路径：版本名 +/_ 碰撞已消除",
+        VerifyStamp.StampPath(@"C:\g1", "a+b") != VerifyStamp.StampPath(@"C:\g1", "a_b"));
+    Check("戳路径：长路径截断碰撞已消除（>80 字符同前缀）",
+        VerifyStamp.StampPath(@"C:\" + new string('x', 100) + "A", "1.0")
+            != VerifyStamp.StampPath(@"C:\" + new string('x', 100) + "B", "1.0"));
+    Check("Encode 纯字母数字保留（原语义不变）", VerifyStamp.Encode("abc").Length == 3);
+
+    // 本地服务器：/failmid 首次半途断流（触发重试 + 200 回退重下），/ranged 尊重 Range（越界 416）
+    var p2 = 0;
+    using (var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0))
+    {
+        probe.Start(); p2 = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
+    }
+    var failMidHits = 0;
+    var srv2 = new System.Net.HttpListener();
+    srv2.Prefixes.Add($"http://127.0.0.1:{p2}/");
+    srv2.Start();
+    var srv2Task = Task.Run(async () =>
+    {
+        while (srv2.IsListening)
+        {
+            try
+            {
+                var ctx = await srv2.GetContextAsync();
+                var path = ctx.Request.Url?.AbsolutePath ?? "";
+                if (path.StartsWith("/failmid"))
+                {
+                    // 第一次：声明完整长度但只发一半就断开 → 客户端读流异常 → 引擎重试
+                    if (Interlocked.Increment(ref failMidHits) == 1)
+                    {
+                        ctx.Response.ContentLength64 = payload2.Length;
+                        await ctx.Response.OutputStream.WriteAsync(payload2.AsMemory(0, 30_000));
+                        ctx.Response.Close(); // 提前关闭 → 截断
+                    }
+                    else
+                    {
+                        ctx.Response.ContentLength64 = payload2.Length;
+                        await ctx.Response.OutputStream.WriteAsync(payload2);
+                        ctx.Response.Close();
+                    }
+                }
+                else if (path.StartsWith("/ranged"))
+                {
+                    var raw = ctx.Request.Headers["Range"];
+                    if (raw != null && raw.StartsWith("bytes="))
+                    {
+                        var start = long.TryParse(raw[6..].TrimEnd('-'), out var s0) ? s0 : 0;
+                        if (start >= payload2.Length)
+                        {
+                            ctx.Response.StatusCode = 416;
+                            ctx.Response.Close();
+                            continue;
+                        }
+                        ctx.Response.StatusCode = 206;
+                        ctx.Response.ContentLength64 = payload2.Length - start;
+                        await ctx.Response.OutputStream.WriteAsync(payload2.AsMemory((int)start));
+                        ctx.Response.Close();
+                    }
+                    else
+                    {
+                        ctx.Response.ContentLength64 = payload2.Length;
+                        await ctx.Response.OutputStream.WriteAsync(payload2);
+                        ctx.Response.Close();
+                    }
+                }
+                else { ctx.Response.StatusCode = 404; ctx.Response.Close(); }
+            }
+            catch { if (!srv2.IsListening) break; }
+        }
+    });
+
+    using var http2 = new HttpClient();
+    var dl2 = Path.Combine(testRoot, "dl2");
+    if (Directory.Exists(dl2)) Directory.Delete(dl2, true);
+    Directory.CreateDirectory(dl2);
+
+    // 25.2 续传回退：第 1 次尝试报了 30000 字节后断流；第 2 次服务器不支持 Range 从头下。
+    // 修复后负增量抵消 → 增量总和 == 文件大小（修复前会多出 30000，进度膨胀 >100%）
+    var deltas = new List<long>();
+    var deltaLock = new object();
+    var sum = 0L;
+    var prog2 = new Progress<long>(d => { lock (deltaLock) { deltas.Add(d); sum += d; } });
+    var resumeDest = Path.Combine(dl2, "resume.bin");
+    await DownloadEngine.DownloadFileAsync(http2, $"http://127.0.0.1:{p2}/failmid.bin", resumeDest,
+        sha1V, payload2.Length, prog2);
+    for (var w = 0; w < 40 && sum != payload2.Length; w++) await Task.Delay(50); // 回调异步投递，等落定
+    Check("断流重试后文件正确",
+        File.Exists(resumeDest) && !File.Exists(resumeDest + ".hmc-part")
+        && Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(File.ReadAllBytes(resumeDest))).ToLowerInvariant() == sha1V);
+    Check("进度增量总和 == 文件大小（负增量回退生效）", sum == payload2.Length,
+        $"总和 {sum} ≠ {payload2.Length}（报告 {deltas.Count} 次）");
+    Check("服务器共 2 次请求（首断流 + 重下）", Volatile.Read(ref failMidHits) == 2, $"实际 {Volatile.Read(ref failMidHits)}");
+
+    // 25.3 part 已达目标大小 → 丢弃重下（修复前：Range 越界 416 → 重试 3 次同因失败）
+    var stDest = Path.Combine(dl2, "stuck-ok.bin");
+    File.WriteAllBytes(stDest + ".hmc-part", System.Text.Encoding.UTF8.GetBytes(new string('X', payload2.Length)));
+    await DownloadEngine.DownloadFileAsync(http2, $"http://127.0.0.1:{p2}/ranged.bin", stDest, sha1V, payload2.Length);
+    Check("part 满长不再 416 卡死，重下成功",
+        File.Exists(stDest) && Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(File.ReadAllBytes(stDest))).ToLowerInvariant() == sha1V
+        && !File.Exists(stDest + ".hmc-part"));
+
+    srv2.Stop();
+}
+catch (Exception ex) { Check("第 25 节 v0.1.2（下载）", false, ex.Message); }
+
+try
+{
+    // 25.4 Hub 终态回放：End 后 LastProgressLine 保留终态，新实例切回来不再空白
+    var (hOk, hLast) = (false, "");
+    LaunchProgressHub.Begin("1.20.2");
+    LaunchProgressHub.Update(s => s.ProgressLine = "启动失败：测试终态");
+    LaunchProgressHub.End();
+    hLast = LaunchProgressHub.LastProgressLine;
+    hOk = hLast == "启动失败：测试终态" && !LaunchProgressHub.Current.Running;
+    LaunchProgressHub.Begin("1.20.2"); // 新一轮启动覆盖
+    LaunchProgressHub.Update(s => s.ProgressLine = "新进度");
+    LaunchProgressHub.End();
+    Check("End 保留终态文案", hOk, hLast);
+    Check("新一轮启动覆盖终态", LaunchProgressHub.LastProgressLine == "新进度", LaunchProgressHub.LastProgressLine);
+}
+catch (Exception ex) { Check("第 25 节 v0.1.2（Hub）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;
