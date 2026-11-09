@@ -372,6 +372,10 @@
     <sys:String x:Key="S.Set.DownloadThreadsHint">启动补全 / 预下载资源时的并发数（1-256，默认 64）。调大下载更快，但对劣质网络可能更容易超时；设为 1 时退回串行下载。</sys:String>
     <sys:String x:Key="S.Set.VerifyEvery">每次启动都重新校验游戏文件</sys:String>
     <sys:String x:Key="S.Set.VerifyEveryHint">默认关闭：每个版本完整校验一次后直接快速启动（不再每次重算全部文件哈希）。怀疑文件损坏或游戏行为异常时再开启。</sys:String>
+    <!-- v0.1.3 启动器内存优化 -->
+    <sys:String x:Key="S.Set.LauncherMemOpt">启动器内存优化</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemOptHint">重大操作（下载 / 安装 / 启动）结束后与空闲时段自动回收内存并压缩物理内存占用，启动器长挂后台更省。关闭后常驻内存可能更高。</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemNow">启动器当前内存占用：{0} MB</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->
     <sys:String x:Key="S.Azure.Title">如何获取 Azure Client ID</sys:String>
     <sys:String x:Key="S.Azure.Sub">微软正版登录需要一个免费的 Azure Client ID（即"微软应用代码"），这是微软的开放政策：每个应用须注册自己的 ID。全程约 3 分钟，只需做一次。</sys:String>

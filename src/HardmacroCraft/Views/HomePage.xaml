@@ -7,12 +7,7 @@
         <StackPanel Margin="32,24,32,24" MaxWidth="920" HorizontalAlignment="Stretch">
 
             <!-- 标题（PCL 式强调条） -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                <Border Width="5" Height="24" CornerRadius="2.5"
-                        Background="{DynamicResource SystemAccentColorPrimaryBrush}"
-                        VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Home.Title}" />
-            </StackPanel>
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Home.Title}" Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Home.Subtitle}" />
 
             <!-- 启动大卡（PCL 式：账号行 + 版本选择 + 大启动按钮） -->
@@ -78,7 +73,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="Games24" FontSize="18"
-                                           Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <TextBlock Text="{DynamicResource S.Home.SelectVersion}" FontWeight="Medium"
                                        Margin="8,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
@@ -144,11 +139,11 @@
                     <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource HmCard}" Padding="14,12" Cursor="Hand"
+                <Border Grid.Column="0" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
                         MouseLeftButtonUp="BtnQuickDownload_Click">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="22"
-                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource S.Nav.DownloadGame}" FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{DynamicResource S.Home.Quick.DownloadTip}" FontSize="11"
@@ -156,11 +151,11 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="2" Style="{StaticResource HmCard}" Padding="14,12" Cursor="Hand"
+                <Border Grid.Column="2" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
                         MouseLeftButtonUp="BtnQuickModpacks_Click">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="BoxMultiple24" FontSize="22"
-                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource S.Nav.Modpacks}" FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{DynamicResource S.Home.Quick.ModpacksTip}" FontSize="11"
@@ -168,11 +163,11 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="4" Style="{StaticResource HmCard}" Padding="14,12" Cursor="Hand"
+                <Border Grid.Column="4" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
                         MouseLeftButtonUp="BtnQuickMods_Click">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="PuzzlePiece24" FontSize="22"
-                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource S.Nav.Mods}" FontWeight="SemiBold" FontSize="13" />
                             <TextBlock Text="{DynamicResource S.Home.Quick.ModsTip}" FontSize="11"
@@ -187,7 +182,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <ui:SymbolIcon Symbol="History24" FontSize="18"
-                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Text="{DynamicResource S.Home.Recent}" FontWeight="Medium"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>

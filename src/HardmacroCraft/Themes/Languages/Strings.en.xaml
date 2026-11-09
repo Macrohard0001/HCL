@@ -372,6 +372,10 @@
     <sys:String x:Key="S.Set.DownloadThreadsHint">Concurrency for file completion / asset prefetch (1-256, default 64). Higher is faster but may time out on poor networks; 1 falls back to serial download.</sys:String>
     <sys:String x:Key="S.Set.VerifyEvery">Re-verify game files on every launch</sys:String>
     <sys:String x:Key="S.Set.VerifyEveryHint">Off by default: each version is fully verified once, then launches skip the check (no more hashing every file every time). Enable if you suspect corrupted files.</sys:String>
+    <!-- v0.1.3 launcher memory optimization -->
+    <sys:String x:Key="S.Set.LauncherMemOpt">Launcher memory optimization</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemOptHint">Automatically reclaim memory after heavy operations (downloads / installs / launches) and during idle periods, keeping the launcher light in the background. Disabling may increase resident memory.</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemNow">Launcher memory usage: {0} MB</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->
     <sys:String x:Key="S.Azure.Title">How to get an Azure Client ID</sys:String>
     <sys:String x:Key="S.Azure.Sub">Microsoft paid login requires a free Azure Client ID ("app code") — this is Microsoft policy: every app registers its own ID. It takes about 3 minutes and only once.</sys:String>

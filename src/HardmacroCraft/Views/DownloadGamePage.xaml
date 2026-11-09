@@ -6,12 +6,7 @@
     <ScrollViewer Style="{StaticResource HmScrollViewer}">
         <StackPanel Margin="32,24,32,24" MaxWidth="920" HorizontalAlignment="Stretch">
 
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                <Border Width="5" Height="24" CornerRadius="2.5"
-                        Background="{DynamicResource SystemAccentColorPrimaryBrush}"
-                        VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Dl.Title}" />
-            </StackPanel>
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Dl.Title}" Margin="0,0,0,2" />
             <Grid Margin="0,0,0,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -27,12 +22,10 @@
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Style="{StaticResource HmIconChip}">
-                            <!-- PCL 式草方块图标（原版 Minecraft 标志性意象） -->
-                            <Image Source="/Assets/grass.png" Width="20" Height="20"
-                                   RenderOptions.BitmapScalingMode="NearestNeighbor" />
-                        </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <!-- 草方块图标（原版 Minecraft 标志性意象），微软式小图标直接内联 -->
+                        <Image Source="/Assets/grass.png" Width="20" Height="20" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Dl.Vanilla}" />
                             <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Dl.VanillaHint}" />
                         </StackPanel>

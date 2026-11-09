@@ -104,6 +104,9 @@ public class DownloadTaskService
             item.Cts = null;
         }
         Changed?.Invoke();
+        // v0.1.3 内存优化：重大操作（启动 / 安装 / 批量下载 / Java 安装）成功收尾后
+        // 延迟回收内存。单点挂钩 —— 所有重操作都在此登记任务，无需逐个业务处插入。
+        if (status == "done") MemoryManager.OptimizeAfterHeavyOp();
     }
 
     public void ClearFinished()
