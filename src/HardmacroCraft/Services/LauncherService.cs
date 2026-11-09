@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.4";
+    public const string LauncherVersion = "0.1.5";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -182,18 +182,213 @@ public class LauncherService : IDisposable
             }
         });
 
-    public Task NeoForgeInstallAsync(string mcVersion, string neoVersion, CancellationToken ct = default)
-        => new CmlLib.Core.Installer.NeoForge.NeoForgeInstaller(Launcher, Http)
-            .Install(mcVersion, neoVersion, new CmlLib.Core.Installer.Forge.ForgeInstallOptions
+    /// <summary>
+    /// NeoForge 安装（v0.1.5 自研管线）：不再依赖 CmlLib NeoForgeInstaller（其版本目录
+    /// 不含 1.20.1 专属 artifact net/neoforged/forge，且旧版 mapper 遇到 26.x 新版本线
+    /// 会抛 FormatException 导致全部版本拉取失败）。
+    /// 统一构造 ForgeVersion + 安装器直链，走 ForgeInstaller 的 V12 安装引擎：
+    /// - 1.20.1：artifact net/neoforged/forge，文件名 forge-1.20.1-{v}-installer.jar
+    /// - 1.20.2+：artifact net/neoforged/neoforge，文件名 neoforge-{v}-installer.jar
+    /// 安装出的版本目录名为 &lt;mc&gt;-forge-&lt;v&gt;（V12 引擎命名规则），可在安装时自定义重命名。
+    /// </summary>
+    public Task NeoForgeInstallAsync(string mcVersion, string neoVersion,
+        IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress = null,
+        IProgress<CmlLib.Core.ByteProgress>? byteProgress = null, CancellationToken ct = default)
+        => RunInInstallGateAsync(async () =>
+        {
+            var full = NeoForgeCatalog.InstallerArtifact(mcVersion, neoVersion, out var installerUrl);
+            var fv = new CmlLib.Core.Installer.Forge.Versions.ForgeVersion(mcVersion, neoVersion)
+            {
+                Files = new[]
+                {
+                    new ForgeVersionFile
+                    {
+                        Type = "installer",
+                        DirectUrl = installerUrl,
+                    },
+                },
+            };
+            _ = full; // artifact 命名仅用于日志排查
+            var installer = new CmlLib.Core.Installer.Forge.ForgeInstaller(Launcher, Http);
+            var options = new CmlLib.Core.Installer.Forge.ForgeInstallOptions
             {
                 CancellationToken = ct,
-            });
+                FileProgress = fileProgress,
+                ByteProgress = byteProgress,
+            };
+            try
+            {
+                await installer.Install(fv, options);
+            }
+            catch (Exception) when (ct.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ct);
+            }
+        });
 
     public async Task<string[]> NeoForgeVersionsAsync(string mcVersion)
     {
+        // v0.1.5：自研目录源（官方 maven 双 artifact + 自研映射过滤），失败回退 CmlLib（仅覆盖 1.20.2+）
+        try
+        {
+            var list = await NeoForgeCatalog.GetVersionsAsync(Http, mcVersion);
+            if (list.Length > 0) return list;
+        }
+        catch { /* 官方源不可达 → 回退 */ }
         var vers = await new CmlLib.Core.Installer.NeoForge.NeoForgeInstaller(Launcher, Http)
             .GetNeoForgeVersions(mcVersion);
-        return vers.Select(v => v.NeoForgeVersionName).Reverse().ToArray();
+        return vers.Select(v => v.NeoForgeVersionName).ToArray();
+    }
+
+    /// <summary>
+    /// NeoForge 官方 maven 版本目录（v0.1.5 自研，静态纯函数便于无头测试）：
+    /// - 目录 1：https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge（1.20.2+）
+    /// - 目录 2：…/net/neoforged/forge（1.20.1 专属，版本名形如 1.20.1-47.1.106）
+    /// 版本名 → MC 版本映射规则（与 NeoForge 官方一致）：
+    /// - 20.x.y / 21.x.y → MC 1.x.y（如 21.1.265 → 1.21.1）
+    /// - 26.x.y.z（2026 起新版本线）→ MC x.y.z（如 26.3.0.101 → 26.3）
+    /// - 0.&lt;快照名&gt;.&lt;build&gt;（愚人节快照特例，全部 -beta）→ MC 快照名
+    /// 过滤：beta 后缀仅在无正式版时保留；结果按语义降序（最新在前）。
+    /// </summary>
+    public static class NeoForgeCatalog
+    {
+        private const string MavenBase = "https://maven.neoforged.net/api/maven/versions/releases";
+        private static readonly object _cacheLock = new();
+        private static (string Neo, string Forge, DateTimeOffset At)? _cache;
+
+        private static async Task<string> FetchCatalogAsync(HttpClient http, string artifact)
+        {
+            return await http.GetStringAsync($"{MavenBase}/net/neoforged/{artifact}");
+        }
+
+        /// <summary>拉取（带 10 分钟缓存）并返回按 MC 版本过滤、语义降序的 NeoForge 版本名。</summary>
+        public static async Task<string[]> GetVersionsAsync(HttpClient http, string mcVersion)
+        {
+            string neoJson, forgeJson;
+            lock (_cacheLock)
+            {
+                if (_cache is { } c && DateTimeOffset.UtcNow - c.At < TimeSpan.FromMinutes(10))
+                {
+                    neoJson = c.Neo;
+                    forgeJson = c.Forge;
+                    goto have;
+                }
+            }
+            neoJson = await FetchCatalogAsync(http, "neoforge");
+            try { forgeJson = await FetchCatalogAsync(http, "forge"); }
+            catch { forgeJson = "[]"; }
+            lock (_cacheLock)
+                _cache = (neoJson, forgeJson, DateTimeOffset.UtcNow);
+        have:
+            var target = NormalizeMc(mcVersion);
+            var all = new List<string>();
+            if (target == "1.20.1")
+            {
+                // 1.20.1 专属 artifact：版本名 1.20.1-47.1.x（剥离前缀显示），无前缀的孤立条目跳过（安装器路径不规则）
+                foreach (var name in ParseVersions(forgeJson))
+                {
+                    if (name.StartsWith("1.20.1-", StringComparison.Ordinal))
+                        all.Add(name["1.20.1-".Length..]);
+                }
+            }
+            else
+            {
+                foreach (var name in ParseVersions(neoJson))
+                {
+                    if (MapCatalogVersionToMc(name) == target)
+                        all.Add(name);
+                }
+            }
+            return SortDescending(all);
+        }
+
+        /// <summary>解析目录 JSON 的 versions 数组。</summary>
+        public static string[] ParseVersions(string json)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("versions", out var arr)
+                || arr.ValueKind != System.Text.Json.JsonValueKind.Array)
+                throw new Exception("NeoForge 版本目录格式异常。");
+            return arr.EnumerateArray()
+                .Select(v => v.GetString())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Cast<string>()
+                .ToArray();
+        }
+
+        /// <summary>目录版本名 → MC 版本名（无法识别返回 null，宽容跳过而不是抛异常）。</summary>
+        public static string? MapCatalogVersionToMc(string versionName)
+        {
+            if (string.IsNullOrWhiteSpace(versionName)) return null;
+            var name = versionName;
+            if (name.StartsWith("neoforge-", StringComparison.Ordinal))
+                name = name["neoforge-".Length..];
+            // 愚人节快照特例：0.25w14craftmine.3-beta → MC 25w14craftmine
+            if (name.StartsWith("0.", StringComparison.Ordinal))
+            {
+                var parts = name.Split('.');
+                return parts.Length >= 2 && parts[1].Length > 0 && parts[1].Any(char.IsLetter)
+                    ? parts[1] : null;
+            }
+            // 取前导数字段：20.4.51 → [20,4,51]；26.3.0.101 → [26,3,0,101]
+            var n = 0;
+            while (n < name.Length && (char.IsDigit(name[n]) || name[n] == '.')) n++;
+            var segStr = name[..n].Split('.');
+            if (segStr.Length < 2 || segStr.Any(s => s.Length == 0 || !int.TryParse(s, out _)))
+                return null;
+            var seg = segStr.Select(int.Parse).ToArray();
+            if (seg[0] is 20 or 21 && seg.Length >= 3)
+                return NormalizeMc($"1.{seg[0]}.{seg[1]}");
+            if (seg[0] >= 26 && seg.Length >= 4)
+                return NormalizeMc($"{seg[0]}.{seg[1]}.{seg[2]}");
+            return null;
+        }
+
+        /// <summary>MC 版本名规范化：1.21.0 → 1.21（与官方目录映射对齐）。</summary>
+        public static string NormalizeMc(string mc)
+        {
+            var parts = mc.Split('.');
+            if (parts.Length == 3 && parts[2] == "0")
+                return string.Join('.', parts.Take(2));
+            return mc;
+        }
+
+        /// <summary>构造安装器直链；mc==1.20.1 时 artifact 为 net/neoforged/forge，否则 net/neoforged/neoforge。</summary>
+        public static string InstallerArtifact(string mcVersion, string neoVersion, out string installerUrl)
+        {
+            if (NormalizeMc(mcVersion) == "1.20.1")
+            {
+                var full = $"1.20.1-{neoVersion}";
+                installerUrl = $"https://maven.neoforged.net/releases/net/neoforged/forge/{full}/forge-{full}-installer.jar";
+                return full;
+            }
+            installerUrl = $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{neoVersion}/neoforge-{neoVersion}-installer.jar";
+            return neoVersion;
+        }
+
+        /// <summary>语义降序：正式版永远排在 beta 之后列出的条目前面，各自内部按版本号降序。</summary>
+        public static string[] SortDescending(List<string> versions)
+        {
+            static int[] Key(string v)
+            {
+                var head = v.Split('-')[0];
+                var seg = head.Split('.');
+                var keys = new int[6];
+                for (var i = 0; i < 6; i++)
+                    if (i < seg.Length && int.TryParse(seg[i], out var x)) keys[i] = x;
+                return keys;
+            }
+            return versions
+                .OrderBy(v => v.EndsWith("-beta", StringComparison.Ordinal)) // 正式版在前（false < true），beta 全部垫底
+                .ThenByDescending(Key, Comparer<int[]>.Create((a, b) =>
+                {
+                    for (var i = 0; i < a.Length; i++)
+                        if (a[i] != b[i]) return a[i].CompareTo(b[i]);
+                    return 0;
+                }))
+                .ToArray();
+        }
     }
 
     public async Task FabricInstallAsync(string mcVersion, string? loaderVersion, CancellationToken ct = default)

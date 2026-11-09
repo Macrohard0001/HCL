@@ -126,6 +126,57 @@ public class ModrinthService
     public Task DownloadAsync(string url, string destFile, IProgress<long>? bytes = null, CancellationToken ct = default)
         => DownloadEngine.DownloadFileAsync(_http, url, destFile, sha1: null, expectedSize: 0,
             byteProgress: bytes, ct: ct);
+
+    /// <summary>项目详情统一模型（Modrinth / CurseForge 投影共用，v0.1.5 详情页）。</summary>
+    public record ProjectDetail(string ProjectId, string Slug, string Title, string Body,
+        string? IconUrl, long Downloads, long Follows, string Author, string WebUrl, string Source);
+
+    /// <summary>拉取项目详情（Modrinth GET /project/{slug}，body 为 Markdown 原文）。</summary>
+    public async Task<ProjectDetail> GetProjectAsync(string slugOrId, CancellationToken ct = default)
+    {
+        var json = await _http.GetFromJsonAsync<JsonElement>($"{Base}/project/{slugOrId}", ct);
+        var slug = json.TryGetProperty("slug", out var sl) ? sl.GetString() ?? "" : slugOrId;
+        var title = json.TryGetProperty("title", out var ti) ? ti.GetString() ?? "" : slug;
+        var body = json.TryGetProperty("body", out var bo) ? bo.GetString() ?? "" : "";
+        var icon = json.TryGetProperty("icon_url", out var ic) && ic.ValueKind == JsonValueKind.String
+            ? ic.GetString() : null;
+        var downloads = json.TryGetProperty("downloads", out var dl) && dl.TryGetInt64(out var d) ? d : 0;
+        var follows = json.TryGetProperty("followers", out var fo) && fo.TryGetInt64(out var f) ? f : 0;
+        var author = json.TryGetProperty("user", out var us) && us.ValueKind == JsonValueKind.String
+            ? us.GetString() ?? "" : "";
+        var ptype = json.TryGetProperty("project_type", out var pt) ? pt.GetString() ?? "mod" : "mod";
+        var webUrl = $"https://modrinth.com/{ptype}/{slug}";
+        return new ProjectDetail(slug, slug, title, body, icon, downloads, follows, author, webUrl, "modrinth");
+    }
+
+    /// <summary>
+    /// 轻量 HTML → 纯文本（CurseForge 详情是 HTML；去标签 + 常见实体解码 + 压缩空白）。
+    /// 静态纯函数便于无头测试。
+    /// </summary>
+    public static string StripHtml(string html)
+    {
+        if (string.IsNullOrEmpty(html)) return "";
+        var s = System.Text.RegularExpressions.Regex.Replace(html, "<(script|style)[^>]*>.*?</\\1>",
+            " ", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        s = System.Text.RegularExpressions.Regex.Replace(s, "<br\\s*/?>|</p>|</div>|</li>|</h[1-6]>",
+            "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        s = System.Text.RegularExpressions.Regex.Replace(s, "<[^>]+>", "");
+        s = s.Replace("&nbsp;", " ").Replace("&amp;", "&").Replace("&lt;", "<")
+             .Replace("&gt;", ">").Replace("&quot;", "\"").Replace("&#39;", "'")
+             .Replace("&hellip;", "…").Replace("&mdash;", "—").Replace("&ndash;", "–");
+        // 压缩空行与行内空白
+        var lines = s.Split('\n')
+            .Select(l => System.Text.RegularExpressions.Regex.Replace(l, "[ \\t\\r]+", " ").TrimEnd())
+            .ToList();
+        while (lines.Count > 0 && lines[0].Length == 0) lines.RemoveAt(0);
+        var outLines = new List<string>();
+        foreach (var l in lines)
+        {
+            if (l.Length == 0 && (outLines.Count == 0 || outLines[^1].Length == 0)) continue;
+            outLines.Add(l);
+        }
+        return string.Join("\n", outLines).Trim();
+    }
 }
 
 /// <summary>

@@ -159,12 +159,18 @@ public static class AccountManager
         return (text, brush);
     }
 
-    /// <summary>拉取皮肤裁剪头部头像；失败静默保持字母头像。</summary>
+    /// <summary>
+    /// 拉取皮肤裁剪头部头像（v0.1.5 全面对齐 PCL）：
+    /// 有皮肤 → 皮肤脸部；无皮肤 / 离线无自定义皮肤 → Steve / Alex 默认脸（UUID 奇偶）；
+    /// 全部失败 → 保持字母头像。
+    /// </summary>
     private static async Task LoadAvatarIntoAsync(System.Windows.Controls.Image img,
         TextBlock fallback, StoredAccount acc)
     {
         try
         {
+            System.Windows.Media.Imaging.BitmapSource? cropped = null;
+
             // 离线账号 + 本地自定义皮肤：直接读本机 PNG 头像（无需网络）
             if (acc.Type == "offline" && !string.IsNullOrWhiteSpace(acc.SkinPath) && File.Exists(acc.SkinPath))
             {
@@ -175,29 +181,42 @@ public static class AccountManager
                 local.EndInit();
                 local.Freeze();
                 if (local.PixelWidth >= 32 && local.PixelHeight >= 32)
-                {
-                    var localCrop = new System.Windows.Media.Imaging.CroppedBitmap(local,
+                    cropped = new System.Windows.Media.Imaging.CroppedBitmap(local,
                         new Int32Rect(8, 8, Math.Min(8, local.PixelWidth / 8), Math.Min(8, local.PixelHeight / 8)));
-                    img.Source = localCrop;
-                    img.Visibility = Visibility.Visible;
-                    fallback.Visibility = Visibility.Collapsed;
-                }
-                return;
             }
-            var skinUrl = await SkinService.GetSkinUrlAsync(acc, App.LauncherService.Http);
-            if (skinUrl == null) return;
-            var skin = await SkinService.DownloadSkinAsync(skinUrl, App.LauncherService.Http);
-            if (skin == null) return;
-            var bmp = new System.Windows.Media.Imaging.BitmapImage();
-            using var ms = new MemoryStream(skin);
-            bmp.BeginInit();
-            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-            bmp.StreamSource = ms;
-            bmp.EndInit();
-            bmp.Freeze();
-            if (bmp.PixelWidth < 32 || bmp.PixelHeight < 32) return;
-            var cropped = new System.Windows.Media.Imaging.CroppedBitmap(bmp,
-                new Int32Rect(8, 8, Math.Min(8, bmp.PixelWidth / 8), Math.Min(8, bmp.PixelHeight / 8)));
+            else
+            {
+                var skinUrl = await SkinService.GetSkinUrlAsync(acc, App.LauncherService.Http);
+                var skin = skinUrl == null ? null : await SkinService.DownloadSkinAsync(skinUrl, App.LauncherService.Http);
+                if (skin != null)
+                {
+                    var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                    using var ms = new MemoryStream(skin);
+                    bmp.BeginInit();
+                    bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bmp.StreamSource = ms;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    if (bmp.PixelWidth >= 32 && bmp.PixelHeight >= 32)
+                        cropped = new System.Windows.Media.Imaging.CroppedBitmap(bmp,
+                            new Int32Rect(8, 8, Math.Min(8, bmp.PixelWidth / 8), Math.Min(8, bmp.PixelHeight / 8)));
+                }
+            }
+
+            // v0.1.5：无皮肤回退 Steve / Alex 默认脸（与游戏内选脸规则一致，PCL 同款）
+            if (cropped == null)
+            {
+                var face = new System.Windows.Media.Imaging.BitmapImage();
+                face.BeginInit();
+                face.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                face.UriSource = new Uri(SkinService.DefaultFacePath(acc.Uuid), UriKind.Relative);
+                face.EndInit();
+                face.Freeze();
+                cropped = face;
+            }
+
+            System.Windows.Media.RenderOptions.SetBitmapScalingMode(img,
+                BitmapScalingMode.NearestNeighbor); // 像素风锐利缩放（PCL 同款）
             img.Source = cropped;
             img.Visibility = Visibility.Visible;
             fallback.Visibility = Visibility.Collapsed;

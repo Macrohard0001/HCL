@@ -39,8 +39,36 @@ public partial class ModsPage : Page
     public ModsPage()
     {
         InitializeComponent();
+        RestoreFilters();
         Loaded += (_, _) => { RefreshTargets(); RefreshLocalMods(); };
     }
+
+    /// <summary>v0.1.5：恢复上次使用的平台 / 类型 / 加载器（PCL 式记住筛选）。</summary>
+    private void RestoreFilters()
+    {
+        SelectItemByTag(CmbPlatform, AppSettings.Instance.LastModPlatform);
+        SelectItemByTag(CmbType, AppSettings.Instance.LastModType);
+        SelectItemByTag(CmbLoader, AppSettings.Instance.LastModLoader);
+        RefreshPlatformUi();
+    }
+
+    private static void SelectItemByTag(System.Windows.Controls.ComboBox cb, string? tag)
+    {
+        foreach (var i in cb.Items.OfType<ComboBoxItem>())
+            if ((i.Tag as string) == tag) { cb.SelectedItem = i; return; }
+    }
+
+    /// <summary>记住当前筛选（变更即落盘，PCL 同款）。</summary>
+    private void RememberFilters()
+    {
+        AppSettings.Instance.LastModPlatform = Platform;
+        AppSettings.Instance.LastModType = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        AppSettings.Instance.LastModLoader = Loader;
+        try { AppSettings.Instance.Save(); } catch { }
+    }
+
+    /// <summary>读语言键的统一小助手（缺省空串）。</summary>
+    internal static string S(string key) => App.Current?.TryFindResource(key) as string ?? "";
 
     private string SortIndex => (CmbSort.SelectedItem as ComboBoxItem)?.Tag as string ?? "relevance";
     private string Platform => (CmbPlatform.SelectedItem as ComboBoxItem)?.Tag as string ?? "modrinth";
@@ -83,6 +111,13 @@ public partial class ModsPage : Page
     {
         if (!IsLoaded) return;
         RefreshPlatformUi();
+        RememberFilters();
+    }
+
+    private void CmbLoader_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        RememberFilters();
     }
 
     private string TargetDir(string projectType)
@@ -146,7 +181,9 @@ public partial class ModsPage : Page
     private void CmbType_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // 搜索类型切换时本地管理列表跟随显示对应目录（mod / resourcepack / shaderpacks / datapacks）
-        if (IsLoaded) RefreshLocalMods();
+        if (!IsLoaded) return;
+        RefreshLocalMods();
+        RememberFilters();
     }
 
     private void BtnOpenModDir_Click(object sender, RoutedEventArgs e)
@@ -229,6 +266,7 @@ public partial class ModsPage : Page
             if (reset) _selectedIds.Clear();
 
             _busy = true;
+            SetSearching(true, !reset);
             ClearLog();
             Log(reset ? $"搜索 {PlatformName}..." : "加载更多...");
             var (hits, total) = Platform == "curseforge"
@@ -257,6 +295,11 @@ public partial class ModsPage : Page
             PnlBatch.Visibility = _allHits.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateBatchUi();
 
+            // v0.1.5：空结果给 PCL 式提示（图标 + 文案），有结果则隐藏
+            PnlEmpty.Visibility = _allHits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (_allHits.Count == 0)
+                TxtEmpty.Text = string.Format(S("S.Mod.NoResults"), TxtQuery.Text ?? "");
+
             var moreText = App.Current?.TryFindResource("S.Mod.LoadMore") as string ?? "加载更多";
             var noMoreText = App.Current?.TryFindResource("S.Mod.NoMore") as string ?? "没有更多结果了";
             BtnMore.Visibility = _allHits.Count < _totalHits ? Visibility.Visible : Visibility.Collapsed;
@@ -273,6 +316,24 @@ public partial class ModsPage : Page
         finally
         {
             _busy = false;
+            SetSearching(false);
+        }
+    }
+
+    /// <summary>搜索过渡层（v0.1.5，PCL 式「正在搜索」）：期间禁用结果列表与搜索按钮。</summary>
+    private void SetSearching(bool on, bool isMore = false)
+    {
+        PnlSearching.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (on)
+        {
+            TxtSearching.Text = isMore ? S("S.Mod.LoadingMore") : S("S.Mod.Searching");
+            BtnSearch.IsEnabled = false;
+            LstResults.IsEnabled = false;
+        }
+        else
+        {
+            BtnSearch.IsEnabled = true;
+            LstResults.IsEnabled = true;
         }
     }
 
@@ -306,7 +367,12 @@ public partial class ModsPage : Page
         if (LstResults.SelectedItem is ModRowItem sel) item = sel;
         else if (sender is System.Windows.Controls.Button btn) item = btn.DataContext as ModRowItem;
         if (item == null) return;
-        var hit = item.Hit;
+        await DownloadWithPickerAsync(item.Hit);
+    }
+
+    /// <summary>版本选择弹窗下载流程（结果行「下载」按钮与详情页共用，v0.1.5 抽取）。</summary>
+    private async Task DownloadWithPickerAsync(ModrinthService.SearchHit hit)
+    {
         var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
         var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
 
@@ -588,6 +654,7 @@ public partial class ModsPage : Page
     {
         var n = SelectedCount;
         BtnBatchDownload.IsEnabled = n > 0 && !_busy;
+        BtnSavePreset.IsEnabled = n > 0 && !_busy; // v0.1.5：保存预设同样需要勾选
         var go = App.Current?.TryFindResource("S.Mod.BatchGo") as string ?? "下载已选（{0}）";
         BtnBatchDownload.Content = string.Format(go, n);
     }
@@ -707,6 +774,194 @@ public partial class ModsPage : Page
             });
             if (type == "mod")
                 await ResolveDependenciesAsync(v, dir, gameVersion);
+        }
+    }
+
+    // ==================== v0.1.5：详情页（PCL 式单击进入） ====================
+
+    private ModrinthService.SearchHit? _detailHit;
+    private string _detailUrl = "";
+
+    /// <summary>单击结果行 → 详情页（勾选框 / 按钮点击不触发）。</summary>
+    private void LstResults_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d &&
+            (FindAncestor<System.Windows.Controls.Button>(d) != null ||
+             FindAncestor<System.Windows.Controls.CheckBox>(d) != null)) return;
+        if (LstResults.SelectedItem is ModRowItem item && !_busy)
+            _ = OpenDetailAsync(item.Hit);
+    }
+
+    private static T? FindAncestor<T>(DependencyObject d) where T : DependencyObject
+    {
+        while (d != null && d is not T) d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+        return d as T;
+    }
+
+    private async Task OpenDetailAsync(ModrinthService.SearchHit hit)
+    {
+        _detailHit = hit;
+        PnlEmpty.Visibility = Visibility.Collapsed;
+        PnlDetail.Visibility = Visibility.Visible;
+        ImgDetailIcon.Visibility = Visibility.Collapsed;
+        IcoDetailFallback.Visibility = Visibility.Visible;
+        TxtDetailTitle.Text = hit.Title;
+        TxtDetailAuthor.Text = string.IsNullOrEmpty(hit.Author) ? "" : "@" + hit.Author;
+        TxtDetailBadges.Text = string.Join("  ·  ", BuildBadges(hit));
+        TxtDetailBody.Text = S("S.Mod.DetailLoading");
+        BtnDetailDownload.IsEnabled = false;
+        _detailUrl = hit.Source == "curseforge"
+            ? $"https://www.curseforge.com/minecraft/search?search={Uri.EscapeDataString(hit.Slug)}"
+            : $"https://modrinth.com/mod/{hit.Slug}";
+        try
+        {
+            var detail = Platform == "curseforge" && int.TryParse(hit.ProjectId, out var mid)
+                ? await App.CurseForge.GetModDetailAsync(mid)
+                : await App.Modrinth.GetProjectAsync(string.IsNullOrEmpty(hit.Slug) ? hit.ProjectId : hit.Slug);
+            if (!ReferenceEquals(_detailHit, hit)) return; // 用户已切换到别的详情
+            TxtDetailTitle.Text = detail.Title;
+            TxtDetailAuthor.Text = string.IsNullOrEmpty(detail.Author) ? "" : "@" + detail.Author;
+            if (!string.IsNullOrWhiteSpace(detail.Body))
+                TxtDetailBody.Text = detail.Body;
+            else
+                TxtDetailBody.Text = S("S.Mod.DetailNoDesc");
+            if (!string.IsNullOrEmpty(detail.IconUrl))
+            {
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(detail.IconUrl);
+                bmp.EndInit();
+                bmp.Freeze();
+                ImgDetailIcon.Source = bmp;
+                ImgDetailIcon.Visibility = Visibility.Visible;
+                IcoDetailFallback.Visibility = Visibility.Collapsed;
+            }
+            if (!string.IsNullOrEmpty(detail.WebUrl)) _detailUrl = detail.WebUrl;
+            BtnDetailDownload.IsEnabled = true;
+        }
+        catch (Exception ex)
+        {
+            if (ReferenceEquals(_detailHit, hit))
+                TxtDetailBody.Text = S("S.Mod.DetailFail") + ex.Message;
+        }
+    }
+
+    private void BtnDetailBack_Click(object sender, RoutedEventArgs e)
+    {
+        _detailHit = null;
+        PnlDetail.Visibility = Visibility.Collapsed;
+        if (_allHits.Count == 0) PnlEmpty.Visibility = Visibility.Visible;
+    }
+
+    private void BtnDetailOpenWeb_Click(object sender, RoutedEventArgs e)
+    {
+        if (_detailUrl.Length == 0) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_detailUrl) { UseShellExecute = true }); }
+        catch (Exception ex) { Log("打开网页失败: " + ex.Message); }
+    }
+
+    private async void BtnDetailDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy || _detailHit == null) return;
+        await DownloadWithPickerAsync(_detailHit);
+    }
+
+    // ==================== v0.1.5：模组预设（PCL 式一键装机单） ====================
+
+    private void BtnSavePreset_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = Rows.Where(r => r.IsSelected).Select(r => r.Hit).ToList();
+        if (selected.Count == 0) return;
+        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        var name = PromptWindow.Show(Window.GetWindow(this),
+            S("S.Mod.PresetSave"), S("S.Mod.PresetNamePh"));
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var items = selected.Select(h => new ModPresetItem
+        {
+            Platform = h.Source == "curseforge" ? "curseforge" : "modrinth",
+            ProjectId = h.ProjectId,
+            Slug = h.Slug,
+            Title = h.Title,
+            Type = type,
+        }).ToList();
+        try
+        {
+            var presets = ModPresetStore.Load(ModPresetStore.PresetsPath);
+            ModPresetStore.Upsert(presets, name.Trim(), items);
+            ModPresetStore.Save(ModPresetStore.PresetsPath, presets);
+            Log(string.Format(S("S.Mod.PresetSaved"), items.Count, name.Trim()));
+        }
+        catch (Exception ex)
+        {
+            Log("预设保存失败: " + ex.Message);
+        }
+    }
+
+    private async void BtnPresets_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        List<ModPreset> presets;
+        ModPreset? picked;
+        try { presets = ModPresetStore.Load(ModPresetStore.PresetsPath); }
+        catch (Exception ex) { Log("预设读取失败: " + ex.Message); return; }
+        picked = ModPresetWindow.Show(Window.GetWindow(this), presets);
+        if (picked == null) return;
+        await InstallPresetAsync(picked);
+    }
+
+    /// <summary>
+    /// 预设一键安装：逐条按当前目标版本 / 加载器自动匹配最新兼容文件（不弹窗），
+    /// 类型与当前筛选不一致的条目跳过；复用批量安装的依赖补齐与任务中心链路。
+    /// </summary>
+    private async Task InstallPresetAsync(ModPreset preset)
+    {
+        if (_busy) return;
+        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
+        var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
+        var dir = TargetDir(type);
+        Directory.CreateDirectory(dir);
+
+        _busy = true;
+        BtnBatchDownload.IsEnabled = false;
+        BtnSavePreset.IsEnabled = false;
+        int okCount = 0, failCount = 0, skipCount = 0;
+        try
+        {
+            ClearLog();
+            Log(string.Format(S("S.Mod.PresetInstalling"), preset.Name, preset.Items.Count, dir));
+            foreach (var it in preset.Items)
+            {
+                if (!string.Equals(it.Type, type, StringComparison.OrdinalIgnoreCase))
+                {
+                    skipCount++;
+                    continue;
+                }
+                try
+                {
+                    var hit = new ModrinthService.SearchHit(
+                        it.ProjectId, it.Slug, it.Title, "", "mod", 0, null,
+                        Array.Empty<string>(), "", default, Array.Empty<string>(), 0,
+                        it.Platform == "curseforge" ? "curseforge" : "modrinth");
+                    await BatchInstallOneAsync(hit, type, gameVersion, dir);
+                    okCount++;
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    Log($"  ✗ {it.Title}: {ex.Message}");
+                }
+            }
+            var done = string.Format(S("S.Mod.BatchDone"), okCount, failCount);
+            if (skipCount > 0) done += " " + string.Format(S("S.Mod.PresetSkipped"), skipCount);
+            Log(done);
+            RefreshLocalMods();
+        }
+        finally
+        {
+            _busy = false;
+            UpdateBatchUi();
+            Dispatcher.Invoke(() => PbProgress.Value = 0);
         }
     }
 }

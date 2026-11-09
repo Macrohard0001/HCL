@@ -1,8 +1,10 @@
 # Hardmacro Craft Launcher
 
-**v0.1.4** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
+**v0.1.5** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
 
 > **开发者：Fox_Ryn（Macrohard0001）** · 仓库：https://github.com/Macrohard0001/HCL · License: MIT
+
+> **v0.1.5 更新说明**：修复模组加载器版本获取（重点 NeoForge）——自研 NeoForge 官方目录源：补齐 **1.20.1 专属 artifact（net/neoforged/forge，此前版本列表恒为空）**、支持 2026 新版本线（26.x）与愚人节快照特例映射、修复 beta 版本排序方向、版本列表带 10 分钟缓存，NeoForge 安装改为自构安装器直链（不再依赖 CmlLib 的 NeoForge 目录，1.20.1 可正常安装）并接上详细进度。模组页对齐 PCL：**单击搜索结果行直接进入模组详情页**（简介全文 / 图标 / 徽章 / 下载 / 打开网页，返回列表一键回），搜索时显示「正在搜索…」过渡层，空结果给出友好提示，平台 / 资源类型 / 加载器筛选会被记住（下次打开自动恢复）。**新增模组预设（一键装机单）**：勾选模组 →「保存预设」命名存档；换机器 / 换版本后点「预设安装」，按当前游戏版本与加载器自动匹配最新兼容版本批量下载并补齐依赖，预设存便携 config/mod-presets.json。账号体验对齐 PCL：主页三种登录入口（微软正版 / 第三方验证站 / 离线）合并为「账号管理」一个按钮的子页面；**头像全面对齐 PCL**——有皮肤显示皮肤脸部（像素风锐利缩放），无皮肤按 UUID 奇偶显示 Steve / Alex 默认脸（与游戏内一致），账号管理面板同步生效。354 项自动化测试全绿。
 
 > **v0.1.4 更新说明**：紧急修复 v0.1.2 / v0.1.3 发布包在部分真机上启动即崩的问题（双击后闪退 / 弹异常窗口，日志为 XamlParseException → TypeLoadException @ FindMimeFromData）。根因是 v0.1.2 起对自包含发布启用了 .NET 裁剪（PublishTrimmed partial）以进一步减小体积——WPF 不支持裁剪（官方会报 NETSDK1168），裁剪破坏了 WPF 加载内嵌图标资源所依赖的互操作链路，导致主窗口 XAML 初始化阶段崩溃；沙盒中的 323 项测试运行在未裁剪的普通构建上，无法暴露该问题，特此记录并永久禁用裁剪。v0.1.4 撤销裁剪、仅保留单文件压缩：单文件版体积由 40.2MB 回升至约 70MB（仍较未压缩的 163.9MB 小 57%），自包含免安装 .NET 特性不变，便携版不受体积变化影响。其余功能与 v0.1.3 完全一致，v0.1.2 / v0.1.3 用户请务必更新。
 

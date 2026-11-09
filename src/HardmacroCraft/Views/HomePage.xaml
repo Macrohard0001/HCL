@@ -13,18 +13,15 @@
             <!-- 启动大卡（PCL 式：账号行 + 版本选择 + 大启动按钮） -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
-                    <!-- 账号行（原独立账号卡合并进启动卡，头像即入口） -->
+                    <!-- 账号行（v0.1.5：三种登录合并进「账号管理」子页，主页只留一个入口，PCL 式） -->
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- 头像（皮肤头部贴图，无皮肤时回退首字母圆形） -->
+                        <!-- 头像（皮肤头部贴图；无皮肤回退 Steve/Alex 默认脸，与游戏内一致） -->
                         <Border Grid.Column="0" Width="46" Height="46" CornerRadius="23"
                                 Background="{DynamicResource SystemAccentColorPrimaryBrush}"
                                 Cursor="Hand" MouseLeftButtonUp="AccountCard_Click"
@@ -49,18 +46,6 @@
                                    Content="{DynamicResource S.Acct.Manage}"
                                    Icon="{ui:SymbolIcon PeopleTeam24}"
                                    Margin="0,0,8,0" MinHeight="36" Click="BtnManageAccounts_Click" />
-                        <ui:Button Grid.Column="3" x:Name="BtnMsLogin"
-                                   Content="{DynamicResource S.Home.MsLogin}"
-                                   Appearance="Primary" Icon="{ui:SymbolIcon Person24}"
-                                   Margin="0,0,8,0" MinHeight="36" Click="BtnMicrosoftLogin_Click" />
-                        <ui:Button Grid.Column="4" x:Name="BtnAuthlibLogin"
-                                   Content="{DynamicResource S.Home.ThirdLogin}"
-                                   Icon="{ui:SymbolIcon Globe24}"
-                                   Margin="0,0,8,0" MinHeight="36" Click="BtnAuthlibLogin_Click" />
-                        <ui:Button Grid.Column="5" x:Name="BtnOfflineLogin"
-                                   Content="{DynamicResource S.Home.OfflineLogin}"
-                                   Icon="{ui:SymbolIcon PersonCircle24}"
-                                   MinHeight="36" Click="BtnOfflineLogin_Click" />
                     </Grid>
 
                     <Separator Margin="0,0,0,14" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
