@@ -13,7 +13,9 @@ Hardmacro Craft Launcher 0.1.3 下载说明（独立开源 Minecraft 启动器�
    · 完整源码（src + tests + docs），开发者 / 自审用
 
 【下载直链（qu.ax）】
-（上传后回填）
+· 单文件版   https://qu.ax/UBRms
+· 便携文件夹 https://qu.ax/Ilxyr
+· 源码包     https://qu.ax/PHG0I
 · GitHub Release（无防盗链，可直连下载器）：
   https://github.com/Macrohard0001/HCL/releases/tag/v0.1.3
 
