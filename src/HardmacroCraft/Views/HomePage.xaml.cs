@@ -20,10 +20,19 @@ public partial class HomePage : Page
     private static System.Threading.CancellationToken _launchCt;
     private object? _btnLaunchDefault;
 
+    /// <summary>v0.1.6：当前首页实例（供版本管理页「启动」跳转后直连启动，规避导航后取不到页面实例）。</summary>
+    public static HomePage? Current { get; private set; }
+    /// <summary>当前版本列表条目（含图标 / 副标题），供最近启动回选中。</summary>
+    private List<VersionItemViewModel> _versionItems = new();
+
+    /// <summary>下拉框当前选中版本（条目视图模型，SelectedValue 取 Name）。</summary>
+    private string? SelectedVersion => CmbVersions.SelectedValue as string;
+
     public HomePage()
     {
         InitializeComponent();
         _btnLaunchDefault = BtnLaunch.Content;
+        Current = this;
         // v0.1.1：订阅启动进度中枢 —— 启动中切页再回来，新实例立即回放当前进度
         LaunchProgressHub.Changed += ApplyLaunchUi;
         LaunchProgressHub.CancelRequested += OnHubCancelRequested;
@@ -31,6 +40,7 @@ public partial class HomePage : Page
         {
             LaunchProgressHub.Changed -= ApplyLaunchUi;
             LaunchProgressHub.CancelRequested -= OnHubCancelRequested;
+            if (Current == this) Current = null;
         };
         ApplyLaunchUi();
         Loaded += async (_, _) =>
@@ -41,9 +51,7 @@ public partial class HomePage : Page
                 await RefreshVersionsAsync();
                 RefreshAccountUi();
                 RefreshRecent();
-                // fix6：快速进服地址记忆（PCL 同款）
-                TxtQuickServer.Text = AppSettings.Instance.LastQuickServer;
-                // 自动登录（PCL 同款）：记住密码 + 自动登录的验证站账号静默重登
+                // 自动登录（记住密码 + 自动登录的验证站账号静默重登）
                 _ = TryAutoLoginAsync();
             }
         };
@@ -92,17 +100,26 @@ public partial class HomePage : Page
         var s = LaunchProgressHub.Current;
         if (!s.Running)
         {
-            BtnLaunch.Content = _btnLaunchDefault;
+            // v0.1.6 重排：空闲时恢复版本选择行 + 按钮行，隐藏进度区
+            PnlVersionRow.Visibility = Visibility.Visible;
+            PnlButtons.Visibility = Visibility.Visible;
+            PnlLaunchProgress.Visibility = Visibility.Collapsed;
             BtnLaunch.IsEnabled = true;
             BtnCancelLaunch.Visibility = Visibility.Collapsed;
             BtnCancelLaunch.IsEnabled = true;
             TxtStage.Visibility = Visibility.Collapsed;
             // v0.1.2：空闲时回放上次启动的终态文案（已取消 / 启动失败 / 游戏运行中），
-            // 与启动结束时的旧实例显示保持一致（此前切页回来是空白）
-            TxtProgress.Text = LaunchProgressHub.LastProgressLine;
+            // v0.1.6 改为按钮行下方的一行小字（进度区已隐藏）
+            var idle = LaunchProgressHub.LastProgressLine;
+            TxtIdleStatus.Text = idle;
+            TxtIdleStatus.Visibility = string.IsNullOrEmpty(idle) ? Visibility.Collapsed : Visibility.Visible;
             return;
         }
-        BtnLaunch.Content = string.IsNullOrEmpty(s.ButtonText) ? _btnLaunchDefault : s.ButtonText;
+        // v0.1.6 重排：启动中隐藏版本选择行 / 按钮行，显示进度区（进度条 + 文字说明 + 取消）
+        PnlVersionRow.Visibility = Visibility.Collapsed;
+        PnlButtons.Visibility = Visibility.Collapsed;
+        PnlLaunchProgress.Visibility = Visibility.Visible;
+        TxtIdleStatus.Visibility = Visibility.Collapsed;
         BtnLaunch.IsEnabled = false;
         if (s.Indeterminate) PbProgress.IsIndeterminate = true;
         else { PbProgress.IsIndeterminate = false; PbProgress.Value = s.Percent; }
@@ -163,7 +180,7 @@ public partial class HomePage : Page
             };
             chip.Click += async (_, _) =>
             {
-                if (CmbVersions.Items.Contains(v)) CmbVersions.SelectedItem = v;
+                if (_versionItems.Any(i => i.Name == v)) CmbVersions.SelectedValue = v;
                 await LaunchAsync(v);
             };
             PnlRecent.Children.Add(chip);
@@ -207,10 +224,11 @@ public partial class HomePage : Page
         {
             TxtAvatar.Text = string.IsNullOrWhiteSpace(acc.Name) ? "?" : acc.Name[..1].ToUpperInvariant();
             TxtAccount.Text = acc.Name;
+            // v0.1.6：第二行账号类型（离线账号 / 正版登录 / 验证站主机名 + 登录）
             TxtAccountType.Text = acc.Type switch
             {
                 "microsoft" => (string)FindResource("S.Home.AccountMs")!,
-                "authlib" => (string)FindResource("S.Home.AccountThird")!,
+                "authlib" => string.Format((string)FindResource("S.Home.AccountThirdFmt")!, AuthlibHost(acc.ServerUrl)),
                 _ => (string)FindResource("S.Home.AccountOffline")!,
             };
             _ = LoadAvatarAsync(acc);
@@ -266,16 +284,40 @@ public partial class HomePage : Page
         catch { /* 网络异常等保持字母头像 */ }
     }
 
+    /// <summary>从验证站地址提取主机名（如 littleskin.cn），用于账号类型第二行展示。</summary>
+    private static string AuthlibHost(string? serverUrl)
+    {
+        if (string.IsNullOrWhiteSpace(serverUrl)) return "authlib-injector";
+        try
+        {
+            var host = new Uri(serverUrl).Host;
+            return string.IsNullOrWhiteSpace(host) ? serverUrl : host;
+        }
+        catch
+        {
+            // 非 URL 形式：去掉协议头后原样返回
+            return serverUrl.Replace("https://", "").Replace("http://", "").TrimEnd('/');
+        }
+    }
+
     private async Task RefreshVersionsAsync()
     {
         try
         {
+            // v0.1.6：下拉框带图标与副标题（加载器类型 · 创建来源）
             var versions = App.LauncherService.GetInstalledVersions();
-            CmbVersions.ItemsSource = versions;
-            if (versions.Count > 0)
+            var items = new List<VersionItemViewModel>();
+            foreach (var v in versions)
+            {
+                var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, v);
+                items.Add(new VersionItemViewModel(v, desc, BuildVersionSubtitle(desc)));
+            }
+            _versionItems = items;
+            CmbVersions.ItemsSource = items;
+            if (items.Count > 0)
             {
                 var last = AppSettings.Instance.LastVersion;
-                CmbVersions.SelectedItem = versions.Contains(last) ? last : versions[^1];
+                CmbVersions.SelectedValue = items.Any(i => i.Name == last) ? last : items[^1].Name;
             }
         }
         catch (Exception ex)
@@ -283,6 +325,18 @@ public partial class HomePage : Page
             Log("读取版本失败: " + ex.Message);
         }
         await Task.CompletedTask;
+    }
+
+    /// <summary>版本副标题：加载器类型（原版 / Forge / …）+ 创建来源说明。</summary>
+    private string BuildVersionSubtitle(VersionInfo.VersionDescriptor desc)
+    {
+        var loader = (string)FindResource(VersionInfo.LoaderKey(desc.Loader))!;
+        return desc.Source switch
+        {
+            LauncherSource.Hcl => loader + " · " + (string)FindResource("S.Ver.FromHcl")!,
+            LauncherSource.Pcl or LauncherSource.Hmcl => loader + " · " + (string)FindResource("S.Ver.FromOther")!,
+            _ => loader,
+        };
     }
 
     // ---------- 登录入口（v0.1.5 变更） ----------
@@ -303,7 +357,8 @@ public partial class HomePage : Page
     // ---------- 启动 ----------
     private async void BtnLaunch_Click(object sender, RoutedEventArgs e)
     {
-        if (CmbVersions.SelectedItem is not string version)
+        var version = SelectedVersion;
+        if (version == null)
         {
             Log("请先选择或下载一个版本。");
             return;
@@ -311,24 +366,68 @@ public partial class HomePage : Page
         await LaunchAsync(version);
     }
 
-    /// <summary>快速进服（fix6，PCL 同款）：填了服务器地址时，启动后直接连入该服务器。</summary>
-    private async void BtnQuickServer_Click(object sender, RoutedEventArgs e)
+    /// <summary>v0.1.6：版本独立设置（版本选择行右侧齿轮，版本管理页同款入口）。</summary>
+    private void BtnVersionSettings_Click(object sender, RoutedEventArgs e)
     {
-        var server = TxtQuickServer.Text.Trim();
-        if (server.Length == 0)
+        var version = SelectedVersion;
+        if (version == null)
         {
-            Log("请先填写服务器地址（如 mc.example.com 或 mc.example.com:25565）。");
+            Log("请先选择一个版本，再打开版本设置。");
             return;
         }
-        if (CmbVersions.SelectedItem is not string version)
+        VersionSettingsWindow.Show(Window.GetWindow(this), version);
+    }
+
+    /// <summary>一键进服（v0.1.6 弹窗式）：地址 → 可选保存到多人游戏列表（servers.dat）→ 启动直连。</summary>
+    private async void BtnQuickServer_Click(object sender, RoutedEventArgs e)
+    {
+        var version = SelectedVersion;
+        if (version == null)
         {
             Log("请先选择或下载一个版本。");
             return;
         }
-        await LaunchAsync(version, server);
+        // 预填：版本独立设置的进服地址 > 上次使用的地址
+        var preset = VersionSettingsStore.Get(version)?.QuickServer;
+        if (string.IsNullOrWhiteSpace(preset)) preset = AppSettings.Instance.LastQuickServer;
+        var r = JoinServerWindow.Show(Window.GetWindow(this), preset);
+        if (r == null) return; // 用户取消
+
+        if (r.SaveName != null)
+            SaveServerToGameList(version, r.SaveName, r.Address);
+        await LaunchAsync(version, r.Address);
     }
 
-    private async Task LaunchAsync(string version, string? quickServer = null)
+    /// <summary>把服务器写入游戏的多人游戏列表（servers.dat，NBT 大端序；版本隔离时写入版本目录内）。</summary>
+    private void SaveServerToGameList(string version, string name, string ip)
+    {
+        try
+        {
+            var iso = VersionSettingsStore.EffectiveIsolation(version, AppSettings.Instance.VersionIsolation);
+            var path = ServerList.ServersDatPath(AppSettings.Instance.GameRoot, iso, version);
+            var existing = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            var updated = ServerList.AddOrUpdate(existing, name, ip);
+            if (updated == null)
+            {
+                Log("[进服] servers.dat 无法解析，为保护现有列表未写入（不影响本次进服）。");
+                return;
+            }
+            var err = ServerList.TryWrite(path, updated);
+            if (err == null)
+                Log($"[进服] 已保存到多人游戏列表：{name} → {ip}");
+            else
+                Log($"[进服] 保存多人游戏列表失败：{err}（不影响本次进服）");
+        }
+        catch (Exception ex)
+        {
+            Log("[进服] 保存多人游戏列表失败：" + ex.Message + "（不影响本次进服）");
+        }
+    }
+
+    /// <summary>
+    /// 启动指定版本（v0.1.6 开放为 public：版本管理页 / 快捷入口可直连调用）。
+    /// </summary>
+    public async Task LaunchAsync(string version, string? quickServer = null)
     {
         if (_launching) return;
         var acc = AccountStore.Instance.Current;
@@ -342,11 +441,11 @@ public partial class HomePage : Page
         LaunchProgressHub.Begin(version); // v0.1.1：进度入库（跨页面存活），本实例与新实例都会回放
         try
         {
-            // fix6：内存显示实际生效值（自动检测 / 手动），与启动日志一致
-            var memShow = AppSettings.Instance.MemoryAuto
-                ? (int)Services.SystemInfo.RecommendedMemoryMb()
-                : AppSettings.Instance.MemoryMb;
-            Log($"启动 {version}（隔离={AppSettings.Instance.VersionIsolation}，内存={memShow}MB" +
+            // fix6：内存显示实际生效值（自动检测 / 手动；v0.1.6 起含版本独立设置覆盖），与启动日志一致
+            var (memShow, memAutoShow) = VersionSettingsStore.EffectiveMemory(version, AppSettings.Instance);
+            var isoShow = VersionSettingsStore.EffectiveIsolation(version, AppSettings.Instance.VersionIsolation);
+            Log($"启动 {version}（隔离={isoShow}，内存={memShow}MB" +
+                (memAutoShow ? "（自动检测）" : "") +
                 (quickServer != null ? $"，进服={quickServer}" : "") + "）...");
             AppSettings.Instance.LastVersion = version;
             AppSettings.Instance.Save();
@@ -482,10 +581,30 @@ public partial class HomePage : Page
             var requiredMajor = JavaManager.RequiredJavaMajorChain(
                 AppSettings.Instance.GameRoot, version);
             string? javaToUse = null;
+            // v0.1.6：版本独立 Java 路径优先（版本设置中指定；无效时回落全局设置）
+            var verJavaSetting = VersionSettingsStore.Get(version)?.JavaPath;
+            if (!string.IsNullOrWhiteSpace(verJavaSetting))
+            {
+                var resolvedVerJava = JavaManager.ResolveJavaPath(verJavaSetting);
+                if (resolvedVerJava != null)
+                {
+                    javaToUse = resolvedVerJava;
+                    var verJavaMajor = JavaManager.GetJavaMajor(resolvedVerJava);
+                    Log($"[启动] 使用版本独立 Java: {resolvedVerJava}" +
+                        (verJavaMajor > 0 ? $" (Java {verJavaMajor})" : ""));
+                    if (verJavaMajor > 0 && verJavaMajor < requiredMajor)
+                        Log($"[警告] 版本独立 Java 为 {verJavaMajor}，低于本版本所需的 Java {requiredMajor}，游戏可能启动失败；可在版本设置中修改。");
+                }
+                else
+                {
+                    Log($"[警告] 版本独立 Java 路径无效（{verJavaSetting}），改用全局设置。可在版本设置中修改。");
+                }
+            }
             var userJava = AppSettings.Instance.JavaPath;
             // fix5：手选 Java 支持填文件夹 / java.exe（自动递归找 javaw.exe），
             // 且选中后只要存在就直接使用，不再误入自动安装弹窗
-            var resolvedUserJava = JavaManager.ResolveJavaPath(userJava);
+            // v0.1.6：版本独立 Java 已解析成功时跳过全局路径（不覆盖）
+            var resolvedUserJava = javaToUse == null ? JavaManager.ResolveJavaPath(userJava) : null;
             if (resolvedUserJava != null)
             {
                 javaToUse = resolvedUserJava;
@@ -665,6 +784,9 @@ public partial class HomePage : Page
     {
         LaunchProgressHub.RequestCancel();
     }
+
+    /// <summary>v0.1.6：供版本管理页等外部入口直接启动指定版本（导航回主页后直连调用）。</summary>
+    public Task LaunchFromExternalAsync(string version) => LaunchAsync(version);
 
     private async void BtnRefreshVersions_Click(object sender, RoutedEventArgs e)
     {

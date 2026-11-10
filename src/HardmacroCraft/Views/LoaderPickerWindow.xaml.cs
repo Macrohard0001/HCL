@@ -261,6 +261,10 @@ public partial class LoaderPickerWindow : FluentWindow
                         TxtStatus.Text = string.Format(FindRes("S.Dl.VersionNameDone"), newId, customName);
                 }
             }
+
+            // v0.1.6：本启动器安装的版本写入所有权标记 → 版本列表/首页下拉框据此显示来源图标
+            App.LauncherService.MarkNewestVersionOwned(versionsBefore,
+                row.Id != "forbric" && !string.IsNullOrEmpty(customName) ? customName : null);
             DownloadTaskService.Instance.Complete(_centerTask!, FindRes("S.Dl.LoaderDone"));
             _centerTask = null;
             if (_backgrounded) return; // 后台模式：任务中心已标记完成，窗口已关，无事可做

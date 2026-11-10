@@ -7,7 +7,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,2">
@@ -15,9 +17,19 @@
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Ver.Subtitle}" />
         </StackPanel>
 
-        <Border Grid.Row="1" Style="{StaticResource HmCard}" Margin="0,0,0,12">
-            <!-- fix7：WrapPanel —— 小窗口下按钮自动换行，不再横向溢出 -->
+        <!-- v0.1.6 搜索（PCL 式：版本多了以后快速定位） -->
+        <ui:TextBox Grid.Row="1" x:Name="TxtSearch" MinHeight="38" Margin="0,4,0,10"
+                    PlaceholderText="{DynamicResource S.Ver.SearchPh}"
+                    Icon="{ui:SymbolIcon Search24}"
+                    TextChanged="TxtSearch_TextChanged" />
+
+        <!-- 工具按钮（WrapPanel：小窗口下自动换行） -->
+        <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,0,0,12" Padding="12">
             <WrapPanel>
+                <ui:Button Content="{DynamicResource S.Ver.Launch}" MinHeight="36" Margin="0,0,8,8"
+                           Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Click="BtnLaunch_Click" />
+                <ui:Button Content="{DynamicResource S.Ver.Settings}" MinHeight="36" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon Settings24}" Click="BtnSettings_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="36" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon ArrowClockwise24}" Click="BtnRefresh_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.OpenFolder}" MinHeight="36" Margin="0,0,8,8"
@@ -37,24 +49,43 @@
             </WrapPanel>
         </Border>
 
-        <ListBox Grid.Row="2" x:Name="LstVersions" Style="{StaticResource HmListBox}"
-                 SelectionMode="Single">
+        <!-- v0.1.6 版本列表（PCL 式）：图标（加载器 / 创建来源）+ 名称 + 副标题；单击进版本设置 -->
+        <ListBox Grid.Row="3" x:Name="LstVersions" Style="{StaticResource HmListBox}"
+                 SelectionMode="Single"
+                 MouseDoubleClick="LstVersions_MouseDoubleClick"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="12,9">
-                        <Border Width="32" Height="32" CornerRadius="7"
+                        <Border Width="40" Height="40" CornerRadius="8"
                                 Background="{DynamicResource SubtleFillColorTertiaryBrush}">
-                            <!-- PCL 式草方块图标 -->
-                            <Image Source="/Assets/grass.png" Width="24" Height="24"
-                                   RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                            <Grid>
+                                <Image Source="{Binding Icon}" Width="30" Height="30"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                       Visibility="{Binding IconVis}" />
+                                <Border CornerRadius="7" Width="30" Height="30"
+                                        Background="{Binding BadgeBrush}"
+                                        Visibility="{Binding BadgeVis}">
+                                    <TextBlock Text="{Binding Badge}" Foreground="White"
+                                               FontSize="15" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
                         </Border>
-                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding}" FontWeight="Medium"
+                        <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="14"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{Binding Subtitle}" FontSize="11" Margin="0,2,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+
+        <!-- 提示行 -->
+        <TextBlock Grid.Row="4" Text="{DynamicResource S.Ver.ClickHint}" FontSize="11"
+                   Margin="2,8,0,0"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
     </Grid>
 </Page>

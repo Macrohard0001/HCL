@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.5";
+    public const string LauncherVersion = "0.1.6";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -526,11 +526,12 @@ public class LauncherService : IDisposable
     /// <summary>
     /// 构造游戏目录。开启版本隔离时，存档 / mod / 资源包 / 截图等放入
     /// versions/&lt;id&gt;/，而 assets / libraries / versions 共享基础目录（与 PCL 版本隔离一致）。
+    /// v0.1.6：版本独立设置可按版本覆盖全局隔离开关。
     /// </summary>
     public MinecraftPath BuildGamePath(string versionName)
     {
         var root = AppSettings.Instance.GameRoot;
-        if (!AppSettings.Instance.VersionIsolation)
+        if (!VersionSettingsStore.EffectiveIsolation(versionName, AppSettings.Instance.VersionIsolation))
             return new MinecraftPath(root);
 
         var isoDir = Path.Combine(root, "versions", versionName);
@@ -571,17 +572,20 @@ public class LauncherService : IDisposable
 
         // fix6：游戏内存自动检测（PCL 同款「自动分配」）。自动模式下每次启动按当前
         // 物理内存计算推荐值；手动模式用设置页滑杆值。超出物理内存时警告但不阻断启动。
+        // v0.1.6：版本独立设置可按版本覆盖内存模式与分配值。
         var totalMb = SystemInfo.TotalPhysicalMemoryMb;
-        var memMb = AppSettings.Instance.MemoryAuto
+        var verMem = VersionSettingsStore.Get(versionName);
+        var memAuto = verMem?.MemoryAuto ?? AppSettings.Instance.MemoryAuto;
+        var memMb = memAuto
             ? (int)SystemInfo.RecommendedMemoryMb(totalMb)
-            : AppSettings.Instance.MemoryMb;
+            : verMem?.MemoryMb > 0 ? verMem.MemoryMb : AppSettings.Instance.MemoryMb;
         option.MaximumRamMb = memMb;
         // fix7（PCL 对齐）：初始内存 -Xms 自动设为 min(2GB, 分配值)，加快堆预热且避免反复扩容
         option.MinimumRamMb = Math.Min(memMb, 2048);
         onLog?.Invoke($"[启动] 游戏内存 {memMb}MB" +
-            (AppSettings.Instance.MemoryAuto
+            (memAuto
                 ? $"（自动检测，物理内存 {totalMb}MB）"
-                : "（手动设置）"));
+                : (verMem?.MemoryAuto == false ? "（版本设置手动指定）" : "（手动设置）")));
         var memWarn = SystemInfo.CheckAllocatedMemory(memMb);
         if (memWarn != null) onLog?.Invoke("[警告] " + memWarn);
 
@@ -602,7 +606,12 @@ public class LauncherService : IDisposable
         }
         // Java：调用方解析好的路径（自动安装/自动挑选结果）优先，其次用户手填路径；
         // fix5：手填支持文件夹 / java.exe，自动递归解析为 javaw.exe
-        var userJavaRaw = javaPathOverride ?? AppSettings.Instance.JavaPath;
+        // v0.1.6：版本独立 Java 路径优先（显式用户选择）；其次调用方传入的路径；最后全局设置
+        var verJava = VersionSettingsStore.Get(versionName)?.JavaPath;
+        var userJavaRaw = !string.IsNullOrWhiteSpace(verJava) ? verJava
+            : javaPathOverride ?? AppSettings.Instance.JavaPath;
+        if (!string.IsNullOrWhiteSpace(verJava))
+            onLog?.Invoke($"[启动] 使用版本独立 Java: {verJava}");
         var userJava = JavaManager.ResolveJavaPath(userJavaRaw);
         if (userJava == null && !string.IsNullOrWhiteSpace(userJavaRaw))
             onLog?.Invoke($"[警告] 设置中的 Java 路径无效（{userJavaRaw}），改用自动选择。");
@@ -632,7 +641,7 @@ public class LauncherService : IDisposable
         try
         {
             GameOptions.ApplyForVersion(AppSettings.Instance.GameRoot, versionName,
-                AppSettings.Instance.VersionIsolation,
+                VersionSettingsStore.EffectiveIsolation(versionName, AppSettings.Instance.VersionIsolation),
                 AppSettings.Instance.GameLang, AppSettings.Instance.SkipOnboarding);
             if (AppSettings.Instance.SkipOnboarding)
                 onLog?.Invoke("[启动] 已跳过初始屏幕（onboardAccessibility=false）");
@@ -652,8 +661,11 @@ public class LauncherService : IDisposable
             onLog?.Invoke($"已注入 authlib-injector: {authlibServer}");
         }
 
-        // fix8（PCL 同款）：默认 JVM 优化参数开关 + 用户自定义参数（自定义在后、优先生效）
-        var jvmExtra = LaunchArgs.BuildJvmExtra(AppSettings.Instance.JvmOptimize, AppSettings.Instance.CustomJvmArgs);
+        // fix8（PCL 同款）：默认 JVM 优化参数开关 + 用户自定义参数（自定义在后、优先生效）。
+        // v0.1.6：版本独立设置里填了自定义 JVM 参数时按版本覆盖全局。
+        var verJvmArgs = VersionSettingsStore.Get(versionName)?.CustomJvmArgs;
+        var customJvmArgs = !string.IsNullOrWhiteSpace(verJvmArgs) ? verJvmArgs : AppSettings.Instance.CustomJvmArgs;
+        var jvmExtra = LaunchArgs.BuildJvmExtra(AppSettings.Instance.JvmOptimize, customJvmArgs);
         if (jvmExtra.Count > 0)
         {
             var merged = new List<CmlLib.Core.ProcessBuilder.MArgument>(option.ExtraJvmArguments ?? Array.Empty<CmlLib.Core.ProcessBuilder.MArgument>());
@@ -661,8 +673,9 @@ public class LauncherService : IDisposable
             option.ExtraJvmArguments = merged.ToArray();
             if (AppSettings.Instance.JvmOptimize)
                 onLog?.Invoke($"[启动] JVM 优化参数已启用（G1GC / Forge 兼容 / Log4Shell 缓解）");
-            if (LaunchArgs.ParseArgs(AppSettings.Instance.CustomJvmArgs).Count > 0)
-                onLog?.Invoke($"[启动] 已应用 {LaunchArgs.ParseArgs(AppSettings.Instance.CustomJvmArgs).Count} 个自定义 JVM 参数");
+            if (LaunchArgs.ParseArgs(customJvmArgs).Count > 0)
+                onLog?.Invoke($"[启动] 已应用 {LaunchArgs.ParseArgs(customJvmArgs).Count} 个自定义 JVM 参数" +
+                    (verJvmArgs != null ? "（版本独立设置）" : ""));
         }
 
         // fix8（PCL 的“游戏参数”）：自定义游戏参数（如 --demo）附加在游戏命令行末尾
@@ -957,6 +970,29 @@ public class LauncherService : IDisposable
         var dir = Path.Combine(AppSettings.Instance.GameRoot, "versions", versionName);
         if (Directory.Exists(dir)) Directory.Delete(dir, true);
         VerifyStamp.Invalidate(AppSettings.Instance.GameRoot, versionName);
+        // v0.1.6：版本独立设置一并清理
+        VersionSettingsStore.Delete(versionName);
+    }
+
+    /// <summary>
+    /// v0.1.6：给本启动器安装的版本打所有权标记（hcl.json）—— 版本列表据此显示
+    /// 「由哪种启动器创建」的图标。安装前传入版本目录名快照，安装后自动找到新增的版本目录。
+    /// explicitName 非空（安装后改名过）时优先使用。静默失败（仅影响图标展示）。
+    /// </summary>
+    public void MarkNewestVersionOwned(IEnumerable<string> versionDirsBefore, string? explicitName = null)
+    {
+        try
+        {
+            var versionsRoot = Path.Combine(AppSettings.Instance.GameRoot, "versions");
+            if (!Directory.Exists(versionsRoot)) return;
+            var before = versionDirsBefore.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var target = explicitName != null && Directory.Exists(Path.Combine(versionsRoot, explicitName))
+                ? explicitName
+                : Directory.GetDirectories(versionsRoot).Select(Path.GetFileName)
+                    .FirstOrDefault(n => n != null && !before.Contains(n));
+            if (target != null) VersionInfo.WriteOwnedMarker(Path.Combine(versionsRoot, target));
+        }
+        catch { /* 仅影响图标 */ }
     }
 
     /// <summary>把版本目录内的 json/jar 文件名与 json 中的 id 字段改为新版本名。</summary>

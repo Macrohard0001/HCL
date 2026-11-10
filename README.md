@@ -1,6 +1,6 @@
 # Hardmacro Craft Launcher
 
-**v0.1.5** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
+**v0.1.6** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
 
 > **开发者：Fox_Ryn（Macrohard0001）** · 仓库：https://github.com/Macrohard0001/HCL · License: MIT
 

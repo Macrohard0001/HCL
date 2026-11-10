@@ -20,12 +20,13 @@
     <sys:String x:Key="S.Home.NoAccount">Not signed in</sys:String>
     <sys:String x:Key="S.Home.NoAccountHint">Sign in with a Microsoft account or create an offline profile</sys:String>
     <sys:String x:Key="S.Home.AccountMs">Microsoft account (credential stored in local config/)</sys:String>
+    <sys:String x:Key="S.Home.AccountThirdFmt">Login via {0} (third-party auth)</sys:String>
     <sys:String x:Key="S.Home.AccountThird">Third-party auth server account (authlib-injector)</sys:String>
     <sys:String x:Key="S.Home.AccountOffline">Offline account</sys:String>
     <sys:String x:Key="S.Home.SelectVersion">Version</sys:String>
-        <sys:String x:Key="S.Home.QuickServer">Quick join server</sys:String>
-    <sys:String x:Key="S.Home.QuickServerPh">Server address, e.g. mc.example.com or mc.example.com:25565</sys:String>
-    <sys:String x:Key="S.Home.QuickServerBtn">Launch and join</sys:String>
+    <sys:String x:Key="S.Home.QuickServer">Quick join server</sys:String>
+    <sys:String x:Key="S.Home.QuickServerBtn">Join Server</sys:String>
+    <sys:String x:Key="S.Home.VersionSettingsTip">Version settings (applies to this version only)</sys:String>
 <sys:String x:Key="S.Home.Launch">Launch</sys:String>
     <sys:String x:Key="S.Home.Stage.CheckJava">Checking Java environment</sys:String>
     <sys:String x:Key="S.Home.Stage.Files">Completing game files</sys:String>
@@ -277,12 +278,56 @@
 
     <!-- Versions -->
     <sys:String x:Key="S.Ver.Title">Versions</sys:String>
-    <sys:String x:Key="S.Ver.Subtitle">Installed versions (versions folder). With version isolation each version keeps its own saves and mods.</sys:String>
+    <sys:String x:Key="S.Ver.Subtitle">Installed versions (versions folder). Icons show the mod loader and which launcher created them; click a version to open its settings.</sys:String>
     <sys:String x:Key="S.Ver.Refresh">Refresh</sys:String>
     <sys:String x:Key="S.Ver.OpenFolder">Open Folder</sys:String>
     <sys:String x:Key="S.Ver.Rename">Rename</sys:String>
     <sys:String x:Key="S.Ver.Copy">Copy</sys:String>
     <sys:String x:Key="S.Ver.Delete">Delete</sys:String>
+    <sys:String x:Key="S.Ver.Launch">Launch</sys:String>
+    <sys:String x:Key="S.Ver.Settings">Version Settings</sys:String>
+    <sys:String x:Key="S.Ver.SearchPh">Search versions (filter by keyword)</sys:String>
+    <sys:String x:Key="S.Ver.ClickHint">Tip: click a version to open its settings; double-click to launch it directly.</sys:String>
+    <sys:String x:Key="S.Ver.FromHcl">Installed by this launcher</sys:String>
+    <sys:String x:Key="S.Ver.FromOther">Created by another launcher</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Vanilla">Vanilla</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Forge">Forge</sys:String>
+    <sys:String x:Key="S.Ver.Loader.NeoForge">NeoForge</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Fabric">Fabric</sys:String>
+    <sys:String x:Key="S.Ver.Loader.LegacyFabric">Legacy Fabric</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Quilt">Quilt</sys:String>
+    <sys:String x:Key="S.Ver.Loader.LiteLoader">LiteLoader</sys:String>
+    <sys:String x:Key="S.Ver.Loader.OptiFine">OptiFine</sys:String>
+
+    <!-- Version settings -->
+    <sys:String x:Key="S.Vs.Title">Version Settings</sys:String>
+    <sys:String x:Key="S.Vs.GroupGame">Game</sys:String>
+    <sys:String x:Key="S.Vs.IsoFollow">Follow global setting</sys:String>
+    <sys:String x:Key="S.Vs.IsoOn">Isolated (saves / mods inside this version folder)</sys:String>
+    <sys:String x:Key="S.Vs.IsoOff">Shared (saves / mods shared with other versions)</sys:String>
+    <sys:String x:Key="S.Vs.IsoHint">Overrides isolation for this version only; the global switch is in Settings → Game Directory.</sys:String>
+    <sys:String x:Key="S.Vs.GroupJava">Java</sys:String>
+    <sys:String x:Key="S.Vs.JavaPh">Empty = follow global setting (folder or javaw.exe path)</sys:String>
+    <sys:String x:Key="S.Vs.GroupMemory">Memory</sys:String>
+    <sys:String x:Key="S.Vs.MemoryOverride">Allocate memory for this version</sys:String>
+    <sys:String x:Key="S.Vs.MemoryValue">{0} MB</sys:String>
+    <sys:String x:Key="S.Vs.MemoryHint">Checked: the slider value is fixed for this version. Unchecked: follow the global setting (including auto detection).</sys:String>
+    <sys:String x:Key="S.Vs.GroupJvm">JVM Arguments</sys:String>
+    <sys:String x:Key="S.Vs.JvmPh">Empty = follow global setting, e.g. -XX:+UseZGC</sys:String>
+    <sys:String x:Key="S.Vs.GroupServer">Join Server</sys:String>
+    <sys:String x:Key="S.Vs.ServerPh">Default server address for this version (auto-fills the join dialog); empty = no preset</sys:String>
+    <sys:String x:Key="S.Vs.Reset">Reset</sys:String>
+    <sys:String x:Key="S.Vs.Save">Save</sys:String>
+
+    <!-- Join server dialog -->
+    <sys:String x:Key="S.Join.Title">Join Server</sys:String>
+    <sys:String x:Key="S.Join.Hint">The game will connect to this server right after launch (IP or domain, port optional)</sys:String>
+    <sys:String x:Key="S.Join.Address">Server address</sys:String>
+    <sys:String x:Key="S.Join.AddressPh">mc.example.com or mc.example.com:25565</sys:String>
+    <sys:String x:Key="S.Join.Save">Save to the game's multiplayer list</sys:String>
+    <sys:String x:Key="S.Join.SaveName">Name in the list</sys:String>
+    <sys:String x:Key="S.Join.DefaultName">Minecraft Server</sys:String>
+    <sys:String x:Key="S.Join.Ok">Launch and Join</sys:String>
 
     <!-- Settings -->
     <sys:String x:Key="S.Set.Title">Settings</sys:String>
