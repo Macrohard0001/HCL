@@ -3,54 +3,130 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <ScrollViewer Style="{StaticResource HmScrollViewer}">
-        <StackPanel Margin="32,24,32,24" MaxWidth="920" HorizontalAlignment="Stretch">
+    <!-- 响应式布局：主容器不滚动，随窗口高度自适应 ——
+         顶部账号卡 / 中部弹性区（日志 + 最近启动）/ 底部启动卡钉在窗口底缘 -->
+    <Grid Margin="28,18,28,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-            <!-- 标题（强调条） -->
+        <!-- 标题（强调条） -->
+        <StackPanel Grid.Row="0" Margin="4,0,4,14">
             <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Home.Title}" Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Home.Subtitle}" />
+        </StackPanel>
 
-            <!-- v0.1.6 启动大卡（重排）：顶部全宽账号容器 → 折叠日志 → 版本选择行 / 启动进度区 → 双按钮 -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
+        <!-- 账号卡（全宽）：头像 + 用户名 / 账号类型两行，点击进入账号管理 -->
+        <Border Grid.Row="1" Style="{StaticResource HmCard}" Padding="18,14">
+            <Grid Cursor="Hand" MouseLeftButtonUp="AccountCard_Click" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                    <!-- 账号容器（全宽）：头像 + 用户名 / 账号类型两行，点击进入账号管理 -->
-                    <Grid Margin="0,0,0,12" Cursor="Hand" MouseLeftButtonUp="AccountCard_Click"
-                          Background="Transparent">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- 头像（皮肤头部贴图；无皮肤回退 Steve/Alex 默认脸，与游戏内一致） -->
-                        <Border Grid.Column="0" Width="52" Height="52" CornerRadius="26"
-                                Background="{DynamicResource SystemAccentColorPrimaryBrush}">
-                            <Grid>
-                                <Image x:Name="ImgAvatar" Width="52" Height="52" Stretch="Fill"
-                                       Visibility="Collapsed" />
-                                <TextBlock x:Name="TxtAvatar" Text="?" FontSize="20" FontWeight="Bold"
-                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
-
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,8,0">
-                            <TextBlock x:Name="TxtAccount" FontSize="16" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="..." />
-                            <TextBlock x:Name="TxtAccountType" FontSize="12" Margin="0,2,0,0"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-
-                        <ui:Button Grid.Column="2" x:Name="BtnManageAccounts"
-                                   Content="{DynamicResource S.Acct.Manage}"
-                                   Icon="{ui:SymbolIcon PeopleTeam24}"
-                                   Margin="0,0,8,0" MinHeight="36" Click="BtnManageAccounts_Click" />
+                <!-- 头像（皮肤头部贴图；无皮肤回退 Steve/Alex 默认脸，与游戏内一致） -->
+                <Border Grid.Column="0" Width="52" Height="52" CornerRadius="26"
+                        Background="{DynamicResource SystemAccentColorPrimaryBrush}">
+                    <Grid>
+                        <Image x:Name="ImgAvatar" Width="52" Height="52" Stretch="Fill"
+                               Visibility="Collapsed" />
+                        <TextBlock x:Name="TxtAvatar" Text="?" FontSize="20" FontWeight="Bold"
+                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
+                </Border>
 
-                    <Separator Margin="0,0,0,8" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,8,0">
+                    <TextBlock x:Name="TxtAccount" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="..." />
+                    <TextBlock x:Name="TxtAccountType" FontSize="12" Margin="0,2,0,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
 
-                    <!-- 游戏日志（默认折叠，点标题展开；启动输出 / 补全日志都在这里） -->
-                    <Grid Cursor="Hand" MouseLeftButtonUp="BtnToggleLog_Click" Margin="0,4,0,4">
+                <ui:Button Grid.Column="2" x:Name="BtnManageAccounts"
+                           Content="{DynamicResource S.Acct.Manage}"
+                           Icon="{ui:SymbolIcon PeopleTeam24}"
+                           Margin="0,0,8,0" MinHeight="36" Click="BtnManageAccounts_Click" />
+            </Grid>
+        </Border>
+
+        <!-- 中部弹性区：运行实例 + 最近启动 + 日志（日志卡展开时撑满剩余空间，主容器不滚动） -->
+        <Grid Grid.Row="2" Margin="0,14,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- v0.1.7 运行中的游戏实例（多实例管理：查看 / 结束；默认隐藏，有实例时出现） -->
+            <Border x:Name="CardInstances" Grid.Row="0" Style="{StaticResource HmCard}" Padding="18,10"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <ui:SymbolIcon Symbol="Gamepad24" FontSize="16"
+                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                        <TextBlock Text="{DynamicResource S.Home.InstancesTitle}" FontWeight="Medium" FontSize="13"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtInstanceCount" FontSize="12" Margin="8,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ItemsControl x:Name="PnlInstances">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Version}" FontWeight="Medium" FontSize="13"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding StateText}" FontSize="11" Margin="10,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding PidText}" FontSize="11" Margin="10,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="3" Content="{DynamicResource S.Home.InstanceKill}"
+                                               FontSize="11" MinHeight="26" Padding="8,2" Margin="0,0,8,0"
+                                               Appearance="Danger" ToolTip="{DynamicResource S.Home.InstanceKillTip}"
+                                               Click="BtnKillInstance_Click" Tag="{Binding Pid}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- 最近启动（快捷启动） -->
+            <Border x:Name="CardRecent" Grid.Row="1" Style="{StaticResource HmCard}" Margin="0,12,0,0" Visibility="Collapsed">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <ui:SymbolIcon Symbol="History24" FontSize="18"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="{DynamicResource S.Home.Recent}" FontWeight="Medium"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <WrapPanel x:Name="PnlRecent" />
+                </StackPanel>
+            </Border>
+
+            <!-- 游戏日志（默认折叠成一条标题栏；展开后撑满本区剩余空间；主容器不滚动） -->
+            <Border x:Name="CardLog" Grid.Row="2" Style="{StaticResource HmCard}" Padding="18,10"
+                    Margin="0,12,0,0" VerticalAlignment="Top">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Cursor="Hand" MouseLeftButtonUp="BtnToggleLog_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="Code24" FontSize="14"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -71,166 +147,110 @@
                                        Icon="{ui:SymbolIcon Bug24}" Click="BtnOpenCrash_Click" />
                         </StackPanel>
                     </Grid>
-                    <Border x:Name="PnlLogBox" CornerRadius="8" Background="#F215181C"
+                    <Border x:Name="PnlLogBox" Grid.Row="1" CornerRadius="8" Background="#F215181C"
                             BorderBrush="#33FFFFFF" BorderThickness="1" Visibility="Collapsed"
-                            Margin="0,6,0,2">
+                            Margin="0,8,0,2">
                         <TextBox x:Name="TxtLog" IsReadOnly="True" FontFamily="Consolas"
                                  FontSize="12" Foreground="#FFE2E6EC" Background="Transparent"
                                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                 MaxHeight="220" BorderThickness="0" Margin="10,8,10,8"
+                                 VerticalAlignment="Stretch" BorderThickness="0" Margin="10,8,10,8"
                                  TextChanged="TxtLog_TextChanged" />
                     </Border>
+                </Grid>
+            </Border>
+        </Grid>
 
-                    <Separator Margin="0,6,0,10" Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+        <!-- 底部启动卡：版本选择行（启动中被进度区替换）+ 双按钮，钉在窗口底缘 -->
+        <Border Grid.Row="3" Style="{StaticResource HmCard}" Padding="18,14">
+            <StackPanel>
 
-                    <!-- 版本选择行：下拉框（带加载器/来源图标）+ 版本设置 + 刷新；启动中被进度区替换 -->
-                    <Grid x:Name="PnlVersionRow" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="CmbVersions" MinHeight="42" FontSize="15"
-                                  SelectedValuePath="Name" Margin="0,0,8,0" MaxDropDownHeight="420">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,3">
-                                        <Grid Width="28" Height="28">
-                                            <Image Source="{Binding Icon}" Width="26" Height="26"
-                                                   RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                                   Visibility="{Binding IconVis}" />
-                                            <Border CornerRadius="6" Width="26" Height="26"
-                                                    Background="{Binding BadgeBrush}"
-                                                    Visibility="{Binding BadgeVis}">
-                                                <TextBlock Text="{Binding Badge}" Foreground="White"
-                                                           FontSize="13" FontWeight="Bold"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                        </Grid>
-                                        <StackPanel Margin="9,0,4,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                                            <TextBlock Text="{Binding Subtitle}" FontSize="11"
-                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                        </StackPanel>
+                <!-- 版本选择行：下拉框（带加载器/来源图标）+ 版本设置 + 刷新 -->
+                <Grid x:Name="PnlVersionRow" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="CmbVersions" MinHeight="42" FontSize="15"
+                              SelectedValuePath="Name" Margin="0,0,8,0" MaxDropDownHeight="420">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,3">
+                                    <Grid Width="28" Height="28">
+                                        <Image Source="{Binding Icon}" Width="26" Height="26"
+                                               RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                               Visibility="{Binding IconVis}" />
+                                        <Border CornerRadius="6" Width="26" Height="26"
+                                                Background="{Binding BadgeBrush}"
+                                                Visibility="{Binding BadgeVis}">
+                                            <TextBlock Text="{Binding Badge}" Foreground="White"
+                                                       FontSize="13" FontWeight="Bold"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                    <StackPanel Margin="9,0,4,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                                        <TextBlock Text="{Binding Subtitle}" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                                     </StackPanel>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <ui:Button Grid.Column="1" x:Name="BtnVersionSettings" MinHeight="42" MinWidth="42"
-                                   Icon="{ui:SymbolIcon Settings24}" Margin="0,0,8,0"
-                                   ToolTip="{DynamicResource S.Home.VersionSettingsTip}"
-                                   Click="BtnVersionSettings_Click" />
-                        <ui:Button Grid.Column="2" x:Name="BtnRefreshVersions" MinHeight="42" MinWidth="42"
-                                   Icon="{ui:SymbolIcon ArrowClockwise24}"
-                                   ToolTip="{DynamicResource S.Ver.Refresh}"
-                                   Click="BtnRefreshVersions_Click" />
-                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ui:Button Grid.Column="1" x:Name="BtnVersionSettings" MinHeight="42" MinWidth="42"
+                               Icon="{ui:SymbolIcon Settings24}" Margin="0,0,8,0"
+                               ToolTip="{DynamicResource S.Home.VersionSettingsTip}"
+                               Click="BtnVersionSettings_Click" />
+                    <ui:Button Grid.Column="2" x:Name="BtnRefreshVersions" MinHeight="42" MinWidth="42"
+                               Icon="{ui:SymbolIcon ArrowClockwise24}"
+                               ToolTip="{DynamicResource S.Ver.Refresh}"
+                               Click="BtnRefreshVersions_Click" />
+                </Grid>
 
-                    <!-- 启动进度区（启动中替换版本选择行：进度条 + 阶段文字说明 + 取消） -->
-                    <StackPanel x:Name="PnlLaunchProgress" Margin="0,2,0,12" Visibility="Collapsed">
-                        <ProgressBar x:Name="PbProgress" Height="6" Maximum="100" IsIndeterminate="False" />
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock x:Name="TxtProgress" FontSize="12" MaxHeight="34" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <TextBlock x:Name="TxtStage" FontSize="12" FontWeight="Medium" Visibility="Collapsed"
-                                           Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="0,2,0,0" />
-                            </StackPanel>
-                            <ui:Button x:Name="BtnCancelLaunch" Grid.Column="1" Content="{DynamicResource S.Common.Cancel}"
-                                       Icon="{ui:SymbolIcon Dismiss24}" MinHeight="34" VerticalAlignment="Top"
-                                       Click="BtnCancelLaunch_Click"
-                                       ToolTip="{DynamicResource S.Home.CancelLaunchTip}" />
-                        </Grid>
-                    </StackPanel>
-
-                    <!-- 按钮行：小的一键进服 + 大的启动游戏（保留原配色式样） -->
-                    <Grid x:Name="PnlButtons">
+                <!-- 启动进度区（启动中替换版本选择行：进度条 + 阶段文字说明 + 取消） -->
+                <StackPanel x:Name="PnlLaunchProgress" Margin="0,2,0,12" Visibility="Collapsed">
+                    <ProgressBar x:Name="PbProgress" Height="6" Maximum="100" IsIndeterminate="False" />
+                    <Grid Margin="0,10,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="12" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ui:Button x:Name="BtnQuickServer" Grid.Column="0" MinHeight="52" MinWidth="132"
-                                   Icon="{ui:SymbolIcon PlugConnected24}" FontSize="13"
-                                   Content="{DynamicResource S.Home.QuickServerBtn}"
-                                   ToolTip="{DynamicResource S.Home.QuickServer}"
-                                   VerticalAlignment="Stretch" Click="BtnQuickServer_Click" />
-                        <ui:Button x:Name="BtnLaunch" Grid.Column="2" Appearance="Primary"
-                                   Content="{DynamicResource S.Home.Launch}"
-                                   Icon="{ui:SymbolIcon Play24}" MinHeight="52" FontSize="16" FontWeight="SemiBold"
-                                   HorizontalAlignment="Stretch" Click="BtnLaunch_Click" />
+                        <StackPanel>
+                            <TextBlock x:Name="TxtProgress" FontSize="12" MaxHeight="34" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="TxtStage" FontSize="12" FontWeight="Medium" Visibility="Collapsed"
+                                       Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <ui:Button x:Name="BtnCancelLaunch" Grid.Column="1" Content="{DynamicResource S.Common.Cancel}"
+                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="34" VerticalAlignment="Top"
+                                   Click="BtnCancelLaunch_Click"
+                                   ToolTip="{DynamicResource S.Home.CancelLaunchTip}" />
                     </Grid>
-
-                    <!-- 空闲状态提示行：上次启动的终态（游戏运行中 / 已取消 / 失败原因） -->
-                    <TextBlock x:Name="TxtIdleStatus" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
-                               Visibility="Collapsed"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </StackPanel>
-            </Border>
 
-            <!-- 快捷入口（下载 / 整合包 / 模组） -->
-            <Grid Margin="0,14,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="8" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="8" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
-                        MouseLeftButtonUp="BtnQuickDownload_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="22"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource S.Nav.DownloadGame}" FontWeight="SemiBold" FontSize="13" />
-                            <TextBlock Text="{DynamicResource S.Home.Quick.DownloadTip}" FontSize="11"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-                <Border Grid.Column="2" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
-                        MouseLeftButtonUp="BtnQuickModpacks_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="BoxMultiple24" FontSize="22"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource S.Nav.Modpacks}" FontWeight="SemiBold" FontSize="13" />
-                            <TextBlock Text="{DynamicResource S.Home.Quick.ModpacksTip}" FontSize="11"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-                <Border Grid.Column="4" Style="{StaticResource HmCardAction}" Padding="14,12" Cursor="Hand"
-                        MouseLeftButtonUp="BtnQuickMods_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="PuzzlePiece24" FontSize="22"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource S.Nav.Mods}" FontWeight="SemiBold" FontSize="13" />
-                            <TextBlock Text="{DynamicResource S.Home.Quick.ModsTip}" FontSize="11"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Grid>
+                <!-- 按钮行：小的一键进服 + 大的启动游戏（保留原配色式样） -->
+                <Grid x:Name="PnlButtons">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:Button x:Name="BtnQuickServer" Grid.Column="0" MinHeight="52" MinWidth="132"
+                               Icon="{ui:SymbolIcon PlugConnected24}" FontSize="13"
+                               Content="{DynamicResource S.Home.QuickServerBtn}"
+                               ToolTip="{DynamicResource S.Home.QuickServer}"
+                               VerticalAlignment="Stretch" Click="BtnQuickServer_Click" />
+                    <ui:Button x:Name="BtnLaunch" Grid.Column="2" Appearance="Primary"
+                               Content="{DynamicResource S.Home.Launch}"
+                               Icon="{ui:SymbolIcon Play24}" MinHeight="52" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Stretch" Click="BtnLaunch_Click" />
+                </Grid>
 
-            <!-- 最近启动（快捷启动） -->
-            <Border x:Name="CardRecent" Style="{StaticResource HmCard}" Visibility="Collapsed">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <ui:SymbolIcon Symbol="History24" FontSize="18"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{DynamicResource S.Home.Recent}" FontWeight="Medium"
-                                   Margin="8,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <WrapPanel x:Name="PnlRecent" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+                <!-- 空闲状态提示行：上次启动的终态（游戏运行中 / 已取消 / 失败原因） -->
+                <TextBlock x:Name="TxtIdleStatus" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
+                           Visibility="Collapsed"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </Page>

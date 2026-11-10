@@ -595,172 +595,265 @@ Work Log:
 - 交付：download/OpusMC-offline.zip（5.6MB，89 项，含使用说明.txt），
   MD5 3ad030586fa46b15ebd1fa4cabd7247f；原目录与 /tmp/my-project/opusmc 均留档
 
-## Task 21 — 启动失败诊断工具 + 文件写入点全面审计（2026-11-01）
+Task ID: 21
+Agent: 主控（Z.ai）
+Task: fix6 —— 游戏内存自动检测（参考 PCL）/ 核心功能继续对齐 PCL / 默认主题跟随系统
 
-用户反馈 v0.1.1 portable「根本没运行起来、也没有错误日志」→ exe 连 managed 代码都没执行
-（boot.log 由托管代码写，宿主级失败时不会有）。包本身已核验完整（hostfxr/coreclr/
-System.Private.CoreLib/runtimeconfig 齐全，self-contained net10.0 内含 10.0.14 运行时），
-csproj 在 v1.10.0→0.1.x 间仅版本号变更，怀疑为用户侧杀软拦截 / SmartScreen / 解压不完整。
+Work Log:
+- 版本号 0.1.0-fix6（csproj Version + GameLauncherVersion；exe 内已抽验）
+- 内存自动检测（PCL 同款「自动分配」，用户指定参考 PCL）：
+  1) 新服务 Services/SystemInfo.cs（进 HmCore/测试源码链接）：
+     GC.GetGCMemoryInfo().TotalAvailableMemoryBytes 检测物理内存（跨平台、无 WMI）；
+     RecommendedMemoryMb(totalMb) 纯函数：一半内存、512MB 取整、
+     限 [1024, min(8192, 总-1024)]（<2GB 机器给 1024）；CheckAllocatedMemory 启动体检
+  2) AppSettings：MemoryAuto 默认 true；LauncherService.LaunchAsync 按自动/手动
+     计算 MaximumRamMb，日志输出「游戏内存 XMB（自动检测，物理内存 YMB / 手动设置）」，
+     超物理内存只警告不阻断（PCL 同款）
+  3) 设置页内存卡：ChkMemAuto「自动检测内存（推荐）」开关（默认勾选），自动时禁用
+     手动滑杆并显示推荐值；TxtMemDetected 实时显示「检测到物理内存 X MB，推荐分配 Y MB」
+- 核心功能对齐 PCL（本轮）：
+  1) 主页快速进服：TxtQuickServer + 「启动并进服」按钮（PlugConnected24 图标），
+     LauncherService.LaunchAsync 新增 quickServer 参数 → MLaunchOption.ServerIp/ServerPort；
+     ParseServerAddress 解析 host / host:port / [IPv6]:port（残缺端口整体判无效）；
+     AppSettings.LastQuickServer 记忆上次地址，主页打开自动填充
+  2) 启动前内存体检警告（见上）
+- 默认主题跟随系统：AppSettings.Theme 默认 "dark" → "system"（ApplySystemTheme +
+  SystemThemeWatcher 已有链路，fix5 已具备跟随能力，本轮只改默认值；老用户保存值不受影响）
+- i18n：S.Set.MemAuto / MemAutoHint / MemDetected、S.Home.QuickServer / QuickServerPh /
+  QuickServerBtn 中英双语
+- 测试：HmCoreTest 新增第 17 节 29 项（推荐内存边界 / 512 倍数 / 物理内存真实检测 /
+  内存体检 / 设置序列化保真 / 地址解析 9 例）→ 210/210 全绿；HmCore 单独编译通过
+- 发布：便携 67MB / 单文件 62MB / 源码 293KB；qu.ax 三条直链（SHA1 与服务端一致），
+  download/ 双备份 MD5 核验一致
 
-产出：download/启动诊断.bat（CRLF，chcp 65001）
-  - 文件完整性检查（7 个关键 DLL 缺失即提示"可能被杀毒隔离"）
-  - COREHOST_TRACE=1 + COREHOST_TRACEFILE 抓宿主级错误到 hostfxr-trace.log
-  - 运行 exe 捕获 stderr 与退出码写入 启动诊断.log
-  - qu.ax 备份：IhRBj（.zip 包装，qu.ax 拒 .bat 直传）
+Stage Summary:
+- v0.1.0-fix6：内存自动检测 + 快速进服 + 主题默认跟随系统
+- 需 Windows 实测：内存检测值与任务管理器一致性、快速进服实际进服、
+  新装配置下跟随系统深浅色实时切换
 
-文件写入点全面审计结论（用户要求"不得在其他位置创建目录/文件"）：
-  - 全部写入收敛于 exe 同目录：config/（settings/accounts/authlib-injector.jar/temp/）、
-    .minecraft 或自定义 GameRoot（versions/logs/crash-reports/mods 等）、runtime/（托管 Java）
-  - ModpacksPage 临时下载已在 config/temp（早期版本即按"零外部写入"要求改过）
-  - JavaManager JDK 下载与解压均在 AppDir/runtime/
-  - 唯一例外1：BootLogger 在 config/ 不可写时回退 %TEMP%\HardmacroCraft-boot.log（合理兜底）
-  - 唯一例外2：单文件版 .NET 宿主会把原生库自解压到 %TEMP%\.net\（框架行为，无法避免；
-    便携版无此行为）→ 已向用户说明
+---
+Task ID: 22
+Agent: 主控（Z.ai）
+Task: fix7 —— Java 提示窗口高度 / 文案 / 启动进度双行显示 / 布局巡检 / Esc 返回 /
+任务取消（启动 & 进行中任务）/ %APPDATA%\.minecraft runtime 残留清理（追加反馈）
 
-## Task 22 — v0.1.2-beta 静默闪退根因修复（2026-11-01）
+Work Log:
+- 版本号 0.1.0-fix7（csproj Version + GameLauncherVersion；exe 内已抽验）
+- Java 安装提示窗口（Views/JavaInstallWindow.cs）：SizeToContent=Height 自适应高度
+  （Min 280 / Max 640），修复高度过小按钮被截断；文案「需要安装 Java {0}」→
+  「需要 Java 环境」（S.Home.JavaAskTitle zh/en 同步，具体版本号移到正文）
+- 启动进度双行显示（PCL 同款，HomePage）：
+  1) 第一行 TxtProgress：[122/2880] xxx.ogg（CmlLib InstallerProgressChangedEventArgs）
+  2) 第二行 TxtStage（新增）：阶段【n/3】—— 检查 Java【1/3】→ 补全游戏文件【2/3】
+     → 启动游戏【3/3】；LauncherService.LaunchAsync 新增 onStage 回调（i18n 键
+     S.Home.Stage.*）
+- 启动 & 进行中任务取消（PCL/HMCL 同款）：
+  1) DownloadTaskService：StartCancellable / TokenFor / TaskItem.Cts / RequestCancel /
+     CanCancel；Finish 幂等（canceled 不被 Complete 覆盖）
+  2) HomePage：BtnCancelLaunch（进度区右侧），CancellationToken 贯穿 LaunchAsync 与
+     JavaManager.EnsureJreAsync（取消不回退下载源）；取消后 UI 收尾恢复
+  3) TaskCenterPage：运行中任务「取消」按钮替代状态徽章
+  4) JavaManager：EnsureJreAsync 增加 ct 参数；OperationCanceledException 不再回退镜像
+- Esc 返回（PCL 同款，MainWindow）：PreviewKeyDown → 非 HomePage 页面 Esc 回主页；
+  弹窗为独立 Window 不受影响
+- 继续对齐 PCL：
+  1) 游戏窗口分辨率留空默认 1280×720（原来跟随游戏默认）
+  2) 初始内存 -Xms = min(2GB, 分配值)（MinimumRamMb）
+  3) 新服务 Services/GameOptions.cs：启动前补丁 options.txt —— 可选「跳过初始屏幕」
+     （onboardAccessibility=false）与「游戏语言」（lang=zh_CN 等）；AppSettings 新增
+     SkipOnboarding / GameLang；PatchLine/Apply 纯函数可测
+- 页面布局巡检：SettingsPage / VersionsPage / ModsPage / TaskCenterPage /
+  LoaderPicker / 登录弹窗 边距、折叠、自适应优化
+- %APPDATA%\.minecraft runtime 残留（用户追加反馈「里面似乎是 runtime」）：
+  · 根因反查（ilspycmd 反编译 CmlLib.Core 4.1.0 + Commons）：现行代码所有写入路径
+    均可控（MinecraftPath 构造不建目录），runtime 残留为 fix3 之前旧版本泄漏
+  · AppSettings.IsPollutedAppdataShell 扩展白名单：runtime\ 子树（Java 运行时二进制，
+    无用户数据、可自动重建）与 versions\version_manifest_v2.json 同列为可清理内容；
+    含任何其他文件（options.txt / saves / 真实版本）仍判定为真实游戏目录绝不触碰
+  · LauncherService.CleanupPollutedAppDataShell 日志同步更新
+- 测试：HmCoreTest 新增 fix7 节（任务取消 8 项 / GameOptions 8 项 / APPDATA 空壳
+  判定 10 项）→ 236/236 全绿；HmCore 单独编译通过；修复测试文件 'before' 变量重名
+- 交付：便携 66MB / 单文件 62MB / 源码 274KB；qu.ax 三条直链（SHA1 与服务端一致），
+  download/ 备份 + README-下载说明.txt 更新为 fix7
 
-用户提供 启动诊断.log + hostfxr-trace.log，根因水落石出（并非杀软）：
-**Strings.zh-CN.xaml 中 10 个 key 重复定义**（S.Mod.CfDepsStart / DepSkip / BatchTitle / BatchAll /
-BatchNone / BatchGo / BatchHint / BatchStart / BatchDone / BatchNoCompat，第 164-173 行整块
-复制粘贴重复）→ ResourceDictionary 加载抛 "Item has already been added: 'S.Mod.CfDepsStart'"
-→ 发生在 App.InitializeComponent()，早于 OnStartup，故无弹窗、无 boot.log，即"静默闪退"。
+Stage Summary:
+- v0.1.0-fix7：进度双行 + 阶段计数 + 全链路取消 + Esc 返回 + Java 窗口修复 +
+  APPDATA runtime 残留清理 + PCL 对齐（默认分辨率 / -Xms / 跳过初始屏幕 / 游戏语言）
+- 需 Windows 实测：下载中取消按钮生效、任务中心取消 Java 下载、Esc 返回、
+  Java 缺失弹窗按钮完整显示、APPDATA 空壳（含 runtime）启动后被清理
 
-修复：
-1. 删除 zh-CN 重复块（154-163 与 164-173 完全相同），237 key 与 en 完全一致。
-2. HmCoreTest 新增第 17 节「语言资源字典查重」：两语言文件重复 key 检测 + key 集合一致性校验，
-   142/142 通过，防回归。
-3. 版本 0.1.1-beta → 0.1.2-beta，README 补记录。
+---
+Task ID: 23
+Agent: 主控（Z.ai）
+Task: fix8 —— 启动参数优化（JVM 优化开关 / 游戏参数 / 全屏启动，PCL 同款）/
+页面布局继续优化 / i18n 同步 / 254 测试全绿 / 打包上传交付
 
-交付：单文件 gofile 8yMmgKFy / qu.ax O2vwk；便携 gofile KWqtBBiH / qu.ax 6ftLL；
-源码 gofile iyt5J687 / qu.ax ZyTO7。MD5: f912e9a1 / e17b4f08 / b16fca9a（服务端核验一致）。
-诊断工具价值确认：bat + COREHOST_TRACE 一次定位到 BAML 加载层异常，以后闪退排查首选此法。
+Work Log:
+- 版本号 0.1.0-fix8（csproj Version + LauncherService.GameLauncherVersion）
+- 启动参数优化（用户追加「看看启动参数能不能优化」，对齐 PCL/HMCL）：
+  1) 新服务 Services/LaunchArgs.cs（纯函数，源码链接进 HmCore + 测试，单一事实来源）：
+     · OptimizedJvmArgs 默认优化清单：-XX:+UseG1GC / -XX:-UseAdaptiveSizePolicy /
+       -XX:-OmitStackTraceInFastThrow / Forge 证书与补丁兼容两个 -D /
+       log4j2.formatMsgNoLookups=true（Log4Shell CVE-2021-44228 缓解）；
+       刻意不含 -Xmn（G1 不适用）
+     · ParseArgs：空白分隔 + 双引号包裹（原 LauncherService.ParseJvmArgs 逻辑迁入，
+       ParseJvmArgs 委托至此保持 HmCli / 既有测试向后兼容）
+     · BuildJvmExtra(optimize, custom)：优化参数在前、自定义在后（JVM 后声明优先）；
+       自定义含其它 GC 收集器（-XX:+Use…GC）时跳过 G1GC 防冲突警告；
+       按「参数键」（'=' 前部分）去重 —— 自定义 -Dfml.xxx=false 能压过优化 -Dfml.xxx=true
+     · BuildGameExtra：游戏参数同规则解析
+  2) AppSettings 新字段：JvmOptimize（默认开）/ CustomGameArgs / GameFullscreen
+  3) LauncherService.LaunchAsync 接入：JVM 优化 + 自定义 JVM 参数合并注入
+     ExtraJvmArguments；游戏参数注入 ExtraGameArguments；全屏 option.FullScreen；
+     各带启动日志（优化启用 / 自定义参数个数 / 全屏）
+  4) 设置页（SettingsPage）：「默认优化 JVM 参数（推荐）」勾选 + 提示、
+     「游戏自定义参数」输入框（等宽字体 + 占位 --fullscreen --demo）、
+     「全屏启动」勾选 + 提示；载入 / 保存接 AppSettings
+  5) i18n zh/en 同步 7 键：S.Set.JvmOptimize(+Hint) / GameArgs(+Hint) / Fullscreen(+Hint)、
+     S.Mp.Output；JvmArgsHint 补「与优化参数冲突时此处优先」
+- 页面布局巡检与优化（fix7 巡检之上）：
+  1) ModpacksPage 底部进度 / 输出卡默认 Collapsed（此前空闲时常驻占版面），
+     Log() 展开显示、ClearLog() 折叠；卡内新增「任务进度与输出」标题（S.Mp.Output）
+  2) 其余页面复查（根边距 32,24 统一 / MaxWidth 880-920 / VersionsPage WrapPanel /
+     TaskCenter 空状态 / ModsPage 工具条自适应均已在 fix7 落位），无新问题
+- 测试：HmCoreTest 新增第 21 节 fix8（18 项：优化清单 / GC 冲突跳过 / 按键去重 /
+  反值覆盖 / 游戏参数解析 / 委托兼容 / 新字段默认值）→ 254/254 全绿；
+  HmCore 单独编译 0 错误；测试 csproj 补 LaunchArgs.cs 源码链接
+- 构建：清 obj/bin 后一次通过（复发过 CS0103 幻影错误，按既有经验处理）
+- 交付：便携 66MB / 单文件 62MB / 源码 279KB；qu.ax 三条直链（SHA1 与服务端一致），
+  download/ 备份 + README-下载说明.txt 重建（download 目录曾被沙盒回收）
 
-## Task 23 — v0.1.0-beta（版本号重置版）发布（2026-11-03）
+Stage Summary:
+- v0.1.0-fix8：JVM 优化参数默认开（G1GC / Forge 兼容 / Log4Shell 缓解）+ 自定义
+  游戏/全屏启动（设置页「启动参数」一组）+ 整合包页空闲进度卡折叠
+- 需 Windows 实测：默认优化参数实际注入游戏命令行（启动日志可见）、自定义 GC
+  收集器时 G1GC 跳过、全屏启动、整合包页空闲不显示进度卡
 
-用户深夜指示：版本号重置为 0.1.0（非 0.1.3-beta）。三项自主推进完成：
+---
+Task ID: 24
+Agent: 主控（Z.ai）
+Task: fix9 —— 下载页愚人节版分类（对齐 PCL 五分类）/ 全量文案去 PCL/HMCL 字样 /
+继续对齐 PCL 与 UI 优化 / 269 测试全绿 / 打包上传交付
 
-1. 装载器改造（PCL 式弹窗 + 冷门装载器）：
-   - 下载页版本行「安装」按钮 → LoaderPickerWindow 弹窗，七种加载器任选
-     （原版/Forge/NeoForge/Fabric/Quilt/Legacy Fabric/LiteLoader），移除下载页四张独立卡片
-   - LauncherService 补齐 QuiltLoadersAsync / LegacyFabricLoadersAsync / LiteLoaderVersionsAsync /
-     LegacyFabricInstallAsync / LiteLoaderInstallAsync
-   - Legacy Fabric：meta.legacyfabric.net/v2 profile/json（inheritsFrom 版本）落盘后常规补全；
-     LiteLoader：CmlLib 内置 LiteLoaderInstaller（GetAllLiteLoaders 按 BaseVersion 过滤）
-   - 注意：上会话的 LoaderPickerWindow.xaml(.cs) 只存在于 /tmp 未提交，本次已抢救回主仓库
-2. %ProgramData%/.minecraft 根因（逆向 CmlLib 4.1.0 确认）：
-   - MinecraftPath..cctor: WindowsDefaultPath = GetEnvironmentVariable("appdata") + "\.minecraft"
-   - MinecraftLauncherParameters.CreateDefault() 内部会 new MinecraftPath()（即上述默认），
-     appdata 变量异常时退化为相对路径 \.minecraft，GetFullPath 后落到进程当前盘符根目录
-   - 防御：AppSettings.GameRootCustomized + SanitizeGameRoot（空/污染路径纠正回 AppDir\.minecraft，
-     用户自定义则尊重）；设置页保存时打标；BuildLauncher 加注释警告
-   - 测试新增第 2.10 节 7 项 → 168/168 全绿
-3. 其他：语言字典 +24 个 S.Dl.Loader*/S.Common.Close key（zh/en 同步）；
-   MicrosoftLoginWindow CS8848 优先级隐患修复；check_lang_keys.py 全项目 key 引用静态扫描（0 缺失）
+Work Log:
+- 版本号 0.1.0-fix9（csproj Version + GameLauncherVersion）
+- 下载页新增「愚人节版」独立分类（用户点名，PCL 同款五分类）：
+  1) 联网核实历届愚人节版本清单（Minecraft Wiki April Fools' Day jokes 年鉴）：
+     2013-2026 共 10 个 —— 2.0 / 1.RV-Pre1 / 15w14a / 3D Shareware v1.34 /
+     20w14infinite / 22w13oneBlockAtATime / 23w13a_or_b / 24w14potato /
+     25w14craftmine / 26w14a（2026 Herdcraft）；2011/2012 两年为网站玩笑无游戏版本
+  2) 新服务 Services/VersionKinds.cs（纯函数，进 HmCore + 测试）：
+     AprilFoolsVersions 清单 + IsAprilFools（忽略大小写）；清单里愚人节版 type
+     与快照同为 snapshot，只能按 ID 识别
+  3) DownloadGamePage：第五个筛选 chip「愚人节版」；april 过滤；快照分类排除愚人节
+     避免重复；愚人节徽章（MediumVioletRed 紫红）在任意分类下正确显示
+  4) i18n：S.Dl.FilterApril / S.Dl.AprilFools + 10 条版本简介键（S.Dl.Desc.<id>，
+     ID 含空格的 "3D Shareware v1.34" 亦为合法 x:Key），zh/en 同步
+- 全量文案检查（用户要求去掉 HMCL/PCL 字样，「挂着感觉怪怪的」）：
+  1) 语言文件 8 组可见文案（zh/en）：微软登录第 1 步、内存自动检测、跳过初始屏幕、
+     JVM 优化、任务中心副标题、自动登录、分辨率、全屏启动 —— 全部移除
+     「PCL 同款 / HMCL 式」表述（功能不变，只去署名式字样）
+  2) 运行时日志 2 处：JVM 优化启用日志、离线皮肤注入日志
+  3) README.md 9 处（源码包用户可见）
+  4) XAML 注释（不渲染）保留设计溯源，不算文案
+- 防回归测试（第 22 节 fix9，17 项）：愚人节识别正反例 10 项 + 10 个简介键
+  zh/en 存在性 + 语言文件值 / 代码字符串字面量（逐行、跳注释行）无 PCL/HMCL
+  → 269/269 全绿；中途修复 3 处测试自身问题（C# 单引号误用 / verbatim 字符串
+  含裸引号 / 目录拼接多一层），并处理一次 bmclapi DNS 抖动（复跑即过）
+- HmCore 单独编译 0 错误；语言键 341=341 双语一致（check_lang_keys.py OK）
+- 交付：便携 66MB / 单文件 62MB / 源码 282KB；qu.ax 三条直链（SHA1 与服务端一致），
+  download/ 备份 + README-下载说明.txt 更新为 fix9
 
-版本号：0.1.2-beta → 0.1.0-beta（csproj/UserAgent/GameLauncherVersion）。
+Stage Summary:
+- v0.1.0-fix9：下载页五分类（新增愚人节版，10 个历史版本一键可玩）+ 文案全量
+  去其它启动器署名字样 + 防回归测试守护
+- 需 Windows 实测：愚人节版列表与简介显示、快照分类不含愚人节版、愚人节版
+  可正常下载启动、全界面无 PCL/HMCL 字样
 
-交付（MD5 服务端核验一致）：
-- 单文件 64.9MB：gofile.io/d/uCbd6sU9 ｜ qu.ax/7Qa0B    (8fcf7c17c75bafbd9a48fdc10e9acd34)
-- 便携 69.3MB： gofile.io/d/OFOBr3ci ｜ qu.ax/n1XFY    (4554204df0d9cc5b46108160a6690531)
-- 源码 241KB：  gofile.io/d/Qtr6oluu ｜ qu.ax/qdAAo    (a2254bb3c5431252b009a8da25e54745)
-qu.ax 30 天有效（expires 2027-01-03 前后）；qu.ax hash 为 sha1，以大小+gofile md5 双重核验。
+Task ID: 26（v0.1.7）
+Agent: 主控（Z.ai）
+Task: v0.1.7 —— 多实例管理 / 启动进度补全（等待游戏窗口阶段）/ 首页日志卡撑满 / 全页面主容器去滚动 / 版本管理页计数 / 432 测试全绿 / 打包三件套发布
 
-## Task 24 — v0.1.0-beta fix3 发布（2026-11-05）
+Work Log:
+- 多实例管理（对齐主流启动器「运行中的游戏实例」）：Services/GameInstanceManager.cs
+  跟踪所有由启动器拉起的游戏进程（版本 / PID / 起始时间 / 状态），支持同时运行多个版本；
+  主页中部新增「运行中的实例」卡（有实例时出现）：实时列出 实例状态（等待窗口出现 / 运行中）、
+  PID，一键「结束」走 Process.Kill(entireProcessTree=true) 连 Java 派生子进程一并结束；
+  进程退出事件自动移出列表并写日志（含退出码）；窗口句柄探测 / 状态机进测试
+- 启动进度补全（用户反馈「已启动到 MC 窗口出现有时间差，中间没有任何说明」）：
+  启动流程本体到「游戏进程已创建」即结束（可立即再启动第二个实例），进度区交给
+  后台窗口等待器接管：新增阶段【4/4】等待游戏窗口出现（轮询 MainWindowHandle，
+  700ms 间隔 / 240s 超时）；窗口出现 → 实例标记运行中 + 「游戏运行中」终态回放空闲 UI；
+  进程提前退出 → 明确报退出码；超时 → 按运行中处理并写日志提示；等待期取消按钮隐藏
+  （改为实例卡里结束进程），等待器对新启动让出进度区（版本号守卫防串写）
+- 首页布局响应式（用户补充：日志容器撑满剩余空间、主容器不滚动、快捷入口移除）：
+  ScrollViewer+StackPanel 改为 Grid（账号卡置顶 / 运行实例+最近启动 / 日志卡 Star），
+  日志卡展开时 VerticalAlignment=Stretch 撑满中部剩余空间（收起回紧凑标题栏），
+  启动卡钉在窗口底缘；底部三个快捷入口卡删除（下载/整合包/模组走左侧导航）
+- 全页面主容器去滚动（用户要求对齐，游戏/模组下载类优先）：
+  模组页去外层 ScrollViewer，搜索结果列表撑满剩余空间（去掉 460 限高，仅列表内滚）；
+  设置页 / 关于页改「标题固定 + 内容区内滚」（对齐系统设置式页面）；整合包 / 任务中心 /
+  下载页 / 版本管理页此前已是响应式 Grid，验收通过
+- 版本管理页：搜索框右侧新增版本计数（搜索时显示「匹配数/总数」）
+- 测试第 31 节（25 项）：窗口等待判定纯函数（等待/窗口出现/超时/提前退出/零超时）+
+  实例生命周期真实子进程验证（注册 / PID / 结束进程树 / 退出移除 / 日志）+
+  新文案键 zh/en 齐全；全量 432 通过 / 0 失败 / 0 跳过；语言键 426=426 双语一致
+- 升版 0.1.7 三处（csproj 三元组 / LauncherService / README）+ README v0.1.7 更新说明
+- 交付：单文件 64.9MB / 便携 69.4MB / 源码 363KB（SHA1 见打包输出），GitHub Release + qu.ax 直链
 
-用户睡前反馈一批问题，全部修复后以 fix3 名义发布（版本号保持 0.1.0-beta 不变）：
+Stage Summary:
+- v0.1.7：多实例管理（运行实例卡 + 进程树结束）+ 启动进度四阶段（等待窗口出现）+
+  首页日志撑满 / 全页面去滚动 + 版本计数；需 Windows 实测：多开两个版本、
+  实例卡状态流转与结束进程、窗口等待文案与终态回放、各页面小窗口无滚动截断
 
-1. 设置页进页崩溃（crash.log 实锤）：SettingsPage.xaml `SymbolRegular.Coffee24` 在 Wpf.Ui 4.3
-   枚举中不存在（只有 DrinkCoffee24）→ dnfile 解析 SymbolRegular 全表逐一校验，仅此一处非法，
-   改为 DrinkCoffee24
-2. 启动失败 "Already installing"（日志实锤）：CmlLib GameInstallerBase.IsRunning 单任务锁，
-   装载器安装 / 启动补全 / 整合包安装并发即炸 → LauncherService 新增全局安装闸门
-   （static SemaphoreSlim(1,1)，15 分钟超时友好报错），所有安装操作统一排队；
-   LegacyFabricInstallAsync 改走 InstallCoreAsync 防嵌套死锁；
-   LoaderPickerWindow 安装中关窗/后台不再中断任务状态标记（任务中心"安装中"残留根因）
-3. 游戏安装页体验（对齐 PCL）：
-   - 详细进度：文件数 [n/m] + 字节 + 速度（fileProgress/byteProgress 接入 PbInstall/任务中心）
-   - 取消按钮：CancellationTokenSource 贯通 CmlLib InstallAsync / ForgeInstallOptions
-   - 后台按钮：关窗任务继续，任务中心看进度；标题栏 X 同效
-4. 模组加载器获取失败：files/maven.minecraftforge.net 国内直连常超时
-   - ForgeVersionsAsync：BMCLAPI /forge/minecraft/{mc} JSON 优先（ForgeMirror 静态类，可测），失败回退官方 HTML
-   - ForgeInstallAsync：直构 ForgeVersion 走 BMCLAPI maven installer.jar 直链（免二次抓 HTML），失败回退官方流程
-   - MirrorHttpHandler 增加 maven.minecraftforge.net → bmclapi2 /maven 映射
-5. Java 缺失先询问（PCL 同款）：新 JavaInstallWindow（告知所需版本 + 可改安装位置 + 默认位置提示），
-   确认后才下载；JavaManager.EnsureJreAsync 增加 installDir 参数；设置页 Java 版本补充 25
-6. %APPDATA%\.minecraft 根因（逆向确认）：MojangJsonVersionLoaderV2 把 version_manifest_v2.json
-   缓存写进 CreateDefault() 的一次性默认 MinecraftPath（= %APPDATA%\.minecraft）并建目录
-   → BuildLauncher 显式重建 VersionLoader 绑定便携目录 + UseLocalManifestWhenError；
-   启动时 CleanupPollutedAppDataShell 清理空壳（仅含该垃圾文件才删，真实游戏目录不动，
-   IsPollutedAppdataShell 判定 + 测试）
-7. 加载器提示文本对齐 PCL（标明支持版本）：Forge 1.1+ / NeoForge 1.20.1+ / Fabric 1.14+ /
-   Quilt 1.14+ / Legacy Fabric 1.3-1.13.2 / LiteLoader 1.5.2-1.12（zh/en 同步）
-8. 测试：新增第 19 节（ForgeMirror 解析/直链、空壳判定、闸门并发串行化）；
-   修复测试 launcher 生命周期 bug（using 块过早 Dispose 导致第 4/5/6/10 节假失败）→ 181/181 全绿
-9. csproj：IncludeNativeLibrariesForSelfExtract=true（单文件 WPF 原生库自解压，防加载失败）
+---
+Task ID: 25（v0.1.6）
+Agent: 主控（Z.ai）
+Task: v0.1.6 —— 关于页版本号乱码修复 / 首页启动卡重构 / 版本图标 / 版本管理页重排 / 版本独立设置 / 一键进服弹窗（保存到多人游戏列表）/ 408 测试全绿 / 打包双渠道发布
 
-交付（fix3，qu.ax 直链 30 天有效，MD5 本地核验）：
-- 便携 69.3MB：qu.ax/9hFhQ  (md5 804f9db50b133fb59fc211a4745596d4)
-- 单文件 64.9MB：qu.ax/xNwfw  (md5 a7bd5ec343bc3d4431cb0224afd059bd)
-- 源码 251KB：qu.ax/rgHe8  (md5 0281a121626ed154e75047fe78fe5e18)
+Work Log:
+- 关于页版本号乱码（用户反馈）：根因是 .NET SDK 在 git 仓库构建时把源码修订号
+  追加进 InformationalVersion（"0.1.6+<40位sha>"）直接展示即"一串乱码"；
+  新增 VersionInfo.CleanDisplayVersion 剥除 '+' 后部分（预发布后缀保留），测试守护
+- 首页启动卡重构（用户点名布局）：
+  1) 顶部全宽账号容器：头像 52px + 用户名/账号类型两行（authlib 显示验证站主机名，
+     如 "{host} 登录（第三方验证站）"），点击容器进账号管理，保留右侧管理按钮
+  2) 中部内嵌折叠日志（原底部独立日志卡移除），展开时显示打开日志/崩溃报告按钮
+  3) 版本选择行：下拉框带图标与副标题（SelectedValuePath=Name 条目视图模型）+
+     版本设置齿轮 + 刷新；启动中被进度区替换（进度条+阶段文字+取消，PCL 式说明），
+     空闲终态（游戏运行中/已取消/失败）回放为按钮行下小字
+  4) 双按钮行：小「一键进服」弹窗式 + 大「启动游戏」（原配色式样保留）
+- 一键进服弹窗 JoinServerWindow：地址输入 + 「保存到游戏的多人游戏列表」复选框 +
+  勾选后名称输入框（默认 Minecraft服务器）；保存走自研 NBT（Services/ServerList.cs，
+  全类型大端序编解码）写 servers.dat：保留 icon 等既有字段、同地址更新名称、
+  servers.dat_old 备份、损坏文件拒写；版本隔离时写入 versions/<id>/servers.dat
+  ⚠ 关键修复：NBT Compound 的 TAG_End 无名称字段，首版按带名读取导致解析必败
+  （最小复现定位后修复，roundtrip 测试覆盖 icon/未知字段/中文服务器名/大端序）
+- 版本图标（对齐 PCL）：Services/VersionInfo.cs 检测加载器（json 特征串 NeoForge
+  优先于 Forge + .forge/.fabric/.quilt 等标记文件）与创建来源（hcl.json 本启动器 /
+  pcl.json / .id 分号开头 / hmclversion.cfg）；VersionIconProvider 映射图标，
+  其他启动器以首字母徽章显示（文案零 PCL/HMCL 字样，防回归测试通过）
+  本启动器安装的版本写 hcl.json 所有权标记（MarkNewestVersionOwned 接入安装流程）
+- 版本管理页重排（对齐 PCL）：搜索实时过滤 + 图标列表（图标+名称+副标题）+
+  单击进版本设置 + 双击启动（HomePage.Current + LaunchFromExternalAsync 直连）+
+  工具条（启动/版本设置/刷新/目录/存档/Mods/资源包/重命名/复制/删除）
+- 版本独立设置：Services/VersionSettingsStore.cs（config/versions/<版本>.json，
+  全默认不落盘）+ VersionSettingsWindow（隔离三态/Java/内存滑块/JVM/进服分组）；
+  启动链路接入：BuildGamePath 隔离覆盖、内存覆盖（LauncherService）+ 版本 Java 优先
+  解析（HomePage，无效回落全局并告警）+ JVM 参数按版本覆盖；DeleteVersion 联动清理
+- i18n：新增 S.Ver.Loader.*×8 / S.Ver.From*×2 / S.Ver.Launch/Settings/SearchPh/
+  ClickHint / S.Vs.*×17 / S.Join.*×8 / S.Home.VersionSettingsTip / AccountThirdFmt；
+  清理 QuickServerPh；418=418 双语一致
+- 测试：新增第 30 节（版本清洗 / 加载器与来源识别 / NBT roundtrip / servers.dat
+  写回 / 版本设置存储）→ 408 通过 / 0 失败；HmCore 单独编译 0 错误
+- 版本号三处 0.1.6（csproj / LauncherVersion / README）；package-016.sh 打包
+  （单文件 64.9MB / 便携 66.2MB / 源码 351KB）；git push main+tag（本地仓库历史与
+  远端不同源，改为克隆远端覆盖工作树提交 7ae60aa）；GitHub Release 440293123 +
+  qu.ax 三直链（SHA1 与服务端一致）；download/README-下载说明.txt 更新
 
-交付补记（fix3 重发）：按用户要求重新放入 /downloads 输出目录，从 fix3 提交
-(3f6839a) 重建：便携 69.3MB (md5 2bf4661f1a20a703dd4c661fa08294f3)、
-单文件 64.9MB (md5 9f3980f30278e73aa51e3537edddb7a0)、
-源码 280KB (md5 f92f1b3fc932c24e6e15652369a1a007，git archive 混入 bin/obj 已改 rsync 排除式)。
-测试 181/181 全绿。qu.ax 直链沿用上一批（9hFhQ/xNwfw/rgHe8）。
-
-Task: fix4 批次
-- 用户反馈 /download 目录仍不同步 → 交付以 qu.ax 直链为主（h8K58 便携 / rbdYI 单文件 / QUDBu 源码，30 天）
-- 账号崩溃复发根因：上一轮 Mica 修复（ExtendsContentIntoTitleBar）从未进入当前主线仓库
-  （仓库经历重置，旧修复只存在于旧副本）；本轮把 5 处代码创建的 FluentWindow
-  （HomePage Prompt / AccountManager / AzureGuideWindow / ModVersionWindow / AuthlibLogin dlg）
-  全部补齐，并 grep 验证「每个 Mica 调用点都有 ExtendsContentIntoTitleBar」
-- 滚动根因：全局兜底按像素算步长，但 ListBox（CanContentScroll=true）偏移按条目计 →
-  一格滚轮 = 40 条目 = 版本列表直接翻底。App.OnScrollViewerPreviewMouseWheel 增加
-  LogicalDelta 换算（像素/首条目高），页面步长 40px→100px 对齐浏览器手感
-- 首页 PCL 对齐：账号卡并入启动大卡、新增快捷入口行（下载/整合包/模组，直连 RootNavigation）、
-  日志区默认收起（ChevronDown 切换）；新增 S.Home.Quick.* 3 键（zh/en 同步）
-- 测试 181/181；提交 55f4509；三件套 MD5：便携 aa22ad06 / 单文件 0f681b04 / 源码 336b9b73
-
-Task: fix5 批次
-- 子窗口无关闭按钮根因：ExtendsContentIntoTitleBar=true 后必须自建 ui:TitleBar；
-  6 个代码窗口经 Services.FluentDialog.SetContent 挂标题栏（NoResize 自动只留关闭），
-  3 个 XAML 窗口（MicrosoftLogin/AuthlibLogin/LoaderPicker）手写 TitleBar 行
-- 滚动根治：HmListBox 统一 ScrollViewer.CanContentScroll=False（像素滚动），
-  ModVersionWindow 列表同样处理；用户先报「一格翻底」后报「不能滚动」的 item 换算链路彻底绕开
-- ModsPage：根布局无 ScrollViewer（补）+ 固定 6 列工具条小窗口挤爆（改查询行 + WrapPanel 组合行）
-  + LstResults MaxHeight=460 使页面整体可滚
-- 致命：26.3 误报需要 Java 8 —— RequiredJavaMajorChain 沿 inheritsFrom 回溯 javaVersion；
-  启发式 26.x → 25；HomePage 手选 Java 经 ResolveJavaPath（支持文件夹/java.exe 递归找 javaw.exe）
-  + GetJavaMajor（javaw -version 探测）后直接使用；LauncherService 同样接入解析
-- Java 下载失败真因：EnsureJreAsync 的 zip 在 dest 内，解压前 Directory.Delete(dest) 连带删除 →
-  zip 移到 dest 父目录；TUNA/Adoptium 链路沙箱实测可用
-- Java 弹窗加版本选择（8/11/17/21/25，默认推荐所需版本，目录联动）；设置页加 Java 下载位置
-  （AppSettings.JavaRuntimeDir → JavaManager.RuntimeRoot）
-- Forbric 加载器接入：LoaderPickerWindow 新行（仅 MC 26.2 可安装），下载官方安装器
-  v0.3.1-beta2（jar+bat，直连+gh-proxy 兜底）到 GameRoot/forbric/ 并拉起安装器
-- 安装游戏自定义版本名：LoaderPickerWindow 版本名输入框 + 安装后 diff versions 目录 +
-  RenameVersion（已有方法，含隔离目录迁移）
-- 版本号 0.1.0-fix5（用户指定；csproj Version + GameLauncherVersion）
-- 测试 183/183（新增 26.2/26.3 → Java 25 断言）；提交 e942fdb
-- qu.ax：DX2CH 便携 / cYYbb 单文件 / JOnhU 源码；MD5：eb427c0c / 228ae471 / 9d06b860
-
-## Task 26 · v0.1.1（多线程下载 / 校验缓存 / 进度中枢）
-
-日期：2026-11-08 · 测试：301/301 全绿（新增第 24 节 15 项）
-
-- 多线程下载：设置页新增「下载线程数」（1-32，默认 8，DownloadThreads）；
-  LauncherService.PrefetchGameFilesAsync 把 client jar / 全链 libraries（含 natives-windows）/
-  全部 assets 对象列成批量清单，走 DownloadEngine.DownloadBatchAsync 并发预取
-  （sha1/大小校验，已完整自动跳过；远古版 legacy/pre-1.6 virtual 索引交给内置安装器；
-  预取失败不阻断，CmlLib InstallAsync 兜底），设置 1 线程 = 旧行为
-- 校验缓存（每次启动都重新补全的根治）：VerifyStamp（config/verify-cache/），
-  戳 = 版本 json mtime+size+启动器版本+游戏根目录；写戳前校验版本目录存在 jar；
-  DeleteVersion/Invalidate 清戳；设置页可开「每次启动重新校验」强制全量
-- 进度中枢 LaunchProgressHub：启动进度单一事实来源，HomePage 每个实例订阅回放 ——
-  修复"启动中切标签页回来进度丢失"（Wpf-UI 导航每次新建页面实例的根因）；
-  _launching/_currentCenterTask/_launchCt 改静态，任意页面实例可取消
-- 取消增强：RunInInstallGateAsync 支持 ct（等安装闸门排队期间可取消，不再干等 15 分钟）
-- README：v1.x 时代残留的内部版本号标记全部清理，头部对齐 v0.1.1
-- 打包：单文件 70MB 自包含自检 + 便携版 hostfxr/coreclr 自检；便携 zip 带根目录
-  HardmacroCraft/ + 内置「!运行说明.txt」（杜绝压缩包内直接双击 exe 误报缺运行时）
+Stage Summary:
+- v0.1.6：首页启动卡全面重排（账号容器/内嵌日志/版本行↔进度替换/一键进服弹窗）+
+  版本图标体系（加载器+来源）+ 版本管理页 PCL 式重排 + 版本独立设置 +
+  servers.dat 多人游戏列表保存 + 关于页乱码修复
+- 需 Windows 实测：下拉框/列表图标显示、版本设置窗口交互、一键进服保存后游戏内
+  多人游戏列表可见、启动中进度区替换与恢复、关于页版本号显示

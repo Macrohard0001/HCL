@@ -17,11 +17,19 @@
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Ver.Subtitle}" />
         </StackPanel>
 
-        <!-- v0.1.6 搜索（PCL 式：版本多了以后快速定位） -->
-        <ui:TextBox Grid.Row="1" x:Name="TxtSearch" MinHeight="38" Margin="0,4,0,10"
-                    PlaceholderText="{DynamicResource S.Ver.SearchPh}"
-                    Icon="{ui:SymbolIcon Search24}"
-                    TextChanged="TxtSearch_TextChanged" />
+        <!-- v0.1.6 搜索（同类启动器式：版本多了以后快速定位）；右侧显示版本总数 -->
+        <Grid Grid.Row="1" Margin="0,4,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBox x:Name="TxtSearch" MinHeight="38"
+                        PlaceholderText="{DynamicResource S.Ver.SearchPh}"
+                        Icon="{ui:SymbolIcon Search24}"
+                        TextChanged="TxtSearch_TextChanged" />
+            <TextBlock Grid.Column="1" x:Name="TxtVerCount" Margin="12,0,2,0" VerticalAlignment="Center"
+                       FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Grid>
 
         <!-- 工具按钮（WrapPanel：小窗口下自动换行） -->
         <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,0,0,12" Padding="12">

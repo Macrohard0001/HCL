@@ -1990,6 +1990,84 @@ try
 }
 catch (Exception ex) { Check("第 30 节 v0.1.6（版本识别 / 版本设置 / servers.dat）", false, ex.Message); }
 
+// ==================== 第 31 节 v0.1.7 多实例管理 / 窗口等待 ====================
+Console.WriteLine("\n---- 第 31 节 · v0.1.7（多实例管理 / 窗口等待判定 / 启动进度文案键）----");
+try
+{
+    GameInstanceManager.ClearForTests();
+
+    // 31.1 窗口等待判定（纯函数：等待 / 窗口出现 / 超时 / 提前退出）
+    var T = TimeSpan.FromSeconds(10);
+    Check("未退出未超时未见到窗口 → 继续等待",
+        GameWindowWait.Decide(false, false, TimeSpan.FromSeconds(1), T) == GameWindowWait.Decision.KeepWaiting);
+    Check("窗口出现 → 上报 WindowSeen",
+        GameWindowWait.Decide(false, true, TimeSpan.FromSeconds(1), T) == GameWindowWait.Decision.WindowSeen);
+    Check("超时且未见到窗口 → TimedOut",
+        GameWindowWait.Decide(false, false, T + TimeSpan.FromSeconds(1), T) == GameWindowWait.Decision.TimedOut);
+    Check("超时但已见到窗口 → WindowSeen（不误判超时）",
+        GameWindowWait.Decide(false, true, T + TimeSpan.FromSeconds(5), T) == GameWindowWait.Decision.WindowSeen);
+    Check("提前退出 → Exited（无论等待多久）",
+        GameWindowWait.Decide(true, false, TimeSpan.FromSeconds(0), T) == GameWindowWait.Decision.Exited
+        && GameWindowWait.Decide(true, true, T * 3, T) == GameWindowWait.Decision.Exited);
+    Check("零超时立即超时", GameWindowWait.Decide(false, false, TimeSpan.Zero, TimeSpan.Zero) == GameWindowWait.Decision.TimedOut);
+
+    // 31.2 实例注册 / 结束 / 退出移除（真实子进程：sleep，Linux 无头可跑）
+    var before = GameInstanceManager.Instances.Count;
+    var changedCount = 0;
+    GameInstanceManager.Changed += () => changedCount++;
+    var pw = new CmlLib.Core.ProcessBuilder.ProcessWrapper(
+        Process.Start(new ProcessStartInfo("sleep", "120") { UseShellExecute = false }));
+    var inst = GameInstanceManager.Register("test-instance-31", pw);
+    Check("注册后实例数 +1", GameInstanceManager.Instances.Count == before + 1);
+    Check("注册记录版本号", inst.Version == "test-instance-31");
+    Check("注册记录 PID", inst.Pid > 0 && inst.Pid == pw.Process!.Id);
+    Check("初始状态 = 等待窗口", inst.State == GameInstanceState.WaitingWindow);
+    Check("Changed 触发", changedCount >= 1);
+    Check("未见到窗口前 TryPeekWindow=false（无窗口进程）", !inst.TryPeekWindow());
+    Check("存活进程 HasExited=false", !inst.HasExited);
+    Check("按 PID 命中实例", GameInstanceManager.Kill(inst.Pid));
+    for (int i = 0; i < 50 && !inst.HasExited; i++) Thread.Sleep(100);
+    Check("Kill 后真实进程退出", inst.HasExited);
+    Check("对已退出实例再次 Kill 返回 false", !GameInstanceManager.Kill(inst));
+    Check("不存在的 PID Kill 返回 false", !GameInstanceManager.Kill(99999999));
+    Check("Kill(entireProcessTree) 不误伤其他实例",
+        GameInstanceManager.Instances.Count(i => i.Pid == inst.Pid) <= 1);
+
+    // 31.3 退出后从列表移除（Exited 事件驱动）
+    GameInstanceManager.ClearForTests();
+    var changed2 = 0;
+    GameInstanceManager.Changed += () => changed2++;
+    var logs2 = new List<string>();
+    GameInstanceManager.Log += s => logs2.Add(s);
+    var unstarted = new Process { StartInfo = new ProcessStartInfo("sleep", "120") { UseShellExecute = false } };
+    var pw2 = new CmlLib.Core.ProcessBuilder.ProcessWrapper(unstarted);
+    pw2.StartWithEvents();
+    var inst2 = GameInstanceManager.Register("test-exit-31", pw2);
+    var killed = GameInstanceManager.Kill(inst2);
+    for (int i = 0; i < 80 && GameInstanceManager.Instances.Count > 0; i++) Thread.Sleep(100);
+    Check("退出事件触发 Changed（含注册与移除）", changed2 >= 2, $"changed={changed2}");
+    Check("退出后实例从列表移除", GameInstanceManager.Instances.Count == 0);
+    Check("退出写日志（含退出码）", logs2.Any(s => s.Contains("test-exit-31") && s.Contains("已退出")), string.Join(" | ", logs2));
+    Check("Kill 请求已发出", killed);
+    GameInstanceManager.ClearForTests();
+}
+catch (Exception ex) { Check("第 31 节 v0.1.7（多实例管理 / 窗口等待）", false, ex.Message); }
+
+// 31.4 启动进度新文案键（zh/en 双语都在，等待窗口阶段可见）
+try
+{
+    var langDir31 = FindUp("src/HardmacroCraft/Themes/Languages");
+    var zh31 = File.ReadAllText(Path.Combine(langDir31, "Strings.zh-CN.xaml"));
+    var en31 = File.ReadAllText(Path.Combine(langDir31, "Strings.en.xaml"));
+    var keys31 = new[] { "S.Home.Stage.WaitWindow", "S.Home.WaitWindow", "S.Home.WaitWindowHint",
+        "S.Home.GameRunning", "S.Home.InstancesTitle", "S.Home.InstanceCount",
+        "S.Home.InstanceWaiting", "S.Home.InstanceRunning", "S.Home.InstanceKill", "S.Home.InstanceKillTip" };
+    var miss31 = keys31.Where(k => !zh31.Contains($"x:Key=\"{k}\"") || !en31.Contains($"x:Key=\"{k}\"")).ToList();
+    Check("窗口等待 / 实例管理文案键 zh/en 齐全", miss31.Count == 0, "缺: " + string.Join(", ", miss31));
+    Check("版本计数文案键存在", zh31.Contains("x:Key=\"S.Ver.Count\"") && en31.Contains("x:Key=\"S.Ver.Count\""));
+}
+catch (Exception ex) { Check("第 31 节 v0.1.7（文案键）", false, ex.Message); }
+
 
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");

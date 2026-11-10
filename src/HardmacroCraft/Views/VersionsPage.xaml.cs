@@ -58,9 +58,15 @@ public partial class VersionsPage : Page
     private void ApplyFilter()
     {
         var kw = TxtSearch.Text?.Trim() ?? "";
-        LstVersions.ItemsSource = kw.Length == 0
+        var view = kw.Length == 0
             ? _all
             : _all.Where(i => i.Name.Contains(kw, StringComparison.OrdinalIgnoreCase)).ToList();
+        LstVersions.ItemsSource = view;
+        // v0.1.7：版本计数（搜索时显示「匹配数 / 总数」，对齐同类启动器的列表头）
+        var total = _all.Count;
+        TxtVerCount.Text = string.Format(
+            System.Windows.Application.Current.TryFindResource("S.Ver.Count") as string ?? "{0} 个版本",
+            kw.Length == 0 ? total : $"{view.Count}/{total}");
     }
 
     private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilter();
