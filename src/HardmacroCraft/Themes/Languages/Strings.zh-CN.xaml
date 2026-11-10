@@ -46,9 +46,17 @@
     <sys:String x:Key="S.Home.OpenLogs">日志目录</sys:String>
     <sys:String x:Key="S.Home.OpenCrash">崩溃报告</sys:String>
     <sys:String x:Key="S.Home.Recent">最近启动</sys:String>
-    <sys:String x:Key="S.Home.Quick.DownloadTip">下载新版本游戏</sys:String>
-    <sys:String x:Key="S.Home.Quick.ModpacksTip">一键安装整合包</sys:String>
-    <sys:String x:Key="S.Home.Quick.ModsTip">浏览与安装模组</sys:String>
+    <sys:String x:Key="S.Home.Stage.WaitWindow">等待游戏窗口出现</sys:String>
+    <sys:String x:Key="S.Home.WaitWindow">正在等待游戏窗口出现…</sys:String>
+    <sys:String x:Key="S.Home.WaitWindowHint">游戏窗口出现前可能需要一段时间（首次启动加载较慢，属正常现象）。</sys:String>
+    <sys:String x:Key="S.Home.GameRunning">游戏运行中，可关闭窗口（日志继续记录）</sys:String>
+    <sys:String x:Key="S.Home.InstancesTitle">运行中的实例</sys:String>
+    <sys:String x:Key="S.Home.InstanceCount">{0} 个</sys:String>
+    <sys:String x:Key="S.Home.InstanceWaiting">等待窗口出现</sys:String>
+    <sys:String x:Key="S.Home.InstanceRunning">运行中</sys:String>
+    <sys:String x:Key="S.Home.InstanceKill">结束</sys:String>
+    <sys:String x:Key="S.Home.InstanceKillTip">结束该游戏进程（含其派生子进程；未保存的进度会丢失）</sys:String>
+    <sys:String x:Key="S.Ver.Count">{0} 个版本</sys:String>
 
     <!-- 第三方验证站登录对话框 -->
     <sys:String x:Key="S.Authlib.Title">第三方登录</sys:String>

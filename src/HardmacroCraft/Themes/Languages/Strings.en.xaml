@@ -46,9 +46,17 @@
     <sys:String x:Key="S.Home.OpenLogs">Logs Folder</sys:String>
     <sys:String x:Key="S.Home.OpenCrash">Crash Reports</sys:String>
     <sys:String x:Key="S.Home.Recent">Recent Launches</sys:String>
-    <sys:String x:Key="S.Home.Quick.DownloadTip">Download a new game version</sys:String>
-    <sys:String x:Key="S.Home.Quick.ModpacksTip">Install modpacks in one click</sys:String>
-    <sys:String x:Key="S.Home.Quick.ModsTip">Browse and install mods</sys:String>
+    <sys:String x:Key="S.Home.Stage.WaitWindow">Waiting for game window</sys:String>
+    <sys:String x:Key="S.Home.WaitWindow">Waiting for the game window to appear...</sys:String>
+    <sys:String x:Key="S.Home.WaitWindowHint">This can take a while (first launch loads slower, which is normal).</sys:String>
+    <sys:String x:Key="S.Home.GameRunning">Game is running. You can close this window (logging continues)</sys:String>
+    <sys:String x:Key="S.Home.InstancesTitle">Running instances</sys:String>
+    <sys:String x:Key="S.Home.InstanceCount">{0} active</sys:String>
+    <sys:String x:Key="S.Home.InstanceWaiting">waiting for window</sys:String>
+    <sys:String x:Key="S.Home.InstanceRunning">running</sys:String>
+    <sys:String x:Key="S.Home.InstanceKill">End</sys:String>
+    <sys:String x:Key="S.Home.InstanceKillTip">End this game process (child processes included; unsaved progress will be lost)</sys:String>
+    <sys:String x:Key="S.Ver.Count">{0} versions</sys:String>
 
     <!-- Third-party (authlib-injector) login -->
     <sys:String x:Key="S.Authlib.Title">Third-party Login</sys:String>

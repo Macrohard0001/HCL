@@ -18,6 +18,10 @@ public partial class HomePage : Page
     private static DownloadTaskService.TaskItem? _currentCenterTask;
     /// <summary>fix7：当前启动流程的取消令牌（取消按钮 / 任务中心都能触发）。</summary>
     private static System.Threading.CancellationToken _launchCt;
+    /// <summary>v0.1.7：游戏进程已创建，正在等待窗口出现（进度区由后台等待器接管，启动流程本体已结束）。</summary>
+    private static bool _waitingWindow;
+    /// <summary>v0.1.7：窗口等待超时 —— 超时后按运行中处理（少数环境拿不到窗口句柄）。</summary>
+    private static readonly TimeSpan WindowWaitTimeout = TimeSpan.FromSeconds(240);
     private object? _btnLaunchDefault;
 
     /// <summary>v0.1.6：当前首页实例（供版本管理页「启动」跳转后直连启动，规避导航后取不到页面实例）。</summary>
@@ -36,10 +40,15 @@ public partial class HomePage : Page
         // v0.1.1：订阅启动进度中枢 —— 启动中切页再回来，新实例立即回放当前进度
         LaunchProgressHub.Changed += ApplyLaunchUi;
         LaunchProgressHub.CancelRequested += OnHubCancelRequested;
+        // v0.1.7：运行实例卡（多实例管理）——注册 / 状态变化 / 退出都从这里刷新
+        GameInstanceManager.Changed += OnInstancesChanged;
+        GameInstanceManager.Log += OnInstanceLog;
         Unloaded += (_, _) =>
         {
             LaunchProgressHub.Changed -= ApplyLaunchUi;
             LaunchProgressHub.CancelRequested -= OnHubCancelRequested;
+            GameInstanceManager.Changed -= OnInstancesChanged;
+            GameInstanceManager.Log -= OnInstanceLog;
             if (Current == this) Current = null;
         };
         ApplyLaunchUi();
@@ -51,6 +60,7 @@ public partial class HomePage : Page
                 await RefreshVersionsAsync();
                 RefreshAccountUi();
                 RefreshRecent();
+                RefreshInstances();
                 // 自动登录（记住密码 + 自动登录的验证站账号静默重登）
                 _ = TryAutoLoginAsync();
             }
@@ -141,6 +151,46 @@ public partial class HomePage : Page
         Log("正在取消...");
         _currentCenterTask?.RequestCancel();
         LaunchProgressHub.Update(s => s.CancelEnabled = false);
+    }
+
+    // ===== v0.1.7 运行实例卡（多实例管理：查看 / 结束） =====
+
+    /// <summary>实例列表行视图模型（属性绑定到实例卡模板）。</summary>
+    public sealed record InstanceRow(string Version, string StateText, string PidText, int Pid);
+
+    private void OnInstancesChanged()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(OnInstancesChanged); return; }
+        RefreshInstances();
+    }
+
+    private void OnInstanceLog(string line)
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(() => Log(line)); return; }
+        Log(line);
+    }
+
+    private void RefreshInstances()
+    {
+        var list = GameInstanceManager.Instances;
+        CardInstances.Visibility = list.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        TxtInstanceCount.Text = string.Format(
+            App.Current.TryFindResource("S.Home.InstanceCount") as string ?? "{0} 个", list.Count);
+        PnlInstances.ItemsSource = list.Select(i => new InstanceRow(
+            i.Version,
+            i.State == GameInstanceState.Running
+                ? App.Current.TryFindResource("S.Home.InstanceRunning") as string ?? "运行中"
+                : App.Current.TryFindResource("S.Home.InstanceWaiting") as string ?? "等待窗口出现",
+            $"PID {i.Pid}",
+            i.Pid)).ToList();
+    }
+
+    private void BtnKillInstance_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is int pid && GameInstanceManager.Kill(pid))
+            Log($"[实例] 已请求结束游戏进程（PID {pid}，含其派生子进程）...");
+        else
+            Log("[实例] 结束失败：进程可能已退出。");
     }
 
     /// <summary>主页最近启动快捷键（PCL/HMCL 式）。</summary>
@@ -540,9 +590,13 @@ public partial class HomePage : Page
                 Log(txt);
             }
             void SetStageStep(int step) => Dispatcher.Invoke(() =>
-                SetStage(step, 3,
-                    step == 2 ? "S.Home.Stage.Files" : "S.Home.Stage.Launch",
-                    step == 2 ? "正在补全游戏文件" : "正在启动游戏"));
+                SetStage(step, 4,
+                    step == 2 ? "S.Home.Stage.Files"
+                        : step == 3 ? "S.Home.Stage.Launch"
+                        : "S.Home.Stage.WaitWindow",
+                    step == 2 ? "正在补全游戏文件"
+                        : step == 3 ? "正在启动游戏"
+                        : "等待游戏窗口出现"));
 
             var fileProgress = new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(p =>
                 Dispatcher.Invoke(() =>
@@ -576,7 +630,7 @@ public partial class HomePage : Page
                         $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)}");
                 }));
 
-            SetStage(1, 3, "S.Home.Stage.CheckJava", "正在检查 Java 环境");
+            SetStage(1, 4, "S.Home.Stage.CheckJava", "正在检查 Java 环境");
             // fix5：沿 inheritsFrom 链解析所需 Java 大版本（子版本 json 常缺 javaVersion）
             var requiredMajor = JavaManager.RequiredJavaMajorChain(
                 AppSettings.Instance.GameRoot, version);
@@ -693,16 +747,17 @@ public partial class HomePage : Page
             }
             DownloadTaskService.Instance.Complete(centerTask, (string)FindResource("S.Task.Ready"));
             _currentCenterTask = null;
-            Log("游戏已启动，PID = " + process.Process?.Id);
-            LaunchProgressHub.Update(s =>
-            {
-                s.Indeterminate = false;
-                s.Percent = 0;
-                s.ProgressLine = "游戏运行中，可关闭窗口（日志继续记录）";
-            });
+            Log("游戏进程已创建，PID = " + process.Process?.Id);
+            // v0.1.7：注册进多实例管理（主页「运行中的实例」卡实时可见，可结束进程树）
+            GameInstanceManager.Register(version, process);
             // 记录最近启动（主页快捷启动，最新在前）
             AppSettings.Instance.RecordLaunch(version);
             RefreshRecent();
+            // v0.1.7：启动流程本体到此结束（可立即再启动第二个实例），
+            // 进度区交给后台等待器接管 —— 等游戏窗口出现后再恢复空闲 UI，
+            // 消除「显示已启动 → MC 窗口出现」之间没有任何提示的时间差
+            _waitingWindow = true;
+            _ = WatchGameWindowAsync(version, process);
 
             // 启动行为（HMCL 同款）：游戏启动后隐藏启动器 / 游戏退出后关闭启动器 / 异常退出时定位崩溃报告
             var launcherWindow = Window.GetWindow(this);
@@ -770,11 +825,106 @@ public partial class HomePage : Page
         finally
         {
             _launching = false;
-            LaunchProgressHub.End(); // v0.1.1：复位快照 → 所有实例恢复空闲 UI（含切页后的新实例）
+            // v0.1.7：进程已创建时进度区由窗口等待器接管，此处不复位（等待器结束后再恢复空闲 UI）
+            if (!_waitingWindow)
+                LaunchProgressHub.End(); // v0.1.1：复位快照 → 所有实例恢复空闲 UI（含切页后的新实例）
             _launchCt = default;
             // v0.1.3：启动流程（含补全 / 安装 / 取消）收尾后回收内存 —— 补全几千个文件的
             // 下载缓冲与 JSON 解析残留集中释放，不阻塞收尾渲染（内部延迟 1.5s）
             Services.MemoryManager.OptimizeAfterHeavyOp();
+        }
+    }
+
+    /// <summary>
+    /// v0.1.7：窗口等待器 —— 游戏进程创建后轮询等待窗口出现（对齐主流启动器的启动进度）。
+    /// - 窗口出现：实例标记为运行中，进度区短暂展示「游戏运行中」后恢复空闲 UI；
+    /// - 进程提前退出：进度区展示退出码后恢复空闲；
+    /// - 超时（进程仍存活）：按运行中处理（少数环境拿不到窗口句柄）。
+    /// 若期间用户又发起了新的启动（多实例），本等待器让出进度区，不再改写它。
+    /// </summary>
+    private async Task WatchGameWindowAsync(string version, CmlLib.Core.ProcessBuilder.ProcessWrapper process)
+    {
+        var ownsHub = () => LaunchProgressHub.Current.Running && LaunchProgressHub.Current.Version == version;
+        try
+        {
+            var waitText = App.Current.TryFindResource("S.Home.WaitWindow") as string ?? "正在等待游戏窗口出现…";
+            var waitHint = App.Current.TryFindResource("S.Home.WaitWindowHint") as string ?? "首次启动加载较慢，属正常现象";
+            var stageText = $"{(App.Current.TryFindResource("S.Home.Stage.WaitWindow") as string ?? "等待游戏窗口出现")}【4/4】";
+            if (ownsHub())
+            {
+                LaunchProgressHub.Update(s =>
+                {
+                    s.Indeterminate = true;
+                    s.CancelVisible = false; // 游戏进程已创建，取消改为在实例卡里结束进程
+                    s.ProgressLine = waitText;
+                    s.StageLine = stageText;
+                    s.ButtonText = App.Current.TryFindResource("S.Home.Starting") as string ?? "启动中";
+                });
+                Log(stageText);
+                Log("[启动] " + waitHint);
+            }
+
+            var sw = Stopwatch.StartNew();
+            bool windowSeen = false;
+            while (true)
+            {
+                await Task.Delay(700);
+                var decision = GameWindowWait.Decide(process.Process?.HasExited ?? true, windowSeen,
+                    sw.Elapsed, WindowWaitTimeout);
+                if (decision == GameWindowWait.Decision.KeepWaiting)
+                {
+                    if (!windowSeen)
+                    {
+                        var inst = GameInstanceManager.Instances
+                            .FirstOrDefault(i => i.Pid == (process.Process?.Id ?? -1));
+                        if (inst != null && inst.TryPeekWindow())
+                            windowSeen = true;
+                    }
+                    continue;
+                }
+                if (decision == GameWindowWait.Decision.Exited)
+                {
+                    var code = -1;
+                    try { if (process.Process?.HasExited == true) code = process.Process.ExitCode; }
+                    catch { /* 进程对象不可用 */ }
+                    Log($"[退出] 游戏在窗口出现前就退出了（退出代码 {code}）。可展开日志查看游戏输出排查原因。");
+                    if (ownsHub())
+                        LaunchProgressHub.Update(s =>
+                        {
+                            s.Indeterminate = false;
+                            s.Percent = 0;
+                            s.ProgressLine = $"游戏已退出（退出代码 {code}）";
+                        });
+                    return;
+                }
+                if (decision == GameWindowWait.Decision.TimedOut)
+                    Log("[启动] 长时间未检测到游戏窗口，按运行中处理（游戏可能仍在后台加载）。");
+                else
+                    Log("[启动] 游戏窗口已出现。");
+                // 窗口出现 / 超时：标记实例为运行中，短暂展示终态后恢复空闲 UI
+                var inst2 = GameInstanceManager.Instances.FirstOrDefault(i => i.Pid == (process.Process?.Id ?? -1));
+                inst2?.MarkRunning();
+                var runningText = App.Current.TryFindResource("S.Home.GameRunning") as string
+                    ?? "游戏运行中，可关闭窗口（日志继续记录）";
+                if (ownsHub())
+                {
+                    LaunchProgressHub.Update(s =>
+                    {
+                        s.Indeterminate = false;
+                        s.Percent = 100;
+                        s.ProgressLine = runningText;
+                    });
+                    await Task.Delay(700);
+                }
+                return;
+            }
+        }
+        catch { /* 等待器异常不外泄（进程退出事件会兜底处理收尾） */ }
+        finally
+        {
+            _waitingWindow = false;
+            if (ownsHub())
+                LaunchProgressHub.End(); // LastProgressLine 保留终态（游戏运行中 / 已退出）供空闲回放
         }
     }
 
@@ -817,29 +967,14 @@ public partial class HomePage : Page
         // 依赖 TextChanged 让 TextBox 滚动到底（ScrollToEnd 已在 Log 中调用）
     }
 
-    // ===== 首页 UI（PCL 对齐）：快捷入口 + 日志区展开/收起 =====
-
-    private void BtnQuickDownload_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
-        NavigateTo(typeof(DownloadGamePage));
-
-    private void BtnQuickModpacks_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
-        NavigateTo(typeof(ModpacksPage));
-
-    private void BtnQuickMods_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
-        NavigateTo(typeof(ModsPage));
-
-    private void NavigateTo(Type page)
-    {
-        if (System.Windows.Application.Current.MainWindow is MainWindow main)
-        {
-            try { main.RootNavigation.Navigate(page); } catch { /* 导航失败静默 */ }
-        }
-    }
+    // ===== 首页 UI：日志区展开/收起 =====
 
     private void BtnToggleLog_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         var open = PnlLogBox.Visibility == Visibility.Collapsed;
         PnlLogBox.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        // v0.1.7：展开时日志卡撑满中部剩余空间；收起时回到一条紧凑标题栏
+        CardLog.VerticalAlignment = open ? VerticalAlignment.Stretch : VerticalAlignment.Top;
         IcoLogToggle.Symbol = open ? SymbolRegular.ChevronUp24 : SymbolRegular.ChevronDown24;
     }
 }

@@ -3,11 +3,20 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <ScrollViewer Style="{StaticResource HmScrollViewer}">
-        <StackPanel Margin="32,24,32,24" MaxWidth="880" HorizontalAlignment="Stretch">
+    <!-- v0.1.7：主容器不滚动 —— 标题固定，设置内容在内部区域滚动（对齐系统设置式页面） -->
+    <Grid Margin="32,24,32,24" MaxWidth="880" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Set.Title}" Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Set.Subtitle}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Style="{StaticResource HmScrollViewer}">
+            <StackPanel>
 
             <!-- 外观（主题切换：即时生效，字体颜色跟随主题资源） -->
             <Border Style="{StaticResource HmCard}">
@@ -265,6 +274,7 @@
 
             <ui:Button Content="{DynamicResource S.Set.Save}" Appearance="Primary" Icon="{ui:SymbolIcon Save24}"
                        Click="BtnSave_Click" MinWidth="160" MinHeight="42" FontSize="14" FontWeight="SemiBold" />
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Page>
