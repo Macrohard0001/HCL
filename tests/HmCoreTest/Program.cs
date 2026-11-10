@@ -1831,6 +1831,165 @@ try
 }
 catch (Exception ex) { Check("第 29 节 v0.1.5（默认头像与详情工具）", false, ex.Message); }
 
+try
+{
+    // ==================== 第 30 节 v0.1.6 版本识别 / 版本设置 / servers.dat ====================
+
+    // 30.1 显示版本号清洗（关于页乱码根因：构建期追加 +提交哈希）
+    Check("CleanDisplayVersion 剥除 + 哈希", VersionInfo.CleanDisplayVersion("0.1.6+9f3a2b1c") == "0.1.6");
+    Check("CleanDisplayVersion 保留预发布后缀", VersionInfo.CleanDisplayVersion("0.2.0-beta.1+abcdef") == "0.2.0-beta.1");
+    Check("CleanDisplayVersion 无加号原样", VersionInfo.CleanDisplayVersion("0.1.5") == "0.1.5");
+    Check("CleanDisplayVersion null / 空白", VersionInfo.CleanDisplayVersion(null) == null && VersionInfo.CleanDisplayVersion("  ") == null);
+
+    // 30.2 加载器识别（json 特征串，NeoForge 必须先于 Forge）
+    Check("json 无特征 → Vanilla", VersionInfo.DetectLoaderFromJson("{\"libraries\":[]}", "1.21.4") == McLoaderKind.Vanilla);
+    Check("minecraftforge → Forge", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"net.minecraftforge:forge:1.20.1-47.2.0\"}]}", "1.20.1-forge-47.2.0") == McLoaderKind.Forge);
+    Check("neoforged → NeoForge（优先于 Forge）", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"net.neoforged:neoforge:21.1.77\"}]}", "1.21.1-neoforge-21.1.77") == McLoaderKind.NeoForge);
+    Check("fabricloader → Fabric", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"net.fabricmc:fabricloader:0.16.9\"}]}", "1.21.4-fabric") == McLoaderKind.Fabric);
+    Check("legacyfabric → LegacyFabric", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"net.legacyfabric.fabric-api:legacy-fabric-api:1.9\"}]}", "1.8.9-legacy-fabric") == McLoaderKind.LegacyFabric);
+    Check("org.quiltmc → Quilt", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"org.quiltmc:quilt-loader:0.26.0\"}]}", "1.20.1-quilt") == McLoaderKind.Quilt);
+    Check("liteloader → LiteLoader", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"com.mumfrey:liteloader:1.12\"}]}", "1.12-liteloader") == McLoaderKind.LiteLoader);
+    Check("optifine 依赖 → OptiFine", VersionInfo.DetectLoaderFromJson("{\"libraries\":[{\"name\":\"optifine:OptiFine:1.20.1\"}]}", "1.20.1-OptiFine_HD_U_I6") == McLoaderKind.OptiFine);
+
+    // 30.3 版本目录检测（临时目录：标记文件 / json 文件 / 来源 marker）
+    var t30 = Path.Combine(Path.GetTempPath(), "hcl-t30-" + Guid.NewGuid().ToString("N")[..8]);
+    try
+    {
+        var vDir = Path.Combine(t30, "versions", "demo-forge");
+        Directory.CreateDirectory(vDir);
+        File.WriteAllText(Path.Combine(vDir, "demo-forge.json"),
+            "{\"id\":\"demo-forge\",\"libraries\":[{\"name\":\"net.minecraftforge:forge:1.20.1\"}]}");
+        Check("目录检测：json → Forge", VersionInfo.DetectLoader(vDir, "demo-forge") == McLoaderKind.Forge);
+        Check("目录检测：无目录 → Vanilla", VersionInfo.DetectLoader(null) == McLoaderKind.Vanilla && VersionInfo.DetectLoader(Path.Combine(t30, "不存在")) == McLoaderKind.Vanilla);
+
+        // .fabric 标记优先于 json 内容
+        var vDir2 = Path.Combine(t30, "versions", "demo-fabric");
+        Directory.CreateDirectory(vDir2);
+        File.WriteAllText(Path.Combine(vDir2, "demo-fabric.json"), "{\"libraries\":[]}");
+        File.WriteAllText(Path.Combine(vDir2, ".fabric"), "");
+        Check("目录检测：.fabric 标记 → Fabric", VersionInfo.DetectLoader(vDir2, "demo-fabric") == McLoaderKind.Fabric);
+
+        // 来源识别
+        var sDir = Path.Combine(t30, "versions", "demo-src");
+        Directory.CreateDirectory(sDir);
+        Check("无标记 → None", VersionInfo.DetectSource(sDir) == LauncherSource.None);
+        File.WriteAllText(Path.Combine(sDir, VersionInfo.OwnedMarkerFile), "{}");
+        Check("hcl.json → Hcl", VersionInfo.DetectSource(sDir) == LauncherSource.Hcl);
+        File.WriteAllText(Path.Combine(sDir, "pcl.json"), "{}");
+        Check("hcl.json 优先于 pcl.json", VersionInfo.DetectSource(sDir) == LauncherSource.Hcl);
+        File.Delete(Path.Combine(sDir, VersionInfo.OwnedMarkerFile));
+        Check("pcl.json → Pcl", VersionInfo.DetectSource(sDir) == LauncherSource.Pcl);
+        File.WriteAllText(Path.Combine(sDir, "hmclversion.cfg"), "");
+        Check("pcl.json 优先于 hmclversion.cfg", VersionInfo.DetectSource(sDir) == LauncherSource.Pcl);
+        File.Delete(Path.Combine(sDir, "pcl.json"));
+        Check("hmclversion.cfg → Hmcl", VersionInfo.DetectSource(sDir) == LauncherSource.Hmcl);
+        File.Delete(Path.Combine(sDir, "hmclversion.cfg"));
+        File.WriteAllText(Path.Combine(sDir, ".id"), ";8f2a");
+        Check(".id 以分号开头 → Pcl", VersionInfo.DetectSource(sDir) == LauncherSource.Pcl);
+        File.WriteAllText(Path.Combine(sDir, ".id"), "普通内容");
+        Check(".id 普通内容 → None", VersionInfo.DetectSource(sDir) == LauncherSource.None);
+
+        // 所有权标记写入
+        VersionInfo.WriteOwnedMarker(sDir);
+        Check("WriteOwnedMarker 落盘可读回", VersionInfo.DetectSource(sDir) == LauncherSource.Hcl);
+        Check("Describe 一次性识别", VersionInfo.Describe(t30, "demo-forge").Loader == McLoaderKind.Forge);
+        Check("LoaderKey 映射齐全（8 种）",
+            new[] { McLoaderKind.Vanilla, McLoaderKind.Forge, McLoaderKind.NeoForge, McLoaderKind.Fabric,
+                    McLoaderKind.LegacyFabric, McLoaderKind.Quilt, McLoaderKind.LiteLoader, McLoaderKind.OptiFine }
+                .All(k => VersionInfo.LoaderKey(k).StartsWith("S.Ver.Loader.")));
+    }
+    finally
+    {
+        try { Directory.Delete(t30, true); } catch { }
+    }
+
+    // 30.4 NBT / servers.dat（一键进服保存到多人游戏列表）
+    // 构造一个含 icon 与未知字段的真实结构：root { servers: [ {name, ip, icon:ByteArray} ], bonus: Int }
+    var entry = NbtTag.NewCompound("");
+    entry.Children.Add(NbtTag.NewString("name", "旧服务器"));
+    entry.Children.Add(NbtTag.NewString("ip", "mc.old.com"));
+    entry.Children.Add(new NbtTag { Type = NbtType.ByteArray, Name = "icon", Bytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 } });
+    var root = NbtTag.NewCompound("");
+    var servers = NbtTag.NewList("servers", NbtType.Compound);
+    servers.Children.Add(entry);
+    root.Children.Add(servers);
+    root.Children.Add(new NbtTag { Type = NbtType.Int, Name = "bonus", I = 12345 });
+    var dat = Nbt.Write(root);
+
+    var entries = ServerList.ReadEntries(dat);
+    Check("NBT roundtrip：读出 1 条", entries.Count == 1 && entries[0].Name == "旧服务器" && entries[0].Ip == "mc.old.com");
+    Check("NBT roundtrip：icon 字节无损", Nbt.Parse(dat)!.Child("servers")!.Children[0].Child("icon")!.Bytes.SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47 }));
+    Check("NBT roundtrip：未知字段保留", Nbt.Parse(dat)!.Child("bonus")!.I == 12345);
+
+    // 追加一条（含中文服务器名）
+    var dat2 = ServerList.AddOrUpdate(dat, "生存服", "play.example.cn:25565");
+    Check("AddOrUpdate 追加后 2 条", ServerList.ReadEntries(dat2!).Count == 2);
+    Check("AddOrUpdate 原条目 icon 保留", Nbt.Parse(dat2!)!.Child("servers")!.Children[0].Child("icon")!.Bytes.Length == 4);
+    Check("AddOrUpdate 未知字段保留", Nbt.Parse(dat2!)!.Child("bonus")!.I == 12345);
+    var dat3 = ServerList.AddOrUpdate(dat2, "生存服改名", "play.example.cn:25565");
+    var e3 = ServerList.ReadEntries(dat3!);
+    Check("同地址 ip 更新名称（不新增）", e3.Count == 2 && e3.Any(x => x.Name == "生存服改名" && x.Ip == "play.example.cn:25565"));
+
+    Check("损坏数据返回 null（不覆盖原文件）", ServerList.AddOrUpdate(new byte[] { 1, 2, 3, 4, 5 }, "x", "y") == null);
+    Check("空数据新建列表", ServerList.ReadEntries(ServerList.AddOrUpdate(Array.Empty<byte>(), "新服", "mc.new.com")!).Count == 1);
+    Check("ReadEntries 空入参安全", ServerList.ReadEntries(null).Count == 0 && ServerList.ReadEntries(new byte[0]).Count == 0);
+
+    // 大端序抽查：TAG_String 长度字段高位在前
+    var probe = Nbt.Write(NbtTag.NewCompound(""));
+    Check("大端序写入（根 Compound + End）", probe.Length == 4 && probe[0] == 10 && probe[1] == 0 && probe[2] == 0 && probe[3] == 0);
+    var strTag = Nbt.Write(NbtTag.NewString("", "ABC"));
+    Check("UTF8 长度大端序", strTag[3] == 0 && strTag[4] == 3);
+    var namedProbe = Nbt.Write(NbtTag.NewCompound("root!"));
+    Check("带名 Compound 名称写入", namedProbe[1] == 0 && namedProbe[2] == 5 && System.Text.Encoding.UTF8.GetString(namedProbe, 3, 5) == "root!");
+
+    // TryWrite 原子落盘 + servers.dat_old 备份
+    var wDir = Path.Combine(Path.GetTempPath(), "hcl-t30w-" + Guid.NewGuid().ToString("N")[..8]);
+    try
+    {
+        Directory.CreateDirectory(wDir);
+        var path = Path.Combine(wDir, "servers.dat");
+        Check("ServersDatPath 隔离/非隔离", ServerList.ServersDatPath("G", true, "1.21.4").Replace('\\', '/').EndsWith("versions/1.21.4/servers.dat")
+            && ServerList.ServersDatPath("G", false, "1.21.4") == Path.Combine("G", "servers.dat"));
+        File.WriteAllBytes(path, dat);
+        Check("TryWrite 成功返回 null", ServerList.TryWrite(path, dat2!) == null);
+        Check("TryWrite 产生 .dat_old 备份", File.Exists(Path.Combine(wDir, "servers.dat_old"))
+            && File.ReadAllBytes(Path.Combine(wDir, "servers.dat_old")).SequenceEqual(dat));
+        Check("新内容落盘可读回", ServerList.ReadEntries(File.ReadAllBytes(path)).Count == 2);
+    }
+    finally
+    {
+        try { Directory.Delete(wDir, true); } catch { }
+    }
+
+    // 30.5 版本独立设置
+    var v30 = "t30-version-" + Guid.NewGuid().ToString("N")[..6];
+    try
+    {
+        Check("未保存时 Get → null", VersionSettingsStore.Get(v30) == null);
+        Check("EffectiveIsolation 无覆盖 → 全局", VersionSettingsStore.EffectiveIsolation(v30, true) && VersionSettingsStore.EffectiveIsolation(v30, false) == false);
+        VersionSettingsStore.Save(v30, new VersionSettings { IsolationOverride = false, MemoryMb = 8192 });
+        var got = VersionSettingsStore.Get(v30);
+        Check("Save/Get 往返（隔离覆盖）", got != null && got.IsolationOverride == false);
+        Check("Save/Get 往返（其余字段默认）", got!.JavaPath == "" && got.MemoryAuto == null && got.CustomJvmArgs == "" && got.QuickServer == "");
+        Check("EffectiveIsolation 覆盖生效", VersionSettingsStore.EffectiveIsolation(v30, true) == false);
+        VersionSettingsStore.Save(v30, new VersionSettings { IsolationOverride = false, MemoryAuto = false, MemoryMb = 8192 });
+        Check("EffectiveMemory 手动覆盖", VersionSettingsStore.Get(v30)!.MemoryMb == 8192);
+        VersionSettingsStore.Delete(v30);
+        Check("Delete 后 Get → null", VersionSettingsStore.Get(v30) == null);
+        var deletedAbsent = true;
+        try { VersionSettingsStore.Delete("一定不存在的版本-" + v30); } catch { deletedAbsent = false; }
+        Check("Delete 不存在不抛异常", deletedAbsent);
+        // 全默认保存 → 等价于删除（不落盘）
+        VersionSettingsStore.Save(v30, new VersionSettings());
+        Check("全默认保存不落盘", VersionSettingsStore.Get(v30) == null && !File.Exists(Path.Combine(AppSettings.ConfigDir, "versions", v30 + ".json")));
+    }
+    finally
+    {
+        VersionSettingsStore.Delete(v30);
+    }
+}
+catch (Exception ex) { Check("第 30 节 v0.1.6（版本识别 / 版本设置 / servers.dat）", false, ex.Message); }
+
 
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");

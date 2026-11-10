@@ -20,12 +20,13 @@
     <sys:String x:Key="S.Home.NoAccount">未登录</sys:String>
     <sys:String x:Key="S.Home.NoAccountHint">请先登录微软正版账号或创建离线账号</sys:String>
     <sys:String x:Key="S.Home.AccountMs">微软正版账号（凭据保存在本地 config/）</sys:String>
+    <sys:String x:Key="S.Home.AccountThirdFmt">{0} 登录（第三方验证站）</sys:String>
     <sys:String x:Key="S.Home.AccountThird">第三方验证站账号（authlib-injector）</sys:String>
     <sys:String x:Key="S.Home.AccountOffline">离线账号</sys:String>
     <sys:String x:Key="S.Home.SelectVersion">选择版本</sys:String>
-        <sys:String x:Key="S.Home.QuickServer">快速进服</sys:String>
-    <sys:String x:Key="S.Home.QuickServerPh">服务器地址，如 mc.example.com 或 mc.example.com:25565</sys:String>
-    <sys:String x:Key="S.Home.QuickServerBtn">启动并进服</sys:String>
+    <sys:String x:Key="S.Home.QuickServer">快速进服</sys:String>
+    <sys:String x:Key="S.Home.QuickServerBtn">一键进服</sys:String>
+    <sys:String x:Key="S.Home.VersionSettingsTip">版本设置（仅对此版本生效）</sys:String>
 <sys:String x:Key="S.Home.Launch">启动游戏</sys:String>
     <sys:String x:Key="S.Home.Stage.CheckJava">正在检查 Java 环境</sys:String>
     <sys:String x:Key="S.Home.Stage.Files">正在补全游戏文件</sys:String>
@@ -277,12 +278,56 @@
 
     <!-- 版本管理 -->
     <sys:String x:Key="S.Ver.Title">版本管理</sys:String>
-    <sys:String x:Key="S.Ver.Subtitle">已安装版本列表（versions 目录）。版本隔离开启时，每个版本拥有独立的存档与 mod。</sys:String>
+    <sys:String x:Key="S.Ver.Subtitle">已安装版本列表（versions 目录）。图标标识加载器类型与创建来源；单击版本可打开版本设置。</sys:String>
     <sys:String x:Key="S.Ver.Refresh">刷新</sys:String>
     <sys:String x:Key="S.Ver.OpenFolder">打开目录</sys:String>
     <sys:String x:Key="S.Ver.Rename">重命名</sys:String>
     <sys:String x:Key="S.Ver.Copy">复制版本</sys:String>
     <sys:String x:Key="S.Ver.Delete">删除版本</sys:String>
+    <sys:String x:Key="S.Ver.Launch">启动游戏</sys:String>
+    <sys:String x:Key="S.Ver.Settings">版本设置</sys:String>
+    <sys:String x:Key="S.Ver.SearchPh">搜索版本（输入关键词过滤）</sys:String>
+    <sys:String x:Key="S.Ver.ClickHint">提示：单击版本可打开版本设置；双击可直接启动该版本。</sys:String>
+    <sys:String x:Key="S.Ver.FromHcl">本启动器安装</sys:String>
+    <sys:String x:Key="S.Ver.FromOther">由其他启动器创建</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Vanilla">原版</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Forge">Forge</sys:String>
+    <sys:String x:Key="S.Ver.Loader.NeoForge">NeoForge</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Fabric">Fabric</sys:String>
+    <sys:String x:Key="S.Ver.Loader.LegacyFabric">Legacy Fabric</sys:String>
+    <sys:String x:Key="S.Ver.Loader.Quilt">Quilt</sys:String>
+    <sys:String x:Key="S.Ver.Loader.LiteLoader">LiteLoader</sys:String>
+    <sys:String x:Key="S.Ver.Loader.OptiFine">OptiFine</sys:String>
+
+    <!-- 版本独立设置 -->
+    <sys:String x:Key="S.Vs.Title">版本设置</sys:String>
+    <sys:String x:Key="S.Vs.GroupGame">游戏</sys:String>
+    <sys:String x:Key="S.Vs.IsoFollow">跟随全局设置</sys:String>
+    <sys:String x:Key="S.Vs.IsoOn">独立（存档 / mod 放在该版本目录内）</sys:String>
+    <sys:String x:Key="S.Vs.IsoOff">共用（与其他版本共用存档 / mod）</sys:String>
+    <sys:String x:Key="S.Vs.IsoHint">仅覆盖此版本的隔离行为；全局开关在 设置 → 游戏目录 中修改。</sys:String>
+    <sys:String x:Key="S.Vs.GroupJava">Java</sys:String>
+    <sys:String x:Key="S.Vs.JavaPh">留空使用全局设置（支持填 javaw.exe 或其所在文件夹）</sys:String>
+    <sys:String x:Key="S.Vs.GroupMemory">内存</sys:String>
+    <sys:String x:Key="S.Vs.MemoryOverride">为此版本单独分配内存</sys:String>
+    <sys:String x:Key="S.Vs.MemoryValue">{0} MB</sys:String>
+    <sys:String x:Key="S.Vs.MemoryHint">勾选后：滑块数值即该版本固定分配；取消勾选：跟随全局（含全局的自动检测）。</sys:String>
+    <sys:String x:Key="S.Vs.GroupJvm">JVM 参数</sys:String>
+    <sys:String x:Key="S.Vs.JvmPh">留空使用全局设置，如 -XX:+UseZGC</sys:String>
+    <sys:String x:Key="S.Vs.GroupServer">一键进服</sys:String>
+    <sys:String x:Key="S.Vs.ServerPh">该版本默认进服地址（一键进服弹窗自动填充），留空不预填</sys:String>
+    <sys:String x:Key="S.Vs.Reset">恢复默认</sys:String>
+    <sys:String x:Key="S.Vs.Save">保存</sys:String>
+
+    <!-- 一键进服弹窗 -->
+    <sys:String x:Key="S.Join.Title">一键进服</sys:String>
+    <sys:String x:Key="S.Join.Hint">启动后将直接连入该服务器（支持 IP 或 域名，可带端口）</sys:String>
+    <sys:String x:Key="S.Join.Address">服务器地址</sys:String>
+    <sys:String x:Key="S.Join.AddressPh">mc.example.com 或 mc.example.com:25565</sys:String>
+    <sys:String x:Key="S.Join.Save">保存到游戏的多人游戏列表</sys:String>
+    <sys:String x:Key="S.Join.SaveName">列表中的名称</sys:String>
+    <sys:String x:Key="S.Join.DefaultName">Minecraft服务器</sys:String>
+    <sys:String x:Key="S.Join.Ok">启动并进服</sys:String>
 
     <!-- 设置 -->
     <sys:String x:Key="S.Set.Title">设置</sys:String>
