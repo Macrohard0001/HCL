@@ -10,32 +10,32 @@
 
   <ItemGroup>
     <!-- 直接源码链接被测服务（与启动器同一份代码） -->
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AppSettings.cs" Link="Services/AppSettings.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AuthService.cs" Link="Services/AuthService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/AuthlibService.cs" Link="Services/AuthlibService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/BootLogger.cs" Link="Services/BootLogger.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/CrashHelper.cs" Link="Services/CrashHelper.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/CurseForgeService.cs" Link="Services/CurseForgeService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/DownloadEngine.cs" Link="Services/DownloadEngine.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/JavaManager.cs" Link="Services/JavaManager.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/LaunchArgs.cs" Link="Services/LaunchArgs.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/LaunchProgressHub.cs" Link="Services/LaunchProgressHub.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VerifyStamp.cs" Link="Services/VerifyStamp.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/LauncherService.cs" Link="Services/LauncherService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/MirrorHttpHandler.cs" Link="Services/MirrorHttpHandler.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
-        <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/MemoryManager.cs" Link="Services/MemoryManager.cs" />
-<Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModrinthService.cs" Link="Services/ModrinthService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ModPresetStore.cs" Link="Services/ModPresetStore.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VersionInfo.cs" Link="Services/VersionInfo.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/ServerList.cs" Link="Services/ServerList.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
-    <Compile Include="/home/z/my-project/HardmacroCraft/src/HardmacroCraft/Services/GameInstanceManager.cs" Link="Services/GameInstanceManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/AppSettings.cs" Link="Services/AppSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/AuthService.cs" Link="Services/AuthService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/AuthlibService.cs" Link="Services/AuthlibService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/BootLogger.cs" Link="Services/BootLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/CrashHelper.cs" Link="Services/CrashHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/CurseForgeService.cs" Link="Services/CurseForgeService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/DownloadEngine.cs" Link="Services/DownloadEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/JavaManager.cs" Link="Services/JavaManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LaunchArgs.cs" Link="Services/LaunchArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LaunchProgressHub.cs" Link="Services/LaunchProgressHub.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VerifyStamp.cs" Link="Services/VerifyStamp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LauncherService.cs" Link="Services/LauncherService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/MirrorHttpHandler.cs" Link="Services/MirrorHttpHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ModpackService.cs" Link="Services/ModpackService.cs" />
+        <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/MemoryManager.cs" Link="Services/MemoryManager.cs" />
+<Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ModrinthService.cs" Link="Services/ModrinthService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ModPresetStore.cs" Link="Services/ModPresetStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionInfo.cs" Link="Services/VersionInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ServerList.cs" Link="Services/ServerList.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameInstanceManager.cs" Link="Services/GameInstanceManager.cs" />
   </ItemGroup>
 
   <ItemGroup>
