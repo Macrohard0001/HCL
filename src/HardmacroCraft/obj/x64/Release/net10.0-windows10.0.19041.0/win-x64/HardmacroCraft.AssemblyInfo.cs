@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright (c) 2026 Fox_Ryn (Macrohard0001)")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.8.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.8+3066dd51266ca9b66374e1fac1fee5f862f91fd1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.8+5bff0480d1966311769208e613e65e5739dee6e3")]
 [assembly: System.Reflection.AssemblyProductAttribute("Hardmacro Craft Launcher")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Hardmacro Craft Launcher")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.8.0")]
