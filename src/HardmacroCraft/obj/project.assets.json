@@ -435,7 +435,7 @@
     "/home/z/.nuget/packages/": {}
   },
   "project": {
-    "version": "0.1.7",
+    "version": "0.1.8",
     "restore": {
       "projectUniqueName": "/home/z/my-project/src/HardmacroCraft/HardmacroCraft.csproj",
       "projectName": "HardmacroCraftLauncher",
