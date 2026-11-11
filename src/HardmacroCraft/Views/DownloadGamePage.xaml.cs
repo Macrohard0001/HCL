@@ -158,7 +158,7 @@ public partial class DownloadGamePage : Page
     // 点击版本行的「安装」按钮 → LoaderPickerWindow 弹窗：
     // 原版 / Forge / NeoForge / Fabric / Quilt / Legacy Fabric / LiteLoader 七选一，
     // 选择加载器版本后安装（v0.1.0-beta：装载器独立卡片迁移至此弹窗，并新增冷门装载器）。
-    private void BtnVanillaRowInstall_Click(object sender, RoutedEventArgs e)
+    private async void BtnVanillaRowInstall_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not VanillaRow row) return;
         var dlg = new LoaderPickerWindow(row.Name) { Owner = Window.GetWindow(this) };
@@ -170,5 +170,26 @@ public partial class DownloadGamePage : Page
         SetBusy(dlg.DialogResult == true
             ? "安装完成: " + row.Name
             : (string)FindResource("S.Dl.BackgroundInfo") + " " + row.Name);
+
+        // v0.1.8 紧急修复：安装完成直接询问是否启动（对齐主流启动器下载完即玩的行为）。
+        // 此前装完只更新徽章，用户回到首页还可能因为下拉框未刷新选不到新版本。
+        if (dlg.DialogResult == true)
+        {
+            var wantLaunch = HmMsg.Confirm(Window.GetWindow(this), "安装完成",
+                $"安装完成：{row.Name}\n\n是否立即启动该版本？");
+            if (wantLaunch && Application.Current.MainWindow is MainWindow main)
+            {
+                try
+                {
+                    main.RootNavigation.Navigate(typeof(HomePage));
+                    var home = HomePage.Current;
+                    if (home != null) await home.LaunchFromExternalAsync(row.Name);
+                }
+                catch (Exception ex)
+                {
+                    HmMsg.Info(Window.GetWindow(this), "启动失败", "启动失败：" + ex.Message);
+                }
+            }
+        }
     }
 }

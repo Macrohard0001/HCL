@@ -2098,6 +2098,52 @@ try
 catch (Exception ex) { Check("第 32 节 v0.1.8（筛选卡 / 去滚动 / 虚拟化）", false, ex.Message); }
 
 
+// 33 v0.1.8 紧急修复：版本图标识别（自定义版本名也按 json 内容识别加载器 / 纯净版一律草方块）
+try
+{
+    // 33.1 json 特征识别（首页下拉框 / 版本管理页图标的数据源）
+    Check("json 特征识别 Forge",
+        VersionInfo.DetectLoaderFromJson("{\"libraries\":[\"net.minecraftforge:forge:47.2.0\"]}", "x") == McLoaderKind.Forge);
+    Check("json 特征识别 NeoForge（id 后缀）",
+        VersionInfo.DetectLoaderFromJson("{}", "1.20.1-neoforge-5.x") == McLoaderKind.NeoForge);
+    Check("json 特征识别 Fabric",
+        VersionInfo.DetectLoaderFromJson("{\"libraries\":[\"fabricloader:0.15\"]}", "1.20.1") == McLoaderKind.Fabric);
+    Check("纯净版 json 不误判", VersionInfo.DetectLoaderFromJson("{\"inheritsFrom\":\"1.20.1\"}", "MyPack") == McLoaderKind.Vanilla);
+
+    // 33.2 自定义版本名：主 json 无特征、目录内另有加载器安装器写入的 json → 仍识别出加载器
+    var root33 = Path.Combine(Path.GetTempPath(), "hcl-test-33", Guid.NewGuid().ToString("N"));
+    var custom = Path.Combine(root33, "versions", "MyPack");
+    Directory.CreateDirectory(custom);
+    File.WriteAllText(Path.Combine(custom, "MyPack.json"), "{\"inheritsFrom\":\"1.20.1\",\"id\":\"MyPack\"}");
+    File.WriteAllText(Path.Combine(custom, "MyClient-forge.json"),
+        "{\"libraries\":[\"net.minecraftforge:forge:47.2.0\"]}");
+    Check("自定义版本名仍识别出 Forge（扫描目录内全部 json）",
+        VersionInfo.DetectLoader(custom, "MyPack") == McLoaderKind.Forge);
+
+    // 33.3 纯净版多 json 目录不误判（官方启动器 / 手动放置版本 → 草方块的前提）
+    var pure = Path.Combine(root33, "versions", "21w03a");
+    Directory.CreateDirectory(pure);
+    File.WriteAllText(Path.Combine(pure, "21w03a.json"), "{\"id\":\"21w03a\"}");
+    File.WriteAllText(Path.Combine(pure, "extra.json"), "{\"downloads\":{\"client\":{}}}");
+    Check("纯净版两个 json 仍为 Vanilla（不误报加载器）",
+        VersionInfo.DetectLoader(pure, "21w03a") == McLoaderKind.Vanilla);
+
+    // 33.4 创建来源识别（副标题「创建来源」沿用；图标不再按来源区分）
+    var own = Path.Combine(root33, "versions", "v-own");
+    Directory.CreateDirectory(own);
+    File.WriteAllText(Path.Combine(own, VersionInfo.OwnedMarkerFile), "{}");
+    Check("hcl 标记识别为本启动器安装", VersionInfo.DetectSource(own) == LauncherSource.Hcl);
+    var hmclDir = Path.Combine(root33, "versions", "v-hmcl");
+    Directory.CreateDirectory(hmclDir);
+    File.WriteAllText(Path.Combine(hmclDir, "hmclversion.cfg"), ";x");
+    Check("cfg 标记识别为其他启动器创建", VersionInfo.DetectSource(hmclDir) == LauncherSource.Hmcl);
+    Check("无标记识别为无来源（图标走草方块）", VersionInfo.DetectSource(pure) == LauncherSource.None);
+
+    try { Directory.Delete(root33, true); } catch { }
+}
+catch (Exception ex) { Check("第 33 节 v0.1.8（版本图标识别）", false, ex.Message); }
+
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

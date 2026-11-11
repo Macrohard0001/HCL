@@ -3,11 +3,11 @@ using System.Windows.Media;
 namespace HardmacroCraft.Services;
 
 /// <summary>
-/// v0.1.6 版本图标（对齐主流启动器）：
-/// - 有加载器（NeoForge/Forge/Fabric/Quilt/…）→ 对应加载器图标（一眼看出是什么环境）；
-/// - 纯净版 → 按创建来源显示：本启动器安装 → 本启动器 logo；其他启动器创建 → 首字母徽章
-///   （「方便查看是哪种启动器」，只以单字母徽章区分，不在任何文案中出现名称字样）；
-/// - 无标记的纯净版（官方启动器 / 手动放置）→ 草方块。
+/// 版本图标（v0.1.8 紧急修复，对齐主流启动器的「自动图标」规则）：
+/// - 有加载器（NeoForge/Forge/Fabric/Quilt/…）→ 对应加载器图标（按版本 json 内容识别，
+///   与版本名叫「默认名」还是「自定义名」无关，纯净版 json 特征不误判）；
+/// - 纯净版 → 原版草方块（不再按创建来源显示启动器 Logo / 字母徽章 ——
+///   来源信息已在副标题「创建来源」中说明，图标应表达「这个版本是什么」而不是「谁装的」）。
 /// </summary>
 public static class VersionIconProvider
 {
@@ -36,7 +36,7 @@ public static class VersionIconProvider
         catch { return null; }
     }
 
-    /// <summary>来源徽章：字母 + 主题色（仅纯净版 + 有来源标记时显示）。</summary>
+    /// <summary>来源徽章（v0.1.8 起图标不再使用，保留给需要小字来源标记的场景）。</summary>
     public static (string Letter, Brush Brush)? SourceBadge(LauncherSource src) => src switch
     {
         LauncherSource.Pcl => ("P", new SolidColorBrush(Color.FromRgb(0xE0, 0x9C, 0x2C))),
@@ -44,19 +44,17 @@ public static class VersionIconProvider
         _ => null,
     };
 
+    /// <summary>图标决策（纯规则，便于测试）：有加载器 → 加载器图标；否则 → 草方块。</summary>
+    public static string DecideIconKind(VersionInfo.VersionDescriptor desc)
+        => desc.Loader == McLoaderKind.Vanilla ? "grass" : "loader:" + desc.Loader;
+
     /// <summary>版本列表条目视图模型（图标 / 徽章 / 名称一次成型，绑定零转换器）。</summary>
     public static (ImageSource? Icon, string? Badge, Brush? BadgeBrush) DescribeIcon(VersionInfo.VersionDescriptor desc)
     {
         var loaderIcon = LoaderIcon(desc.Loader);
         if (loaderIcon != null) return (loaderIcon, null, null);
-
-        if (desc.Source == LauncherSource.Hcl)
-            return (Load("icon.png"), null, null);
-        if (desc.Source == LauncherSource.None)
-            return (Load("grass.png"), null, null);
-
-        var badge = SourceBadge(desc.Source);
-        return (null, badge?.Letter, badge?.Brush);
+        // 纯净版（含本启动器安装 / 其他启动器创建 / 无标记）一律原版草方块
+        return (Load("grass.png"), null, null);
     }
 }
 
