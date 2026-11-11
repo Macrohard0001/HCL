@@ -5,6 +5,8 @@ namespace HardmacroCraft.Services;
 /// <summary>
 /// 下载任务中心（HMCL 式任务列表）：所有下载 / 安装 / 补全文件任务在此登记，
 /// 任务中心页与各页面按钮共同消费进度。线程安全（后台线程回调直接更新）。
+/// v0.1.10：任务支持去重 Key（同一逻辑任务重复登记时复用同一实例，修复重复任务），
+/// 且每条任务保留一份进度日志（任务中心点击卡片查看详情）。
 /// </summary>
 public class DownloadTaskService
 {
@@ -19,6 +21,14 @@ public class DownloadTaskService
         public DateTime StartedAt { get; internal set; } = DateTime.Now;
         public DateTime EndedAt { get; internal set; }
 
+        /// <summary>v0.1.10：去重 Key（同一逻辑任务的登记标识，如 "launch:1.20.1"）。
+        /// StartKeyed 用它复用运行中的同一任务实例；null = 不参与去重。</summary>
+        public string? Key { get; internal set; }
+
+        /// <summary>v0.1.10：任务进度日志（时间戳行，最多 300 条；详情弹窗展示）。</summary>
+        private readonly List<string> _logs = new();
+        private readonly object _logLock = new();
+
         /// <summary>fix7：可取消任务持有的取消源（StartCancellable 登记，RequestCancel 触发）。</summary>
         internal CancellationTokenSource? Cts { get; set; }
 
@@ -26,11 +36,33 @@ public class DownloadTaskService
         /// <summary>任务是否可以取消（运行中且登记了取消源）。</summary>
         public bool CanCancel => IsActive && Cts != null;
 
+        /// <summary>任务总耗时（运行中为已进行时间；未开始为 0）。</summary>
+        public TimeSpan Elapsed => (EndsAt ?? DateTime.Now) - StartedAt;
+        internal DateTime? EndsAt => IsActive ? null : EndedAt;
+
         /// <summary>fix7：请求取消（PCL/HMCL 同款）。触发 CTS，实际状态由业务方在捕获
         /// OperationCanceledException 后调用 DownloadTaskService.Cancel 写入。</summary>
         public void RequestCancel()
         {
             try { Cts?.Cancel(); } catch { /* CTS 已释放等场景忽略 */ }
+        }
+
+        /// <summary>v0.1.10：追加一条任务日志（线程安全，最多保留 300 行，超出丢弃最早的）。</summary>
+        public void AppendLog(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return;
+            lock (_logLock)
+            {
+                _logs.Add($"[{DateTime.Now:HH:mm:ss}] {line.TrimEnd()}");
+                if (_logs.Count > 300)
+                    _logs.RemoveRange(0, _logs.Count - 300);
+            }
+        }
+
+        /// <summary>日志快照（详情弹窗 / 测试用）。</summary>
+        public IReadOnlyList<string> LogSnapshot()
+        {
+            lock (_logLock) { return _logs.ToArray(); }
         }
     }
 
@@ -50,8 +82,33 @@ public class DownloadTaskService
 
     /// <summary>登记一个运行中的任务。</summary>
     public TaskItem Start(string title, string detail = "")
+        => StartKeyed(null, title, detail);
+
+    /// <summary>
+    /// v0.1.10：按 Key 登记任务 —— 若已存在同 Key 的运行中任务，直接复用（刷新标题 /
+    /// 详情）而不新建，修复「同一逻辑任务在任务中心出现两条」的重复问题。
+    /// key 为 null 时与 Start 等价（不去重）。
+    /// </summary>
+    public TaskItem StartKeyed(string? key, string title, string detail = "")
     {
-        var item = new TaskItem { Title = title, Detail = detail };
+        if (key != null)
+        {
+            TaskItem? existing;
+            lock (_lock)
+                existing = _tasks.FirstOrDefault(t => t.IsActive && t.Key == key);
+            if (existing != null)
+            {
+                lock (_lock)
+                {
+                    existing.Title = title;
+                    if (detail.Length > 0) existing.Detail = detail;
+                }
+                Changed?.Invoke();
+                return existing;
+            }
+        }
+        var item = new TaskItem { Title = title, Detail = detail, Key = key };
+        item.AppendLog("任务开始：" + title);
         lock (_lock)
         {
             _tasks.Add(item);
@@ -65,10 +122,21 @@ public class DownloadTaskService
     /// <summary>
     /// 登记一个可取消的运行中任务（fix7，PCL/HMCL 同款）：任务中心与启动页的
     /// 「取消」按钮调用 RequestCancel → 业务方捕获 OperationCanceledException 后收尾。
+    /// v0.1.10：key 非 null 时同 Key 运行中任务复用（取消源沿用原任务的）。
     /// </summary>
     public TaskItem StartCancellable(string title, string detail = "")
+        => StartCancellableKeyed(null, title, detail);
+
+    public TaskItem StartCancellableKeyed(string? key, string title, string detail = "")
     {
-        var item = Start(title, detail);
+        if (key != null)
+        {
+            TaskItem? existing;
+            lock (_lock)
+                existing = _tasks.FirstOrDefault(t => t.IsActive && t.Key == key);
+            if (existing != null && existing.Cts != null) return existing;
+        }
+        var item = StartKeyed(key, title, detail);
         item.Cts = new CancellationTokenSource();
         return item;
     }
@@ -76,14 +144,19 @@ public class DownloadTaskService
     /// <summary>取任务绑定的取消令牌（不可取消任务返回 default）。</summary>
     public CancellationToken TokenFor(TaskItem item) => item.Cts?.Token ?? default;
 
-    /// <summary>更新进度（0–100，-1 表示不确定）。</summary>
+    /// <summary>更新进度（0–100，-1 表示不确定）。detail 变化时自动记入任务日志。</summary>
     public void Update(TaskItem item, double percent, string? detail = null)
     {
+        string? lastDetail;
         lock (_lock)
         {
+            lastDetail = item.Detail;
             item.Percent = Math.Clamp(percent, -1, 100);
             if (detail != null) item.Detail = detail;
         }
+        // v0.1.10：详情与上次不同时记一条日志（同进度高频回调不会刷屏）
+        if (!string.IsNullOrWhiteSpace(detail) && detail != lastDetail)
+            item.AppendLog(detail);
         Changed?.Invoke();
     }
 
@@ -103,6 +176,14 @@ public class DownloadTaskService
             item.Cts?.Dispose();
             item.Cts = null;
         }
+        var finishText = status switch
+        {
+            "done" => "任务完成" + (string.IsNullOrWhiteSpace(detail) ? "" : "：" + detail),
+            "failed" => "任务失败" + (string.IsNullOrWhiteSpace(detail) ? "" : "：" + detail),
+            "canceled" => "任务已取消",
+            _ => status,
+        };
+        item.AppendLog(finishText);
         Changed?.Invoke();
         // v0.1.3 内存优化：重大操作（启动 / 安装 / 批量下载 / Java 安装）成功收尾后
         // 延迟回收内存。单点挂钩 —— 所有重操作都在此登记任务，无需逐个业务处插入。

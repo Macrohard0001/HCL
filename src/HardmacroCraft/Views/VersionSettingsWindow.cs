@@ -156,6 +156,61 @@ public static class VersionSettingsWindow
         };
         root.Children.Add(txtServer);
 
+        // ---------- 分组：窗口大小（v0.1.10，对齐 PCL 版本设置） ----------
+        root.Children.Add(GroupTitle("S.Vs.GroupWindow", "窗口大小"));
+        var winModeCombo = new ComboBox { MinHeight = 36, MinWidth = 240, Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+        var winModes = new List<(string Label, string Value)>
+        {
+            (Find("S.Vs.WinFollow") ?? "跟随全局设置", ""),
+            (Find("S.Vs.WinDefault") ?? "默认 1280×720", "default"),
+            (Find("S.Vs.WinMatch") ?? "与启动器窗口大小一致", "match-launcher"),
+            (Find("S.Vs.WinCustom") ?? "自定义宽高", "custom"),
+        };
+        foreach (var it in winModes) winModeCombo.Items.Add(it.Label);
+        winModeCombo.SelectedIndex = winModes.FindIndex(m => m.Value == (vs.WindowMode ?? ""));
+        if (winModeCombo.SelectedIndex < 0) winModeCombo.SelectedIndex = 0;
+        var winSizeRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Visibility = vs.WindowMode == "custom" ? Visibility.Visible : Visibility.Collapsed,
+        };
+        var txtWinW = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Width = 110, Text = vs.WindowWidth > 0 ? vs.WindowWidth.ToString() : "", TextAlignment = TextAlignment.Center };
+        var txtWinH = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Width = 110, Text = vs.WindowHeight > 0 ? vs.WindowHeight.ToString() : "", TextAlignment = TextAlignment.Center };
+        winSizeRow.Children.Add(txtWinW);
+        winSizeRow.Children.Add(new TextBlock { Text = "×", FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
+        winSizeRow.Children.Add(txtWinH);
+        winModeCombo.SelectionChanged += (_, _) =>
+            winSizeRow.Visibility = winModes[Math.Max(0, winModeCombo.SelectedIndex)].Value == "custom"
+                ? Visibility.Visible : Visibility.Collapsed;
+        root.Children.Add(winModeCombo);
+        root.Children.Add(winSizeRow);
+        root.Children.Add(Hint("S.Vs.WinHint", "全屏启动开启时忽略窗口大小设置。"));
+
+        // ---------- 分组：Mod 与内容（v0.1.10，对齐 PCL 版本设置的模组管理入口） ----------
+        root.Children.Add(GroupTitle("S.Vs.GroupMods", "Mod 与内容"));
+        var modsRow = new StackPanel { Orientation = Orientation.Horizontal };
+        var btnModsPage = new Wpf.Ui.Controls.Button
+        {
+            Content = Find("S.Vs.OpenModsPage") ?? "打开 Mod 管理",
+            MinHeight = 34, MinWidth = 120, Margin = new Thickness(0, 4, 8, 0),
+            Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
+            Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.PuzzlePiece20 },
+        };
+        btnModsPage.Click += (_, _) =>
+        {
+            win.Close();
+            if (System.Windows.Application.Current.MainWindow is MainWindow main)
+            {
+                main.RootNavigation.Navigate(typeof(ModsPage));
+                // 导航同步完成后页面实例已就绪，直选该版本
+                ModsPage.Current?.FocusTargetVersion(version);
+            }
+        };
+        modsRow.Children.Add(btnModsPage);
+        root.Children.Add(modsRow);
+        root.Children.Add(Hint("S.Vs.ModsHint",
+            "在该版本的 Mod 管理页可搜索 / 启停 / 删除 Mod，目标版本已自动选中；也可用下方目录入口直接打开 Mod 文件夹。"));
+
         // ---------- 分组：目录快捷入口（v0.1.9，对齐 PCL 版本设置的「打开文件夹」组） ----------
         root.Children.Add(GroupTitle("S.Vs.GroupDirs", "目录"));
         var dirsRow = new StackPanel { Orientation = Orientation.Horizontal };
@@ -176,6 +231,7 @@ public static class VersionSettingsWindow
         AddDirBtn("S.Vs.OpenVersionDir", "打开版本目录", () => OpenDir(verDir));
         AddDirBtn("S.Vs.OpenSavesDir", "打开存档", () => OpenDir(System.IO.Path.Combine(baseDir, "saves")));
         AddDirBtn("S.Vs.OpenModsDir", "打开 Mod 目录", () => OpenDir(System.IO.Path.Combine(baseDir, "mods")));
+        AddDirBtn("S.Vs.OpenPacksDir", "打开资源包", () => OpenDir(System.IO.Path.Combine(baseDir, "resourcepacks")));
         AddDirBtn("S.Vs.OpenLogsDir", "打开日志", () => OpenDir(System.IO.Path.Combine(gameRootDir, "logs")));
         root.Children.Add(dirsRow);
         root.Children.Add(Hint("S.Vs.DirsHint",
@@ -225,6 +281,10 @@ public static class VersionSettingsWindow
                 JavaPath = txtJava.Text.Trim(),
                 CustomJvmArgs = txtJvm.Text.Trim(),
                 QuickServer = txtServer.Text.Trim(),
+                // v0.1.10：窗口大小覆盖
+                WindowMode = winModes[Math.Max(0, winModeCombo.SelectedIndex)].Value,
+                WindowWidth = int.TryParse(txtWinW.Text.Trim(), out var ww) && ww > 0 ? ww : 0,
+                WindowHeight = int.TryParse(txtWinH.Text.Trim(), out var wh) && wh > 0 ? wh : 0,
             };
             if (chkMemory.IsChecked == true)
             {

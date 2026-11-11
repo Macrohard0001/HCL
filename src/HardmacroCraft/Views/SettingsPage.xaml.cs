@@ -32,6 +32,10 @@ public partial class SettingsPage : Page
             // v0.1.3：启动器内存优化 + 当前占用展示
             ChkLauncherMemOpt.IsChecked = AppSettings.Instance.AutoMemoryOptimize;
             RefreshLauncherMem();
+            // v0.1.10：窗口大小模式（PCL 同款）
+            foreach (ComboBoxItem i in CmbWindowMode.Items)
+                if ((string)i.Tag == AppSettings.Instance.GameWindowSizeMode) { CmbWindowMode.SelectedItem = i; break; }
+            RefreshWindowSizePanel();
             SldMemory.Value = AppSettings.Instance.MemoryMb;
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
             // fix6：自动检测模式下滑杆禁用，显示检测到的物理内存与推荐值
@@ -100,6 +104,29 @@ public partial class SettingsPage : Page
         var tpl = (string)TryFindResource("S.Set.LauncherMemNow") ??
                   "启动器当前内存占用：{0} MB";
         TxtLauncherMem.Text = string.Format(tpl, Services.MemoryManager.WorkingSetMb);
+    }
+
+    /// <summary>v0.1.10：手动触发内存清理（PCL 式立即回收），并在标签上显示回收效果。</summary>
+    private void BtnMemClean_Click(object sender, RoutedEventArgs e)
+    {
+        var (before, after) = Services.MemoryManager.OptimizeNow();
+        RefreshLauncherMem();
+        var tpl = (string)TryFindResource("S.Set.MemCleanDone") ??
+                  "已回收内存（托管堆 {0} MB → {1} MB，物理内存占用已归还系统）";
+        TxtLauncherMem.Text = string.Format(tpl, before / 1024 / 1024, after / 1024 / 1024);
+    }
+
+    /// <summary>v0.1.10：窗口大小模式切换 —— 自定义模式才显示宽高输入框。</summary>
+    private void CmbWindowMode_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (TxtGameWidth == null) return; // XAML 加载期保护
+        RefreshWindowSizePanel();
+    }
+
+    private void RefreshWindowSizePanel()
+    {
+        if (CmbWindowMode.SelectedItem is not ComboBoxItem item || item.Tag is not string mode) return;
+        PnlWindowSize.Visibility = mode == "custom" ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>主题切换：即时应用并持久化，所有 DynamicResource 颜色（含字体）随之变化。</summary>
@@ -180,16 +207,21 @@ public partial class SettingsPage : Page
         BtnDownloadJava.IsEnabled = false;
         PbJava.Visibility = Visibility.Visible;
         PbJava.Value = 0;
-        var centerTask = DownloadTaskService.Instance.StartCancellable($"下载 Java {major} (Temurin JRE)");
+        var centerTask = DownloadTaskService.Instance.StartCancellableKeyed($"java-install:{major}",
+            $"下载 Java {major} (Temurin JRE)", "正在获取 Temurin JRE 元数据");
         var dlCt = DownloadTaskService.Instance.TokenFor(centerTask);
         try
         {
-            var progress = new Progress<double>(p =>
+            // v0.1.10：Java 下载进度含速度与剩余时间（此前只有百分比）
+            var progress = new Progress<JavaManager.JavaDownloadProgress>(p =>
                 Dispatcher.Invoke(() =>
                 {
-                    PbJava.Value = p;
-                    TxtJavaStatus.Text = $"下载中 {p:0}%";
-                    DownloadTaskService.Instance.Update(centerTask, p, $"下载中 {p:0}%");
+                    PbJava.Value = p.Percent;
+                    var eta = SpeedMeter.FormatEta(p.TotalBytes - p.DoneBytes, p.SpeedBps);
+                    TxtJavaStatus.Text = $"下载中 {p.Percent:0}% · " +
+                        $"{SpeedMeter.FormatBytes(p.DoneBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · " +
+                        SpeedMeter.FormatSpeed(p.SpeedBps) + (eta.Length > 0 ? " · " + eta : "");
+                    DownloadTaskService.Instance.Update(centerTask, p.Percent, TxtJavaStatus.Text);
                 }));
             var javaw = await Services.JavaManager.EnsureJreAsync(major, App.LauncherService.Http,
                 progress, msg => Dispatcher.Invoke(() => TxtJavaStatus.Text = msg), ct: dlCt);
@@ -284,6 +316,9 @@ public partial class SettingsPage : Page
         s.AutoJavaSelect = ChkAutoJava.IsChecked == true;
         s.GameWidth = int.TryParse(TxtGameWidth.Text.Trim(), out var gw) && gw > 0 ? gw : 0;
         s.GameHeight = int.TryParse(TxtGameHeight.Text.Trim(), out var gh) && gh > 0 ? gh : 0;
+        // v0.1.10：窗口大小模式
+        s.GameWindowSizeMode = CmbWindowMode.SelectedItem is ComboBoxItem wm && wm.Tag is string wmTag
+            ? wmTag : "default";
         s.AzureClientId = TxtAzureId.Text.Trim();
         s.CurseForgeApiKey = TxtCfKey.Text.Trim();
         if (CmbLanguage.SelectedItem is ComboBoxItem li && li.Tag is string lang)

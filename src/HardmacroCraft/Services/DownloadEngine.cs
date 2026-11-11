@@ -292,4 +292,27 @@ public sealed class SpeedMeter
             _ => "",
         };
     }
+
+    /// <summary>
+    /// v0.1.10：按剩余字节 / 当前速度估算剩余时间（PCL 式「预计剩余 xx 秒」）。
+    /// 速度不可用（≤0）或剩余时间异常（NaN / 无穷）时返回空串。
+    /// </summary>
+    public static string FormatEta(long remainingBytes, double bps)
+    {
+        if (remainingBytes <= 0 || bps <= 0 || double.IsNaN(bps) || double.IsInfinity(bps))
+            return "";
+        return FormatEtaSeconds(remainingBytes / bps);
+    }
+
+    /// <summary>v0.1.10：按剩余秒数格式化（文件数进度等无字节数的场景）。</summary>
+    public static string FormatEtaSeconds(double sec)
+    {
+        if (sec <= 0 || double.IsNaN(sec) || double.IsInfinity(sec)) return "";
+        return sec switch
+        {
+            < 60 => $"剩余约 {sec:0} 秒",
+            < 3600 => $"剩余约 {(int)(sec / 60)} 分 {(int)(sec % 60)} 秒",
+            _ => $"剩余约 {(int)(sec / 3600)} 小时 {(int)(sec % 3600 / 60)} 分",
+        };
+    }
 }

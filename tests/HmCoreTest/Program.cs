@@ -2305,6 +2305,98 @@ try
 }
 catch (Exception ex) { Check("v0.1.9 Java 推荐 / 本机 Mod", false, ex.Message); }
 
+// ==================== v0.1.10：任务去重 / 任务日志 / 版本隐藏 / 窗口大小 / ETA ====================
+Console.WriteLine("\n---- 第 31 节 · v0.1.10 任务中心与版本列表修复 ----");
+
+try
+{
+    // 31.1 任务去重 Key
+    var svc = DownloadTaskService.Instance;
+    var tA = svc.StartKeyed("test:dup", "任务A", "d1");
+    var tA2 = svc.StartKeyed("test:dup", "任务A2", "d2");
+    Check("同 Key 任务复用同一实例", ReferenceEquals(tA, tA2));
+    Check("同 Key 复用时刷新标题", tA.Title == "任务A2");
+    svc.Complete(tA, "完成");
+    var tA3 = svc.StartKeyed("test:dup", "任务A3");
+    Check("任务结束后同 Key 新建", !ReferenceEquals(tA, tA3));
+    svc.Complete(tA3);
+
+    // 31.2 任务日志
+    var tL = svc.Start("日志任务");
+    svc.Update(tL, 10, "阶段一");
+    svc.Update(tL, 10, "阶段一"); // 相同详情不重复记日志
+    svc.Update(tL, 20, "阶段二");
+    tL.AppendLog("手动日志");
+    var logs = tL.LogSnapshot();
+    Check("日志含任务开始行", logs.Any(l => l.Contains("任务开始")));
+    Check("详情变化自动记日志", logs.Count(l => l.Contains("阶段二")) >= 1);
+    Check("相同详情不重复记日志", logs.Count(l => l.Contains("阶段一")) == 1);
+    Check("手动日志可追加", logs.Any(l => l.Contains("手动日志")));
+    Check("耗时字段可用", tL.Elapsed >= TimeSpan.Zero);
+    svc.Complete(tL, "ok");
+    Check("完成日志已写入", tL.LogSnapshot().Any(l => l.Contains("任务完成")));
+
+    // 31.3 速度 / 剩余时间格式化
+    Check("ETA 字节版（60 秒内）", SpeedMeter.FormatEta(3000, 100).Contains("剩余约"));
+    Check("ETA 速度为 0 返回空", SpeedMeter.FormatEta(3000, 0) == "");
+    Check("ETA 剩余为 0 返回空", SpeedMeter.FormatEta(0, 100) == "");
+    Check("ETA 秒版 90 秒 → 分秒", SpeedMeter.FormatEtaSeconds(90).Contains("1 分"));
+    Check("ETA 秒版负数返回空", SpeedMeter.FormatEtaSeconds(-5) == "");
+    Check("ETA 秒版 2 小时 → 小时", SpeedMeter.FormatEtaSeconds(7200).Contains("2 小时"));
+
+    // 31.4 版本隐藏（inheritsFrom 基版本，修复装装载器显示两个版本）
+    var hiddenRoot = Path.Combine(Path.GetTempPath(), "hcl-test-hidden-" + Guid.NewGuid().ToString("N"));
+    var vRoot = Path.Combine(hiddenRoot, "versions");
+    Directory.CreateDirectory(Path.Combine(vRoot, "1.20.1"));
+    File.WriteAllText(Path.Combine(vRoot, "1.20.1", "1.20.1.json"), """{"id":"1.20.1"}""");
+    Directory.CreateDirectory(Path.Combine(vRoot, "1.20.1-forge-47.2.0"));
+    File.WriteAllText(Path.Combine(vRoot, "1.20.1-forge-47.2.0", "1.20.1-forge-47.2.0.json"),
+        """{"id":"1.20.1-forge-47.2.0","inheritsFrom":"1.20.1"}""");
+    Check("GetInheritedBaseNames 收集父版本", VersionInfo.GetInheritedBaseNames(hiddenRoot).Contains("1.20.1"));
+    var hidden = VersionInfo.GetHiddenBaseVersions(hiddenRoot);
+    Check("无标记原版底座被隐藏", hidden.Contains("1.20.1"));
+    Check("装载器版本自身不隐藏", !hidden.Contains("1.20.1-forge-47.2.0"));
+    // 用户显式下载的原版（带所有权标记）不隐藏
+    File.WriteAllText(Path.Combine(vRoot, "1.20.1", "hcl.json"), "{}");
+    Check("带所有权标记的原版不隐藏", !VersionInfo.GetHiddenBaseVersions(hiddenRoot).Contains("1.20.1"));
+    Check("JsonHasInheritsFrom 识别", VersionInfo.JsonHasInheritsFrom(
+        Path.Combine(vRoot, "1.20.1-forge-47.2.0", "1.20.1-forge-47.2.0.json")));
+    Check("JsonHasInheritsFrom 文件缺失 false",
+        !VersionInfo.JsonHasInheritsFrom(Path.Combine(vRoot, "no.json")));
+
+    // 31.5 加载器识别加固（修复版本默认图标不正确）
+    var forgeJson = """{"id":"x-custom","inheritsFrom":"1.20.1","arguments":{"game":["--launchTarget","forgeclient","--fml.forgeVersion","47.2.0"]}}""";
+    Check("forgeclient/--fml 特征 → Forge（目录改名后仍可识别）",
+        VersionInfo.DetectLoaderFromJson(forgeJson, "my-version") == McLoaderKind.Forge);
+    var legacyFabricJson = """{"id":"legacy-fabric-1.20.1","inheritsFrom":"1.20.1","libraries":[{"name":"net.legacyfabric:fabric-loader:2.0.0+1.20.1"}]}""";
+    Check("legacy-fabric（带连字符）→ LegacyFabric",
+        VersionInfo.DetectLoaderFromJson(legacyFabricJson, "custom") == McLoaderKind.LegacyFabric);
+    var nfJson = """{"id":"neoforge-21.1.95","inheritsFrom":"1.21.1"}""";
+    Check("json 自身 id=neoforge-* → NeoForge",
+        VersionInfo.DetectLoaderFromJson(nfJson, "renamed-version") == McLoaderKind.NeoForge);
+    var fabricJson = """{"id":"f","libraries":[{"name":"net.fabricmc:fabric-loader:0.16.9"}]}""";
+    Check("fabric-loader（带连字符）→ Fabric",
+        VersionInfo.DetectLoaderFromJson(fabricJson, "custom") == McLoaderKind.Fabric);
+    Check("ExtractJsonId 正常提取", VersionInfo.ExtractJsonId("""{"id":"abc"}""") == "abc");
+    Check("ExtractJsonId 损坏返回 null", VersionInfo.ExtractJsonId("{oops") == null);
+
+    // 31.6 窗口大小解析（PCL 同款：默认 / 与启动器一致 / 自定义）
+    Check("默认模式 1280×720", LauncherService.ResolveWindowSize("default", 0, 0, (0, 0)) == (1280, 720));
+    Check("与启动器一致", LauncherService.ResolveWindowSize("match-launcher", 0, 0, (1150.4, 780.2)) == (1150, 780));
+    Check("启动器尺寸不可用回落默认", LauncherService.ResolveWindowSize("match-launcher", 0, 0, (0, 0)) == (1280, 720));
+    Check("自定义模式取自定义宽高", LauncherService.ResolveWindowSize("custom", 1600, 900, (0, 0)) == (1600, 900));
+    Check("自定义非法值回落默认", LauncherService.ResolveWindowSize("custom", 0, 0, (0, 0)) == (1280, 720));
+    Check("未知模式回落默认", LauncherService.ResolveWindowSize("whatever", 0, 0, (0, 0)) == (1280, 720));
+
+    // 31.7 版本设置窗口模式字段（IsDefault 语义）
+    var vsWin = new VersionSettings { WindowMode = "match-launcher" };
+    Check("仅窗口模式覆盖不算默认", !vsWin.IsDefault);
+    Check("全空仍为默认", new VersionSettings().IsDefault);
+
+    try { Directory.Delete(hiddenRoot, true); } catch { }
+}
+catch (Exception ex) { Check("v0.1.10 任务中心 / 版本隐藏", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

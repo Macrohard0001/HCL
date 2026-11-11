@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kc3AJCA4SY0=",
+  "dgSpecHash": "4YL7ntEsQPc=",
   "success": true,
-  "projectFilePath": "/home/z/my-project/tests/HmCoreTest/HmCoreTest.csproj",
+  "projectFilePath": "/home/z/my-project/hcl2/tests/HmCoreTest/HmCoreTest.csproj",
   "expectedPackageFiles": [
     "/home/z/.nuget/packages/cmllib.core/4.1.0/cmllib.core.4.1.0.nupkg.sha512",
     "/home/z/.nuget/packages/cmllib.core.commons/4.0.0/cmllib.core.commons.4.0.0.nupkg.sha512",
