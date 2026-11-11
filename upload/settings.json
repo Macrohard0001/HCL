@@ -1,0 +1,21 @@
+{
+  "GameRoot": "G:\\荣耀电脑之我的数据\\edge_download\\HardmacroCraft-Launcher-v0.1.2-beta-Portable\\.minecraft",
+  "JavaPath": "",
+  "MemoryMb": 4096,
+  "UseMirror": true,
+  "Language": "zh-CN",
+  "AzureClientId": "",
+  "VersionIsolation": true,
+  "LastVersion": "",
+  "Theme": "dark",
+  "RecentVersions": [],
+  "WindowMaximized": false,
+  "CustomJvmArgs": "",
+  "AutoJavaSelect": true,
+  "LastAuthlibServer": "",
+  "GameWidth": 0,
+  "GameHeight": 0,
+  "CurseForgeApiKey": "",
+  "HideLauncherOnGameStart": false,
+  "ExitLauncherOnGameExit": false
+}
