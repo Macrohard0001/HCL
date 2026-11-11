@@ -49,13 +49,45 @@ public static class VersionSettingsWindow
 
         // ---------- 分组：Java ----------
         root.Children.Add(GroupTitle("S.Vs.GroupJava", "Java"));
+        // v0.1.9：推荐 Java 提示（当前版本支持使用的最高版本；同时告知最低要求）
+        var javaRange = Services.JavaManager.SupportedJavaRange(
+            Services.JavaManager.ReadVersionJson(AppSettings.Instance.GameRoot, version), version);
+        var chainMin = Services.JavaManager.RequiredJavaMajorChain(AppSettings.Instance.GameRoot, version);
+        if (chainMin > javaRange.Min) javaRange.Min = chainMin;
+        var recMajor = Math.Max(javaRange.Min, javaRange.Max);
+        root.Children.Add(Hint("S.Vs.JavaRec",
+            $"推荐 Java {recMajor}（当前版本支持使用的最高版本；最低需要 Java {javaRange.Min}）。"));
+        var javaRow = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+        javaRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        javaRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var txtJava = new Wpf.Ui.Controls.TextBox
         {
-            MinHeight = 36, Margin = new Thickness(0, 4, 0, 0),
+            MinHeight = 36,
             Text = vs.JavaPath,
             PlaceholderText = Find("S.Vs.JavaPh") ?? "留空使用全局设置（支持填 javaw.exe 或其所在文件夹）",
         };
-        root.Children.Add(txtJava);
+        javaRow.Children.Add(txtJava);
+        var btnJavaBrowse = new Wpf.Ui.Controls.Button
+        {
+            Content = Find("S.Vs.JavaBrowse") ?? "浏览",
+            MinHeight = 36, MinWidth = 74, Margin = new Thickness(8, 0, 0, 0),
+            Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.FolderOpen24 },
+            ToolTip = Find("S.Vs.JavaBrowseTip") ?? "选择 javaw.exe（选文件夹会自动搜索）",
+        };
+        Grid.SetColumn(btnJavaBrowse, 1);
+        javaRow.Children.Add(btnJavaBrowse);
+        root.Children.Add(javaRow);
+        btnJavaBrowse.Click += (_, _) =>
+        {
+            // v0.1.9（对齐 PCL 版本设置的 Java 选择）：文件 / 文件夹双入口
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = Find("S.Vs.JavaBrowseTip") ?? "选择 javaw.exe（选文件夹会自动搜索）",
+                Filter = "javaw.exe|javaw.exe|java.exe|java.exe|所有文件|*.*",
+                CheckFileExists = true,
+            };
+            if (dlg.ShowDialog() == true) txtJava.Text = dlg.FileName;
+        };
 
         // ---------- 分组：内存 ----------
         root.Children.Add(GroupTitle("S.Vs.GroupMemory", "内存"));
@@ -124,6 +156,32 @@ public static class VersionSettingsWindow
         };
         root.Children.Add(txtServer);
 
+        // ---------- 分组：目录快捷入口（v0.1.9，对齐 PCL 版本设置的「打开文件夹」组） ----------
+        root.Children.Add(GroupTitle("S.Vs.GroupDirs", "目录"));
+        var dirsRow = new StackPanel { Orientation = Orientation.Horizontal };
+        void AddDirBtn(string key, string fallback, Action action)
+        {
+            var b = new Wpf.Ui.Controls.Button
+            {
+                Content = Find(key) ?? fallback,
+                MinHeight = 34, MinWidth = 96, Margin = new Thickness(0, 4, 8, 0),
+            };
+            b.Click += (_, _) => { try { action(); } catch { } };
+            dirsRow.Children.Add(b);
+        }
+        var gameRootDir = AppSettings.Instance.GameRoot;
+        var verDir = System.IO.Path.Combine(gameRootDir, "versions", version);
+        var isoOn = VersionSettingsStore.EffectiveIsolation(version, AppSettings.Instance.VersionIsolation);
+        var baseDir = isoOn ? verDir : gameRootDir;
+        AddDirBtn("S.Vs.OpenVersionDir", "打开版本目录", () => OpenDir(verDir));
+        AddDirBtn("S.Vs.OpenSavesDir", "打开存档", () => OpenDir(System.IO.Path.Combine(baseDir, "saves")));
+        AddDirBtn("S.Vs.OpenModsDir", "打开 Mod 目录", () => OpenDir(System.IO.Path.Combine(baseDir, "mods")));
+        AddDirBtn("S.Vs.OpenLogsDir", "打开日志", () => OpenDir(System.IO.Path.Combine(gameRootDir, "logs")));
+        root.Children.Add(dirsRow);
+        root.Children.Add(Hint("S.Vs.DirsHint",
+            isoOn ? "该版本已开启独立隔离：存档 / Mod 在版本目录内。"
+                  : "该版本与其他版本共用目录（可在上方「游戏」隔离项中改为独立）。"));
+
         // ---------- 底部按钮 ----------
         var btnRow = new StackPanel
         {
@@ -190,6 +248,17 @@ public static class VersionSettingsWindow
 
     private static string? Find(string key)
         => System.Windows.Application.Current.TryFindResource(key) as string;
+
+    /// <summary>v0.1.9：目录快捷入口共用（不存在时创建并打开）。</summary>
+    private static void OpenDir(string dir)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(dir);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dir) { UseShellExecute = true });
+        }
+        catch { /* 用户取消 / 无权限时静默 */ }
+    }
 
     private static Brush Primary() => (Brush)System.Windows.Application.Current.Resources["TextFillColorPrimaryBrush"];
 

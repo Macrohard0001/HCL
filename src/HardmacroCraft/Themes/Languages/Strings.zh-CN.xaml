@@ -40,6 +40,7 @@
     <sys:String x:Key="S.Home.JavaAskLocation">安装位置（可修改，默认在启动器目录内便携保存）：</sys:String>
     <sys:String x:Key="S.Home.JavaAskVersion">Java 版本：</sys:String>
     <sys:String x:Key="S.Home.JavaAskRecommended">（推荐）</sys:String>
+    <sys:String x:Key="S.Home.JavaAskMinNote">该版本最低需要 Java {0}；推荐安装 Java {1}（当前版本支持使用的最高 Java 版本）。</sys:String>
     <sys:String x:Key="S.Home.JavaAskInstall">安装并启动</sys:String>
     <sys:String x:Key="S.Home.OfflineName">输入玩家名</sys:String>
     <sys:String x:Key="S.Home.Log">运行日志</sys:String>
@@ -189,6 +190,7 @@
     <sys:String x:Key="S.Dl.LoaderInstalling">正在安装 {0} {1}…</sys:String>
     <sys:String x:Key="S.Dl.LoaderDone">安装完成</sys:String>
     <sys:String x:Key="S.Dl.LoaderDone2">{0} {1} 安装完成，可在启动页选择该版本。</sys:String>
+    <sys:String x:Key="S.Dl.GameFiles">正在下载游戏文件（主 jar / 库 / 资源文件），装完即可直接启动...</sys:String>
     <sys:String x:Key="S.Dl.LoaderFail">安装失败：</sys:String>
     <sys:String x:Key="S.Dl.BtnBackground">后台安装</sys:String>
     <sys:String x:Key="S.Dl.BtnBackgroundTip">关闭此窗口，安装在后台继续，进度可在任务中心查看</sys:String>
@@ -236,6 +238,8 @@
     <sys:String x:Key="S.Mod.BadgeUpdated">更新于 {0}</sys:String>
     <sys:String x:Key="S.Mod.BadgeSupports">支持 {0}+</sys:String>
     <sys:String x:Key="S.Mod.Local">本机 Mod 管理（所选版本）</sys:String>
+    <sys:String x:Key="S.Mod.Disabled">已禁用</sys:String>
+    <sys:String x:Key="S.Mod.LocalSearch">搜索本机文件…</sys:String>
     <sys:String x:Key="S.Mod.SubtitleCF">从 CurseForge 搜索并下载资源（CurseForge 是全球最大的 Mod 平台，资源远多于 Modrinth）。</sys:String>
     <sys:String x:Key="S.Mod.NeedKey">【尚未配置 API Key：请到「设置」→「CurseForge API Key」填写，console.curseforge.com 免费申请】</sys:String>
     <sys:String x:Key="S.Mod.PlatformModrinth">Modrinth</sys:String>
@@ -291,6 +295,11 @@
     <sys:String x:Key="S.Set.CfKeyHint">免费申请：在 console.curseforge.com 注册账号 → Apply for an API Key。Key 仅保存在本机 config/settings.json。Modrinth 无需 Key。</sys:String>
     <sys:String x:Key="S.Set.CfKeyGet">申请 Key</sys:String>
     <sys:String x:Key="S.Mod.Toggle">启用 / 禁用</sys:String>
+    <sys:String x:Key="S.Mod.DeleteConfirmN">确定删除选中的 {0} 个文件吗？</sys:String>
+    <sys:String x:Key="S.Mod.DeleteConfirm1">确定删除该文件吗？
+</sys:String>
+    <sys:String x:Key="S.Mod.DeleteTip">删除选中的本机文件（多选可批量）</sys:String>
+    <sys:String x:Key="S.Mod.ToggleTip">切换启用 / 禁用（可按住 Ctrl / Shift 多选后批量操作）</sys:String>
 
     <!-- 版本管理 -->
     <sys:String x:Key="S.Ver.Title">版本管理</sys:String>
@@ -324,6 +333,8 @@
     <sys:String x:Key="S.Vs.IsoHint">仅覆盖此版本的隔离行为；全局开关在 设置 → 游戏目录 中修改。</sys:String>
     <sys:String x:Key="S.Vs.GroupJava">Java</sys:String>
     <sys:String x:Key="S.Vs.JavaPh">留空使用全局设置（支持填 javaw.exe 或其所在文件夹）</sys:String>
+    <sys:String x:Key="S.Vs.JavaBrowseTip">选择 javaw.exe（启动时会自动搜索其所在文件夹）</sys:String>
+    <sys:String x:Key="S.Vs.JavaBrowse">浏览</sys:String>
     <sys:String x:Key="S.Vs.GroupMemory">内存</sys:String>
     <sys:String x:Key="S.Vs.MemoryOverride">为此版本单独分配内存</sys:String>
     <sys:String x:Key="S.Vs.MemoryValue">{0} MB</sys:String>
@@ -334,6 +345,11 @@
     <sys:String x:Key="S.Vs.ServerPh">该版本默认进服地址（一键进服弹窗自动填充），留空不预填</sys:String>
     <sys:String x:Key="S.Vs.Reset">恢复默认</sys:String>
     <sys:String x:Key="S.Vs.Save">保存</sys:String>
+    <sys:String x:Key="S.Vs.OpenLogsDir">打开日志</sys:String>
+    <sys:String x:Key="S.Vs.OpenModsDir">打开 Mod 目录</sys:String>
+    <sys:String x:Key="S.Vs.OpenSavesDir">打开存档</sys:String>
+    <sys:String x:Key="S.Vs.OpenVersionDir">打开版本目录</sys:String>
+    <sys:String x:Key="S.Vs.GroupDirs">目录</sys:String>
 
     <!-- 一键进服弹窗 -->
     <sys:String x:Key="S.Join.Title">一键进服</sys:String>

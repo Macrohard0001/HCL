@@ -2144,6 +2144,167 @@ try
 catch (Exception ex) { Check("第 33 节 v0.1.8（版本图标识别）", false, ex.Message); }
 
 
+// ==================== 第 33 节 v0.1.9：Java 推荐矩阵 / 本机 Mod 元数据 / Mod 目录决策 ====================
+Console.WriteLine("\n== 33. v0.1.9 Java 推荐 / 本机 Mod / Mod 目录 ==");
+try
+{
+    // ---------- 兼容矩阵（MaxSupportedJavaMajor：版本支持使用的最高 Java） ----------
+    Check("1.8.9 最高支持 Java 8", JavaManager.MaxSupportedJavaMajor("1.8.9") == 8);
+    Check("1.12.2 最高支持 Java 11", JavaManager.MaxSupportedJavaMajor("1.12.2") == 11);
+    Check("1.16.5 最高支持 Java 11", JavaManager.MaxSupportedJavaMajor("1.16.5") == 11);
+    Check("1.17.1 最高支持 Java 17", JavaManager.MaxSupportedJavaMajor("1.17.1") == 17);
+    Check("1.18.2 最高支持 Java 21", JavaManager.MaxSupportedJavaMajor("1.18.2") == 21);
+    Check("1.20.4 最高支持 Java 21", JavaManager.MaxSupportedJavaMajor("1.20.4") == 21);
+    Check("1.20.5 最高跟随 LatestSupportedMajor", JavaManager.MaxSupportedJavaMajor("1.20.5") == JavaManager.LatestSupportedMajor);
+    Check("1.21.4 最高跟随 LatestSupportedMajor", JavaManager.MaxSupportedJavaMajor("1.21.4") == JavaManager.LatestSupportedMajor);
+    Check("26.2 最高跟随 LatestSupportedMajor", JavaManager.MaxSupportedJavaMajor("26.2") == JavaManager.LatestSupportedMajor);
+    Check("解析不了的名字保守按 Java 8", JavaManager.MaxSupportedJavaMajor("OptiFine_1.12.2") == 8);
+    Check("Forge 后缀版本名同样适用（1.20.1-forge-… → 21）", JavaManager.MaxSupportedJavaMajor("1.20.1-forge-47.2.0") == 21);
+
+    // ---------- 支持范围（json 显式声明高于矩阵时被夹紧：min ≤ max） ----------
+    var (rMin, rMax) = JavaManager.SupportedJavaRange("""{"javaVersion":{"majorVersion":21}}""", "OptiFine_1.12.2");
+    Check("json 声明 21 但名字是经典版 → 范围夹紧为 (21,21)", rMin == 21 && rMax == 21);
+    var (vMin, vMax) = JavaManager.SupportedJavaRange(null, "1.20.4");
+    Check("1.20.4 范围 (17,21)", vMin == 17 && vMax == 21);
+
+    // ---------- 推荐 Java（沿 inheritsFrom 链，取支持的最高版本） ----------
+    var javaRoot2 = Path.Combine(testRoot, "javaroot2");
+    var v204 = Path.Combine(javaRoot2, "versions", "1.20.4");
+    Directory.CreateDirectory(v204);
+    File.WriteAllText(Path.Combine(v204, "1.20.4.json"), """{"id":"1.20.4"}""");
+    Check("1.20.4 推荐 Java 21", JavaManager.RecommendedJavaMajor(javaRoot2, "1.20.4") == 21);
+    var vForge = Path.Combine(javaRoot2, "versions", "1.20.1-forge-47.2.0");
+    Directory.CreateDirectory(vForge);
+    File.WriteAllText(Path.Combine(vForge, "1.20.1-forge-47.2.0.json"), """{"inheritsFrom":"1.20.1"}""");
+    Check("forge 子版本（无 javaVersion）推荐 Java 21",
+        JavaManager.RecommendedJavaMajor(javaRoot2, "1.20.1-forge-47.2.0") == 21);
+
+    // ---------- PickJavaFor：范围内取最高（推荐 = 支持的最高版本） ----------
+    var fakeRuntime = Path.Combine(testRoot, "fakert");
+    foreach (var major in new[] { 8, 17, 21 })
+    {
+        var d = Path.Combine(fakeRuntime, $"java-{major}", "jdk");
+        Directory.CreateDirectory(Path.Combine(d, "bin"));
+        File.WriteAllText(Path.Combine(d, "bin", "javaw.exe"), "fake");
+    }
+    var prevRuntimeDir = AppSettings.Instance.JavaRuntimeDir;
+    AppSettings.Instance.JavaRuntimeDir = fakeRuntime;
+    try
+    {
+        var pick204 = JavaManager.PickJavaFor("1.20.4", javaRoot2, "", true);
+        Check("1.20.4（范围 17–21）自动挑选 Java 21（最高）",
+            pick204 != null && pick204.Contains("java-21"), pick204 ?? "null");
+        var pickOld = JavaManager.PickJavaFor("1.8.9", javaRoot2, "", true);
+        Check("1.8.9（仅支持 8）自动挑选 Java 8（不再误选 17/21）",
+            pickOld != null && pickOld.Contains("java-8"), pickOld ?? "null");
+        // 只有超出上限的 Java 时退回达标中最接近的
+        var pick17 = JavaManager.PickJavaFor("1.17.1", javaRoot2, "", true);
+        Check("1.17.1（16–17）范围内最高 17", pick17 != null && pick17.Contains("java-17"), pick17 ?? "null");
+    }
+    finally
+    {
+        AppSettings.Instance.JavaRuntimeDir = prevRuntimeDir;
+    }
+
+    // ---------- Mod 目录决策（ModTargetDir：版本隔离下 mod 放版本目录） ----------
+    var gameRootT = Path.Combine(testRoot, "gamet");
+    Check("非隔离 mod → 根目录 mods", ModTargetDir.Resolve(gameRootT, "1.20.4", "mod", false)
+        == Path.Combine(gameRootT, "mods"));
+    Check("隔离 mod → versions/1.20.4/mods",
+        ModTargetDir.Resolve(gameRootT, "1.20.4", "mod", true)
+            == Path.Combine(gameRootT, "versions", "1.20.4", "mods"));
+    Check("隔离资源包 → versions/1.20.4/resourcepacks",
+        ModTargetDir.Resolve(gameRootT, "1.20.4", "resourcepack", true)
+            == Path.Combine(gameRootT, "versions", "1.20.4", "resourcepacks"));
+    Check("未知类型隔离时落在版本目录", ModTargetDir.Resolve(gameRootT, "1.20.4", "other", true)
+        == Path.Combine(gameRootT, "versions", "1.20.4"));
+
+    // ---------- 本机 Mod 元数据扫描（fabric / quilt / forge / neoforge / legacy / 禁用态） ----------
+    var modsDirT = Path.Combine(testRoot, "mods-scan");
+    Directory.CreateDirectory(modsDirT);
+    void MakeJar(string fileName, Dictionary<string, string> entries)
+    {
+        using var fs = new FileStream(Path.Combine(modsDirT, fileName), FileMode.Create);
+        using var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Create);
+        foreach (var (k, v) in entries)
+        {
+            var e = zip.CreateEntry(k);
+            using var w = new StreamWriter(e.Open());
+            w.Write(v);
+        }
+    }
+    MakeJar("sodium.jar", new()
+    {
+        ["fabric.mod.json"] = """{"id":"sodium","name":"Sodium","version":"0.5.3","description":"Modern rendering"}""",
+    });
+    MakeJar("somemod.jar", new()
+    {
+        ["META-INF/mods.toml"] = """
+            modLoader="javafml"
+            [[mods]]
+            modId="somemod"
+            version="2.1.0"
+            displayName="Some Mod"
+            description='Test mod.'
+            """,
+    });
+    MakeJar("neomod.jar", new()
+    {
+        ["META-INF/neoforge.mods.toml"] = """
+            [[mods]]
+            modId="neomod"
+            version="1.0.0"
+            displayName="Neo Mod"
+            """,
+    });
+    MakeJar("quiltmod.jar", new()
+    {
+        ["quilt.mod.json"] = """{"quilt_loader":{"id":"quiltmod","version":"1.2.3","metadata":{"name":"Quilt Mod","description":"q"}}}""",
+    });
+    MakeJar("oldforge.jar", new()
+    {
+        ["mcmod.info"] = """[{"modid":"oldforge","name":"Old Forge Mod","version":"1.2","description":"legacy"}]""",
+    });
+    MakeJar("plain.jar", new() { ["anything.txt"] = "no metadata" });
+    File.Copy(Path.Combine(modsDirT, "sodium.jar"), Path.Combine(modsDirT, "sodium.jar.disabled"), overwrite: true);
+
+    var scanned = LocalModScanner.ScanDir(modsDirT);
+    Check("扫描 7 个文件（含 1 个 disabled）", scanned.Count == 7, scanned.Count.ToString());
+    var sodium = scanned.First(m => m.FileName == "sodium.jar");
+    Check("fabric 元数据：名字 / 版本 / 描述 / 加载器",
+        sodium.DisplayName == "Sodium" && sodium.ModVersion == "0.5.3"
+        && sodium.Description == "Modern rendering" && sodium.Loader == "fabric");
+    var some = scanned.First(m => m.FileName == "somemod.jar");
+    Check("forge mods.toml：displayName / version / 加载器",
+        some.DisplayName == "Some Mod" && some.ModVersion == "2.1.0" && some.Loader == "forge");
+    var neo = scanned.First(m => m.FileName == "neomod.jar");
+    Check("neoforge.mods.toml 优先于 mods.toml 判定", neo.Loader == "neoforge" && neo.DisplayName == "Neo Mod");
+    var quilt = scanned.First(m => m.FileName == "quiltmod.jar");
+    Check("quilt.mod.json：metadata.name / version",
+        quilt.Loader == "quilt" && quilt.DisplayName == "Quilt Mod" && quilt.ModVersion == "1.2.3");
+    var oldf = scanned.First(m => m.FileName == "oldforge.jar");
+    Check("mcmod.info（Forge 1.12-）解析", oldf.Loader == "forge" && oldf.DisplayName == "Old Forge Mod" && oldf.ModVersion == "1.2");
+    var plain = scanned.First(m => m.FileName == "plain.jar");
+    Check("无元数据回退文件名 / loader=unknown", plain.Loader == "unknown" && plain.DisplayName == "plain");
+    var dis = scanned.First(m => m.FileName == "sodium.jar.disabled");
+    Check("disabled 后缀 → 未启用且元数据仍可读", !dis.Enabled && dis.DisplayName == "Sodium" && dis.Loader == "fabric");
+    Check("目录不存在返回空表", LocalModScanner.ScanDir(Path.Combine(testRoot, "no-such-dir")).Count == 0);
+    Check("ScanFile 单文件可独立扫描",
+        LocalModScanner.ScanFile(Path.Combine(modsDirT, "sodium.jar")).DisplayName == "Sodium");
+
+    // ---------- 版本设置兼容：隔离覆盖生效值（版本独立 > 全局） ----------
+    var savedSettings = VersionSettingsStore.Get("1.20.4");
+    VersionSettingsStore.Save("1.20.4", new VersionSettings { IsolationOverride = true });
+    Check("版本覆盖 true（全局 false）→ 生效 true",
+        VersionSettingsStore.EffectiveIsolation("1.20.4", false));
+    VersionSettingsStore.Save("1.20.4", new VersionSettings { IsolationOverride = false });
+    Check("版本覆盖 false（全局 false）→ 生效 false",
+        !VersionSettingsStore.EffectiveIsolation("1.20.4", false));
+    if (savedSettings != null) VersionSettingsStore.Save("1.20.4", savedSettings);
+    else VersionSettingsStore.Delete("1.20.4");
+}
+catch (Exception ex) { Check("v0.1.9 Java 推荐 / 本机 Mod", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

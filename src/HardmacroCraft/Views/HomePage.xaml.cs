@@ -699,8 +699,11 @@ public partial class HomePage : Page
             {
                 // fix3（PCL 同款）：缺 Java 时先弹窗确认——告知所需版本与默认安装位置，
                 // 用户点「安装并启动」后才下载；此前是不打招呼直接开下（v0.1.3 更早版本则直接抛异常）。
-                // fix5：弹窗内可选 Java 大版本（默认推荐所需版本）。
-                var ask = JavaInstallWindow.Ask(Window.GetWindow(this), requiredMajor, version);
+                // fix5：弹窗内可选 Java 大版本。
+                // v0.1.9：默认推荐「当前版本支持使用的最高 Java」（而非最低所需版本）。
+                var recommendedMajor = JavaManager.RecommendedJavaMajor(
+                    AppSettings.Instance.GameRoot, version);
+                var ask = JavaInstallWindow.Ask(Window.GetWindow(this), requiredMajor, version, recommendedMajor);
                 if (ask == null)
                 {
                     Log("已取消 Java 安装，本次未启动游戏。可在 设置 → Java 一键安装 手动安装，或在设置中填写本机已装的 Java 路径（支持文件夹）。");

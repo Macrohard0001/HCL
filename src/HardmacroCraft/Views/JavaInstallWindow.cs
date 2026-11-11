@@ -12,9 +12,14 @@ namespace HardmacroCraft.Views;
 /// </summary>
 public static class JavaInstallWindow
 {
-    /// <summary>用户确认安装：返回选定的 Java 大版本与安装目录；取消返回 null（fix5：新增版本选择下拉）。</summary>
-    public static (int Major, string Dir)? Ask(Window? owner, int major, string mcVersion)
+    /// <summary>
+    /// 用户确认安装：返回选定的 Java 大版本与安装目录；取消返回 null（fix5：新增版本选择下拉）。
+    /// v0.1.9：默认选中与「推荐」标记改为推荐 Java（当前版本支持使用的最高版本），
+    /// 而非最低所需版本；requiredMajor 仅用于文案说明兼容下限。
+    /// </summary>
+    public static (int Major, string Dir)? Ask(Window? owner, int requiredMajor, string mcVersion, int? recommendedMajor = null)
     {
+        var major = recommendedMajor ?? requiredMajor;
         (int, string)? result = null;
 
         var win = new Wpf.Ui.Controls.FluentWindow
@@ -84,7 +89,7 @@ public static class JavaInstallWindow
         sp.Children.Add(verLabel);
 
         var cmbMajor = new System.Windows.Controls.ComboBox { MinHeight = 36, Margin = new Thickness(0, 0, 0, 12) };
-        var majors = new[] { 8, 11, 17, 21, 25 }.Union(new[] { major }).OrderBy(m => m).ToArray();
+        var majors = new[] { 8, 11, 17, 21, 25 }.Union(new[] { requiredMajor, major }).OrderBy(m => m).Distinct().ToArray();
         var selectedMajor = major;
         foreach (var m in majors)
         {
@@ -98,6 +103,23 @@ public static class JavaInstallWindow
             if (m == major) cmbMajor.SelectedItem = item;
         }
         sp.Children.Add(cmbMajor);
+
+        // 兼容下限说明（v0.1.9：推荐项是最高可用版本，同时告知最低要求）
+        if (requiredMajor > 0 && requiredMajor != major)
+        {
+            var minNote = new System.Windows.Controls.TextBlock
+            {
+                Text = string.Format(
+                    App.Current.TryFindResource("S.Home.JavaAskMinNote") as string
+                        ?? "该版本最低需要 Java {0}；推荐安装 Java {1}（当前版本支持的最高版本）。", requiredMajor, major),
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 12),
+            };
+            minNote.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty,
+                "TextFillColorSecondaryBrush");
+            sp.Children.Add(minNote);
+        }
 
         // 安装位置（可修改，默认值 = 托管 runtime 目录）
         var defaultDir = Services.JavaManager.ManagedDir(major);

@@ -1,2 +1,0 @@
-/home/z/my-project/staging/single/HardmacroCraftLauncher.pdb
-/home/z/my-project/staging/single/HardmacroCraftLauncher.exe

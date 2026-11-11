@@ -171,6 +171,49 @@ public static class JavaManager
         catch { return 0; }
     }
 
+    /// <summary>
+    /// v0.1.9（对齐主流启动器的 Java 兼容矩阵）：当前游戏版本「支持使用」的 Java 大版本范围。
+    /// min = 最低可用（版本 json javaVersion / 启发式），max = 最高可用（新版向下兼容旧 Java 不成立，
+    /// 旧版向上用新 Java 常见反射 / ASM 崩溃，与 PCL / HMCL 的选 Java 逻辑一致）：
+    /// - &lt;1.12        → 8–8（Java 9+ 反射限制，经典版本只能 Java 8）
+    /// - 1.12–1.16.5   → 8–11（Forge 对 Java 12+ 兼容性差，11 为稳妥上限）
+    /// - 1.17          → 16–17
+    /// - 1.18–1.20.4   → 17–21
+    /// - ≥1.20.5 / 26.x → 21+ / 25+，上限跟随 LatestSupportedMajor（新版持续支持新 Java）
+    /// </summary>
+    public static (int Min, int Max) SupportedJavaRange(string? versionJson, string versionName)
+    {
+        var min = RequiredJavaMajor(versionJson, versionName);
+        var max = MaxSupportedJavaMajor(versionName);
+        return (min, Math.Max(min, max)); // 自定义版本 json 可能声明了高于矩阵的 min，夹紧保证 min ≤ max
+    }
+
+    /// <summary>按版本名解析「支持使用的最高 Java 大版本」（兼容矩阵见 SupportedJavaRange）。</summary>
+    public static int MaxSupportedJavaMajor(string versionName)
+    {
+        var (maj, min, patch, ok) = ParseMinecraftVersion(versionName);
+        if (!ok) return 8; // 解析不了的名字（如 OptiFine_*）：保守按经典版本处理，clamp 逻辑会再以 json min 抬高
+        if (maj > 1 || min > 20 || (min == 20 && patch >= 5)) return LatestSupportedMajor;
+        if (min >= 18) return 21;
+        if (min == 17) return 17;
+        if (min >= 12) return 11;
+        return 8;
+    }
+
+    /// <summary>
+    /// v0.1.9 推荐安装 / 使用的 Java 大版本：当前版本支持使用的 Java 的最高版本
+    /// （用户需求）。沿 inheritsFrom 链解析 min，保证装载器子版本同样适用。
+    /// </summary>
+    public static int RecommendedJavaMajor(string gameRoot, string versionName)
+    {
+        var json = ReadVersionJson(gameRoot, versionName);
+        var (min, max) = SupportedJavaRange(json, versionName);
+        // json 显式声明的 min 若低于矩阵（如自定义版本名 1.20.1 实际 json 要求 21），以链式 min 为准
+        var chainMin = RequiredJavaMajorChain(gameRoot, versionName);
+        if (chainMin > min) min = chainMin;
+        return Math.Max(min, max);
+    }
+
     // ---------- 托管运行时 ----------
 
     /// <summary>已安装的托管 Java：runtime/java-*/ 下含 bin/javaw.exe 的目录。</summary>
@@ -240,7 +283,8 @@ public static class JavaManager
     }
 
     /// <summary>
-    /// 挑选启动用 Java：用户手填 &gt; 托管运行时（主版本达标且最接近所需版本）。
+    /// 挑选启动用 Java：用户手填 &gt; 托管运行时（v0.1.9：优先「当前版本支持的最高 Java」——
+    /// 范围 [所需, 上限] 内取主版本最高者；范围内没有时退回旧策略取达标中最接近所需版本的）。
     /// 返回 null 表示交给 CmlLib 默认检测。
     /// </summary>
     public static string? PickJavaFor(string versionName, string gameRoot,
@@ -249,9 +293,17 @@ public static class JavaManager
         if (!string.IsNullOrWhiteSpace(userJavaPath)) return null; // 用户手动指定优先（原样交给调用方）
         if (!autoSelect) return null;
 
-        var required = RequiredJavaMajor(ReadVersionJson(gameRoot, versionName), versionName);
-        // 达标的托管 Java 中取主版本最接近的（21 达标给 17 需求时优先 17 而不是 21）
-        var candidates = FindManagedJavas()
+        var json = ReadVersionJson(gameRoot, versionName);
+        var (required, maxSupported) = SupportedJavaRange(json, versionName);
+        var managed = FindManagedJavas();
+        // v0.1.9：范围内最高（推荐 Java = 版本支持的最高版本）
+        var inRange = managed
+            .Where(j => j.Item1 >= required && j.Item1 <= maxSupported)
+            .OrderByDescending(j => j.Item1)
+            .ToList();
+        if (inRange.Count > 0) return inRange[0].Item2;
+        // 范围内没有（如只装了超出上限的新 Java）：达标中最接近所需版本的兜底
+        var candidates = managed
             .Where(j => j.Item1 >= required)
             .OrderBy(j => j.Item1)
             .ToList();
