@@ -221,11 +221,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/z/my-project/tests/HmCoreTest/HmCoreTest.csproj",
+      "projectUniqueName": "/home/z/my-project/hcl2/tests/HmCoreTest/HmCoreTest.csproj",
       "projectName": "HmCoreTest",
-      "projectPath": "/home/z/my-project/tests/HmCoreTest/HmCoreTest.csproj",
+      "projectPath": "/home/z/my-project/hcl2/tests/HmCoreTest/HmCoreTest.csproj",
       "packagesPath": "/home/z/.nuget/packages/",
-      "outputPath": "/home/z/my-project/tests/HmCoreTest/obj/",
+      "outputPath": "/home/z/my-project/hcl2/tests/HmCoreTest/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/z/.nuget/NuGet/NuGet.Config"

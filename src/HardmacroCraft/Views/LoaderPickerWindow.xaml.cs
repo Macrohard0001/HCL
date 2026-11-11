@@ -179,7 +179,8 @@ public partial class LoaderPickerWindow : FluentWindow
         var loaderVersion = CmbLoaderVersion.SelectedItem as string;
         if (loaderVersion == FindRes("S.Dl.LoaderLatest")) loaderVersion = null;
 
-        _centerTask = DownloadTaskService.Instance.StartCancellable(
+        _centerTask = DownloadTaskService.Instance.StartCancellableKeyed(
+            $"loader-install:{row.Id}:{_mcVersion}",
             $"安装 {row.Name} {_mcVersion}" + (loaderVersion != null ? " (" + loaderVersion + ")" : ""),
             FindRes("S.Task.CheckingFiles"));
         // fix7：统一使用任务中心任务的取消源 —— 窗口取消按钮与任务中心「取消」等效
@@ -206,8 +207,11 @@ public partial class LoaderPickerWindow : FluentWindow
             {
                 if (p.TotalBytes <= 0) return;
                 var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
+                var speed = meter.Observe(p.ProgressedBytes);
+                var eta = SpeedMeter.FormatEta(p.TotalBytes - p.ProgressedBytes, speed);
                 var text = $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)}"
-                           + $" · {SpeedMeter.FormatSpeed(meter.Observe(p.ProgressedBytes))}";
+                           + $" · {SpeedMeter.FormatSpeed(speed)}"
+                           + (eta.Length > 0 ? " · " + eta : "");
                 if (pct > 0)
                 {
                     PbInstall.IsIndeterminate = false;
@@ -219,6 +223,10 @@ public partial class LoaderPickerWindow : FluentWindow
 
         try
         {
+            // v0.1.10：安装阶段文案更详细（参考 PCL 的分段提示）
+            _centerTask.AppendLog($"开始安装 {row.Name} {_mcVersion}" +
+                (loaderVersion != null ? "（装载器版本 " + loaderVersion + "）" : ""));
+            _centerTask.AppendLog("阶段 1/2：下载并处理装载器安装器（安装器包 + 运行处理链）...");
             switch (row.Id)
             {
                 case "vanilla":
@@ -257,6 +265,7 @@ public partial class LoaderPickerWindow : FluentWindow
                     .FirstOrDefault(v => !versionsBefore.Contains(v));
                 if (installedId != null)
                 {
+                    _centerTask.AppendLog("阶段 2/2：下载游戏文件（原版主 jar / 库 / 资源，装完即可直接启动）...");
                     if (!_backgrounded)
                         TxtStatus.Text = FindRes("S.Dl.GameFiles");
                     DownloadTaskService.Instance.Update(_centerTask, 0, FindRes("S.Dl.GameFiles"));

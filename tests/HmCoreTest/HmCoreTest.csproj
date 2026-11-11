@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- v0.1.10：无头测试环境（无 WPF 程序集）—— Services 里 WPF 专用代码用 #if !HCL_HEADLESS 跳过 -->
+    <DefineConstants>$(DefineConstants);HCL_HEADLESS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

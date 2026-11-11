@@ -44,14 +44,17 @@ public partial class TaskCenterPage : Page
             PnlTasks.Children.Add(BuildRow(t));
     }
 
-    private static UIElement BuildRow(DownloadTaskService.TaskItem t)
+    private UIElement BuildRow(DownloadTaskService.TaskItem t)
     {
         var card = new Border
         {
             Style = (Style)App.Current.TryFindResource("HmCard")!,
             Padding = new Thickness(14, 10, 14, 12),
             Margin = new Thickness(0, 0, 0, 10),
+            Cursor = System.Windows.Input.Cursors.Hand, // v0.1.10：可点击查看详情
         };
+        // v0.1.10：点击卡片查看任务详细信息（HMCL 式）
+        card.MouseLeftButtonUp += (_, _) => TaskDetailWindow.Show(Window.GetWindow(this), t);
         var sp = new StackPanel();
 
         var head = new Grid();
@@ -129,7 +132,8 @@ public partial class TaskCenterPage : Page
         return card;
     }
 
-    private static (string, Brush, Brush) StatusBadge(DownloadTaskService.TaskItem t)
+    /// <summary>状态徽章（供任务卡片与详情弹窗共用）。</summary>
+    internal static (string, Brush, Brush) StatusBadge(DownloadTaskService.TaskItem t)
     {
         var res = App.Current.TryFindResource;
         return t.Status switch

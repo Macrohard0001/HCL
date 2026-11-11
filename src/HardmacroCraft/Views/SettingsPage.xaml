@@ -144,8 +144,15 @@
                     <CheckBox x:Name="ChkLauncherMemOpt" Content="{DynamicResource S.Set.LauncherMemOpt}" Margin="0,6,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.LauncherMemOptHint}" Style="{StaticResource HmHint}" Margin="24,0,0,6"
                                TextWrapping="Wrap" />
-                    <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}" Margin="0,0,0,0"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <!-- v0.1.10：手动触发清理（PCL 式立即回收） -->
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button x:Name="BtnMemClean" Content="{DynamicResource S.Set.MemCleanNow}"
+                                   Icon="{ui:SymbolIcon Broom24}" MinHeight="34" MinWidth="110"
+                                   Click="BtnMemClean_Click" />
+                        <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -239,7 +246,16 @@
 
                     <TextBlock Text="{DynamicResource S.Set.Resolution}" FontWeight="Medium" Margin="0,0,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.ResolutionHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <StackPanel Orientation="Horizontal">
+                    <!-- v0.1.10：窗口大小模式（PCL 同款：默认 / 与启动器一致 / 自定义） -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <ComboBox x:Name="CmbWindowMode" MinHeight="38" MinWidth="200"
+                                  SelectionChanged="CmbWindowMode_Changed">
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeDefault}" Tag="default" IsSelected="True" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeMatch}" Tag="match-launcher" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeCustom}" Tag="custom" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel x:Name="PnlWindowSize" Orientation="Horizontal" Visibility="Collapsed">
                         <ui:TextBox x:Name="TxtGameWidth" MinHeight="38" Width="110"
                                     PlaceholderText="1280" TextAlignment="Center" />
                         <TextBlock Text="×" FontSize="16" VerticalAlignment="Center" Margin="8,0" />

@@ -30,6 +30,9 @@ public sealed class ModRowItem : INotifyPropertyChanged
 
 public partial class ModsPage : Page
 {
+    /// <summary>v0.1.10：当前首页实例（供版本设置「打开 Mod 管理」导航后直选版本）。</summary>
+    public static ModsPage? Current { get; private set; }
+
     private bool _busy;
     private readonly List<ModrinthService.SearchHit> _allHits = new();
     private int _totalHits;
@@ -39,6 +42,8 @@ public partial class ModsPage : Page
     public ModsPage()
     {
         InitializeComponent();
+        Current = this;
+        Unloaded += (_, _) => { if (Current == this) Current = null; };
         RestoreFilters();
         Loaded += (_, _) => { RefreshTargets(); RefreshLocalMods(); };
     }
@@ -102,6 +107,13 @@ public partial class ModsPage : Page
         if (versions.Count > 0)
             CmbTargetVersion.SelectedItem = versions.Contains(AppSettings.Instance.LastVersion)
                 ? AppSettings.Instance.LastVersion : versions[^1];
+    }
+
+    /// <summary>v0.1.10：外部入口（版本独立设置等）导航到本页后直接选中目标版本。</summary>
+    public void FocusTargetVersion(string version)
+    {
+        if (CmbTargetVersion.ItemsSource is List<string> versions && versions.Contains(version))
+            CmbTargetVersion.SelectedItem = version;
     }
 
     /// <summary>从所选版本名提取纯游戏版本号（如 1.20.1-forge-47.2.0 → 1.20.1）用于平台过滤。</summary>
@@ -1007,50 +1019,80 @@ public partial class ModsPage : Page
     }
 
     /// <summary>
-    /// 预设一键安装：逐条按当前目标版本 / 加载器自动匹配最新兼容文件（不弹窗），
-    /// 类型与当前筛选不一致的条目跳过；复用批量安装的依赖补齐与任务中心链路。
+    /// 预设一键匹配安装（v0.1.10 增强）：
+    /// - 按条目类型分别安装到对应目录（mod / resourcepack / shader / datapack），
+    ///   不再因当前筛选类型不同而整条跳过；
+    /// - 每条按当前目标版本 / 加载器自动匹配最新兼容文件（不弹窗）；
+    /// - 已存在同名文件自动跳过（一键补装只装缺失的）；
+    /// - mod 类型自动补必需依赖；全程登记任务中心任务（带进度日志，可点开看详情）。
     /// </summary>
     private async Task InstallPresetAsync(ModPreset preset)
     {
         if (_busy) return;
-        var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
         var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
-        var dir = TargetDir(type);
-        Directory.CreateDirectory(dir);
 
         _busy = true;
         BtnBatchDownload.IsEnabled = false;
         BtnSavePreset.IsEnabled = false;
         int okCount = 0, failCount = 0, skipCount = 0;
+        var presetTask = DownloadTaskService.Instance.StartKeyed(
+            $"preset-install:{preset.Name}",
+            string.Format(S("S.Mod.PresetTaskTitle"), preset.Name),
+            S("S.Task.CheckingFiles"));
         try
         {
             ClearLog();
-            Log(string.Format(S("S.Mod.PresetInstalling"), preset.Name, preset.Items.Count, dir));
-            foreach (var it in preset.Items)
+            Log(string.Format(S("S.Mod.PresetInstalling"), preset.Name, preset.Items.Count, "对应类型的目录"));
+            DownloadTaskService.Instance.Update(presetTask, 0, S("S.Task.CheckingFiles"));
+            var done = 0;
+            // v0.1.10：按类型分组安装（每组安装到该类型的目录）
+            foreach (var group in preset.Items.GroupBy(i => string.IsNullOrWhiteSpace(i.Type) ? "mod" : i.Type))
             {
-                if (!string.Equals(it.Type, type, StringComparison.OrdinalIgnoreCase))
+                var dir = TargetDir(group.Key);
+                Directory.CreateDirectory(dir);
+                Log(string.Format(S("S.Mod.PresetGroup"), group.Key, group.Count(), dir));
+                foreach (var it in group)
                 {
-                    skipCount++;
-                    continue;
-                }
-                try
-                {
-                    var hit = new ModrinthService.SearchHit(
-                        it.ProjectId, it.Slug, it.Title, "", "mod", 0, null,
-                        Array.Empty<string>(), "", default, Array.Empty<string>(), 0,
-                        it.Platform == "curseforge" ? "curseforge" : "modrinth");
-                    await BatchInstallOneAsync(hit, type, gameVersion, dir);
-                    okCount++;
-                }
-                catch (Exception ex)
-                {
-                    failCount++;
-                    Log($"  ✗ {it.Title}: {ex.Message}");
+                    try
+                    {
+                        var hit = new ModrinthService.SearchHit(
+                            it.ProjectId, it.Slug, it.Title, "", "mod", 0, null,
+                            Array.Empty<string>(), "", default, Array.Empty<string>(), 0,
+                            it.Platform == "curseforge" ? "curseforge" : "modrinth");
+                        // v0.1.10：已安装同名文件 → 跳过（一键补装只装缺失的）
+                        var existing = await FindAlreadyInstalledFileAsync(hit, gameVersion, dir);
+                        if (existing != null)
+                        {
+                            skipCount++;
+                            done++;
+                            Log($"↷ {it.Title} 已安装（{existing}），跳过");
+                            DownloadTaskService.Instance.Update(presetTask,
+                                done * 100.0 / preset.Items.Count, $"{done}/{preset.Items.Count} · {it.Title}（已安装）");
+                            continue;
+                        }
+                        await BatchInstallOneAsync(hit, group.Key, gameVersion, dir);
+                        okCount++;
+                        done++;
+                        DownloadTaskService.Instance.Update(presetTask,
+                            done * 100.0 / preset.Items.Count, $"{done}/{preset.Items.Count} · {it.Title}");
+                    }
+                    catch (Exception ex)
+                    {
+                        failCount++;
+                        done++;
+                        Log($"  ✗ {it.Title}: {ex.Message}");
+                        DownloadTaskService.Instance.Update(presetTask,
+                            done * 100.0 / preset.Items.Count, $"{done}/{preset.Items.Count} · {it.Title}（失败）");
+                    }
                 }
             }
-            var done = string.Format(S("S.Mod.BatchDone"), okCount, failCount);
-            if (skipCount > 0) done += " " + string.Format(S("S.Mod.PresetSkipped"), skipCount);
-            Log(done);
+            var doneMsg = string.Format(S("S.Mod.BatchDone"), okCount, failCount);
+            if (skipCount > 0) doneMsg += " " + string.Format(S("S.Mod.PresetSkipped"), skipCount);
+            Log(doneMsg);
+            if (failCount == 0)
+                DownloadTaskService.Instance.Complete(presetTask, doneMsg);
+            else
+                DownloadTaskService.Instance.Fail(presetTask, doneMsg);
             RefreshLocalMods();
         }
         finally
@@ -1059,5 +1101,29 @@ public partial class ModsPage : Page
             UpdateBatchUi();
             Dispatcher.Invoke(() => PbProgress.Value = 0);
         }
+    }
+
+    /// <summary>
+    /// v0.1.10：解析项目当前最新兼容文件，若同名文件已存在于目标目录则返回文件名（=已安装），
+    /// 否则返回 null（需要下载）。匹配失败按未安装处理（照常下载）。
+    /// </summary>
+    private async Task<string?> FindAlreadyInstalledFileAsync(
+        ModrinthService.SearchHit hit, string? gameVersion, string dir)
+    {
+        try
+        {
+            if (hit.Source == "curseforge" && int.TryParse(hit.ProjectId, out var modId))
+            {
+                var file = await App.CurseForge.GetLatestCompatibleFileAsync(modId, gameVersion, Loader);
+                if (file == null) return null;
+                return File.Exists(System.IO.Path.Combine(dir, file.FileName)) ? file.FileName : null;
+            }
+            var found = await App.Modrinth.GetLatestCompatibleFileAsync(
+                string.IsNullOrEmpty(hit.Slug) ? hit.ProjectId : hit.Slug, gameVersion, Loader);
+            if (found == null) return null;
+            return File.Exists(System.IO.Path.Combine(dir, found.Value.File.Filename))
+                ? found.Value.File.Filename : null;
+        }
+        catch { return null; }
     }
 }

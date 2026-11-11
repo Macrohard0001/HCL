@@ -338,11 +338,16 @@ public static class JavaManager
     }
 
     /// <summary>
+    /// v0.1.10：Java 下载进度（百分比 + 字节 + 速度，PCL 式详细文案）。
+    /// </summary>
+    public sealed record JavaDownloadProgress(double Percent, long DoneBytes, long TotalBytes, double SpeedBps);
+
+    /// <summary>
     /// 下载并解压 JRE 到 runtime/java-{major}/（或 installDir 指定目录）。镜像优先、官方兜底，
-    /// SHA-256 校验，重复下载幂等（目录已存在直接返回）。progress 为 0–100。
+    /// SHA-256 校验，重复下载幂等（目录已存在直接返回）。progress 为详细进度（百分比 / 字节 / 速度）。
     /// fix7：支持 CancellationToken（任务中心「取消」按钮），取消后不再回退到下一个源。</summary>
     public static async Task<string> EnsureJreAsync(int major, HttpClient http,
-        IProgress<double>? progress = null, Action<string>? log = null, string? installDir = null,
+        IProgress<JavaDownloadProgress>? progress = null, Action<string>? log = null, string? installDir = null,
         CancellationToken ct = default)
     {
         var dest = string.IsNullOrWhiteSpace(installDir) ? ManagedDir(major) : installDir;
@@ -384,7 +389,7 @@ public static class JavaManager
     }
 
     private static async Task DownloadWithFallbackAsync(JreAsset asset, string dest,
-        HttpClient http, IProgress<double>? progress, Action<string>? log, CancellationToken ct = default)
+        HttpClient http, IProgress<JavaDownloadProgress>? progress, Action<string>? log, CancellationToken ct = default)
     {
         Exception? last = null;
         foreach (var (url, label) in new[] { (asset.MirrorUrl, "清华 TUNA 镜像"), (asset.OfficialUrl, "GitHub 官方") })
@@ -412,7 +417,7 @@ public static class JavaManager
     }
 
     private static async Task DownloadFileAsync(string url, string dest,
-        HttpClient http, IProgress<double>? progress, CancellationToken ct = default)
+        HttpClient http, IProgress<JavaDownloadProgress>? progress, CancellationToken ct = default)
     {
         using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         resp.EnsureSuccessStatusCode();
@@ -422,11 +427,17 @@ public static class JavaManager
         var buffer = new byte[1 << 16];
         long read = 0;
         int n;
+        // v0.1.10：速度计（进度回调含速度与预计剩余时间）
+        var meter = new SpeedMeter();
         while ((n = await src.ReadAsync(buffer, ct)) > 0)
         {
             await fs.WriteAsync(buffer.AsMemory(0, n), ct);
             read += n;
-            if (total > 0) progress?.Report(read * 100.0 / total);
+            if (total > 0)
+            {
+                var speed = meter.Observe(read);
+                progress?.Report(new JavaDownloadProgress(read * 100.0 / total, read, total, speed));
+            }
         }
     }
 

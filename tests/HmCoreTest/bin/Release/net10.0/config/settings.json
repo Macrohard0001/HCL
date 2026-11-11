@@ -1,5 +1,5 @@
 {
-  "GameRoot": "/home/z/my-project/tests/HmCoreTest/bin/Release/net10.0/.minecraft",
+  "GameRoot": "/home/z/my-project/hcl2/tests/HmCoreTest/bin/Release/net10.0/.minecraft",
   "GameRootCustomized": false,
   "JavaPath": "",
   "MemoryAuto": true,
@@ -27,6 +27,7 @@
   "AutoMemoryOptimize": true,
   "GameWidth": 1280,
   "GameHeight": 720,
+  "GameWindowSizeMode": "default",
   "CurseForgeApiKey": "",
   "HideLauncherOnGameStart": false,
   "ExitLauncherOnGameExit": false,

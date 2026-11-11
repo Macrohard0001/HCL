@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.9";
+    public const string LauncherVersion = "0.1.10";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -548,6 +548,49 @@ public class LauncherService : IDisposable
     }
 
     /// <summary>
+    /// v0.1.10 游戏窗口大小解析（纯函数，对齐 PCL）：
+    /// - "custom"：使用自定义宽高（非法值回落 1280×720）；
+    /// - "match-launcher"：与启动器窗口一致（启动器尺寸不可用时回落默认）；
+    /// - 其余（default）：1280×720。
+    /// </summary>
+    public static (int Width, int Height) ResolveWindowSize(
+        string? mode, int customWidth, int customHeight, (double W, double H) launcherSize)
+    {
+        const int defW = 1280, defH = 720;
+        switch (mode)
+        {
+            case "custom":
+            {
+                var w = customWidth > 0 ? customWidth : defW;
+                var h = customHeight > 0 ? customHeight : defH;
+                return (Math.Clamp(w, 100, 16384), Math.Clamp(h, 100, 16384));
+            }
+            case "match-launcher" when launcherSize.W >= 100 && launcherSize.H >= 100:
+                return ((int)Math.Round(launcherSize.W), (int)Math.Round(launcherSize.H));
+            default:
+                return (defW, defH);
+        }
+    }
+
+    /// <summary>读取启动器主窗口当前大小（DIP；不可用时返回 (0,0)，由 ResolveWindowSize 回落）。</summary>
+    private static (double W, double H) LauncherWindowSize()
+    {
+#if !HCL_HEADLESS
+        try
+        {
+            var win = System.Windows.Application.Current?.MainWindow;
+            if (win == null) return (0, 0);
+            if (!win.Dispatcher.CheckAccess())
+                return win.Dispatcher.Invoke(() => (win.ActualWidth, win.ActualHeight));
+            return (win.ActualWidth, win.ActualHeight);
+        }
+        catch { return (0, 0); }
+#else
+        return (0, 0); // 无头测试环境：无 WPF，按不可用处理
+#endif
+    }
+
+    /// <summary>
     /// 启动游戏并返回进程包装（附输出事件）。
     /// authlibServer 不为空时，自动注入 authlib-injector（第三方验证站登录，PCL 同款）。
     /// offlineSkinPath 不为空时（离线账号 + 自定义皮肤），安装完成后把皮肤写入 client jar
@@ -627,15 +670,25 @@ public class LauncherService : IDisposable
             onLog?.Invoke($"[启动] 已自动选择 Java: {autoJava}");
         }
 
-        // 游戏窗口分辨率（fix7：未指定时默认 1280×720，PCL 同款）
-        var gw = AppSettings.Instance.GameWidth > 0 ? AppSettings.Instance.GameWidth : 1280;
-        var gh = AppSettings.Instance.GameHeight > 0 ? AppSettings.Instance.GameHeight : 720;
+        // 游戏窗口分辨率（v0.1.10 对齐 PCL：默认 1280×720 / 与启动器窗口一致 / 自定义；
+        // 版本独立设置的窗口模式覆盖全局设置；全屏开关注入 --fullscreen）
+        var verWindow = VersionSettingsStore.Get(versionName);
+        var windowMode = !string.IsNullOrWhiteSpace(verWindow?.WindowMode)
+            ? verWindow.WindowMode
+            : AppSettings.Instance.GameWindowSizeMode;
+        var (gw, gh) = ResolveWindowSize(
+            windowMode,
+            verWindow is { WindowWidth: > 0 } ? verWindow.WindowWidth : AppSettings.Instance.GameWidth,
+            verWindow is { WindowHeight: > 0 } ? verWindow.WindowHeight : AppSettings.Instance.GameHeight,
+            LauncherWindowSize());
         option.ScreenWidth = gw;
         option.ScreenHeight = gh;
-        onLog?.Invoke($"[启动] 游戏窗口 {gw}×{gh}" +
-            (AppSettings.Instance.GameWidth > 0 && AppSettings.Instance.GameHeight > 0
-                ? "（自定义）"
-                : "（默认 1280×720，可在设置中自定义）"));
+        onLog?.Invoke($"[启动] 游戏窗口 {gw}×{gh}" + (windowMode switch
+        {
+            "match-launcher" => "（与启动器窗口大小一致）",
+            "custom" => "（自定义）",
+            _ => "（默认 1280×720，可在设置中调整）",
+        }));
 
         // fix7：启动前游戏选项补丁（PCL 同款可选）—— 跳过初始屏幕 / 游戏语言
         try
@@ -951,16 +1004,23 @@ public class LauncherService : IDisposable
     /// </summary>
     public static List<string> ParseJvmArgs(string? input) => LaunchArgs.ParseArgs(input);
 
-    /// <summary>已安装版本 = versions 目录下的每个子文件夹（root 为空时用配置的游戏根目录）。</summary>
+    /// <summary>
+    /// 已安装版本 = versions 目录下的每个子文件夹（root 为空时用配置的游戏根目录）。
+    /// v0.1.10：过滤装载器依赖的纯原版底座（被 inheritsFrom 引用且无所有权标记）——
+    /// 修复「装一个带装载器的版本，列表却出现两个」的问题（PCL 同款隐藏规则）。
+    /// </summary>
     public IReadOnlyList<string> GetInstalledVersions(string? root = null)
     {
-        var dir = Path.Combine(root ?? AppSettings.Instance.GameRoot, "versions");
+        var gameRoot = root ?? AppSettings.Instance.GameRoot;
+        var dir = Path.Combine(gameRoot, "versions");
         if (!Directory.Exists(dir)) return Array.Empty<string>();
+        var hiddenBases = VersionInfo.GetHiddenBaseVersions(gameRoot);
         return Directory.GetDirectories(dir)
             .Where(d => Directory.GetFiles(d, "*.json").Length > 0)
             .Select(Path.GetFileName)
             .Where(n => n != null)
             .Cast<string>()
+            .Where(n => !hiddenBases.Contains(n))
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -977,7 +1037,9 @@ public class LauncherService : IDisposable
     /// <summary>
     /// v0.1.6：给本启动器安装的版本打所有权标记（hcl.json）—— 版本列表据此显示
     /// 「由哪种启动器创建」的图标。安装前传入版本目录名快照，安装后自动找到新增的版本目录。
-    /// explicitName 非空（安装后改名过）时优先使用。静默失败（仅影响图标展示）。
+    /// explicitName 非空（安装后改名过）时优先使用。
+    /// v0.1.10：多个新增目录时优先选 json 含 inheritsFrom 的（装载器版本）——
+    /// 装载器安装会连带创建原版底座目录，此前按字母序标记会把标记错打到底座上。静默失败。
     /// </summary>
     public void MarkNewestVersionOwned(IEnumerable<string> versionDirsBefore, string? explicitName = null)
     {
@@ -986,10 +1048,16 @@ public class LauncherService : IDisposable
             var versionsRoot = Path.Combine(AppSettings.Instance.GameRoot, "versions");
             if (!Directory.Exists(versionsRoot)) return;
             var before = versionDirsBefore.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var target = explicitName != null && Directory.Exists(Path.Combine(versionsRoot, explicitName))
+            var candidates = Directory.GetDirectories(versionsRoot).Select(Path.GetFileName)
+                .Where(n => n != null && !before.Contains(n))
+                .Cast<string>()
+                .ToList();
+            string? target = explicitName != null && Directory.Exists(Path.Combine(versionsRoot, explicitName))
                 ? explicitName
-                : Directory.GetDirectories(versionsRoot).Select(Path.GetFileName)
-                    .FirstOrDefault(n => n != null && !before.Contains(n));
+                // 装载器版本：安装器拷贝的 version.json 含 inheritsFrom
+                : candidates.FirstOrDefault(c => VersionInfo.JsonHasInheritsFrom(
+                        Path.Combine(versionsRoot, c, c + ".json")))
+                    ?? candidates.FirstOrDefault();
             if (target != null) VersionInfo.WriteOwnedMarker(Path.Combine(versionsRoot, target));
         }
         catch { /* 仅影响图标 */ }

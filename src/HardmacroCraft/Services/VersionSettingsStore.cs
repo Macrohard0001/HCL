@@ -30,12 +30,26 @@ public sealed class VersionSettings
     /// <summary>该版本固定进服地址（一键进服默认填充），空 = 不预填。</summary>
     public string QuickServer { get; set; } = "";
 
+    /// <summary>
+    /// v0.1.10 窗口大小模式覆盖（对齐 PCL 版本设置）：
+    /// "" = 跟随全局设置；"default" = 默认 1280×720；
+    /// "match-launcher" = 与启动器窗口一致；"custom" = 使用 WindowWidth / WindowHeight。
+    /// </summary>
+    public string WindowMode { get; set; } = "";
+
+    /// <summary>自定义窗口宽（WindowMode == "custom" 时生效，0 = 游戏默认）。</summary>
+    public int WindowWidth { get; set; }
+
+    /// <summary>自定义窗口高（WindowMode == "custom" 时生效，0 = 游戏默认）。</summary>
+    public int WindowHeight { get; set; }
+
     /// <summary>是否全部为默认值（用于判断是否还需要落盘）。</summary>
     [JsonIgnore]
     public bool IsDefault =>
         IsolationOverride == null && string.IsNullOrWhiteSpace(JavaPath)
         && MemoryAuto == null && string.IsNullOrWhiteSpace(CustomJvmArgs)
-        && string.IsNullOrWhiteSpace(QuickServer);
+        && string.IsNullOrWhiteSpace(QuickServer)
+        && string.IsNullOrWhiteSpace(WindowMode);
 }
 
 /// <summary>版本独立设置的读写与生效值计算（纯逻辑，无 WPF 依赖，进测试）。</summary>

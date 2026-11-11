@@ -589,7 +589,9 @@ public partial class HomePage : Page
             }
 
             var taskPct = 0.0;
-            var centerTask = DownloadTaskService.Instance.StartCancellable(
+            // v0.1.10：任务带去重 Key —— 同一版本的启动任务重复登记时复用（修复任务中心重复任务）
+            var centerTask = DownloadTaskService.Instance.StartCancellableKeyed(
+                "launch:" + version,
                 string.Format((string)FindResource("S.Task.Prepare"), version),
                 (string)FindResource("S.Task.CheckingFiles"));
             _currentCenterTask = centerTask;
@@ -616,20 +618,27 @@ public partial class HomePage : Page
                         : step == 3 ? "正在启动游戏"
                         : "等待游戏窗口出现"));
 
+            var filesSw = System.Diagnostics.Stopwatch.StartNew(); // v0.1.10：补全阶段耗时（估算剩余时间）
             var fileProgress = new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(p =>
                 Dispatcher.Invoke(() =>
                 {
                     var pct = p.TotalTasks > 0 ? p.ProgressedTasks * 100.0 / p.TotalTasks : 0;
                     taskPct = pct;
+                    // v0.1.10：按已耗时估算到启动完成（补全阶段）的剩余时间（PCL 式）
+                    var eta = filesSw.Elapsed.TotalSeconds > 3 && pct >= 3
+                        ? SpeedMeter.FormatEtaSeconds(filesSw.Elapsed.TotalSeconds / pct * (100 - pct))
+                        : "";
+                    var line = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}" +
+                               (eta.Length > 0 ? " · " + eta : "");
                     // v0.1.1：写进进度中枢（本实例与导航切换后的新实例同步回放）
                     LaunchProgressHub.Update(s =>
                     {
                         s.Indeterminate = false;
                         s.Percent = pct;
-                        s.ProgressLine = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}";
+                        s.ProgressLine = line;
                         s.ButtonText = $"下载中 {pct:0}%";
                     });
-                    DownloadTaskService.Instance.Update(centerTask, pct, $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}");
+                    DownloadTaskService.Instance.Update(centerTask, pct, line);
                 }));
             var meter = new SpeedMeter();
             var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
@@ -637,21 +646,28 @@ public partial class HomePage : Page
                 {
                     if (p.TotalBytes <= 0) return;
                     var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
+                    var speed = meter.Observe(p.ProgressedBytes);
+                    // v0.1.10：剩余时间（按字节与当前速度估算，到启动完成的下载部分）
+                    var eta = SpeedMeter.FormatEta(p.TotalBytes - p.ProgressedBytes, speed);
                     LaunchProgressHub.Update(s =>
                     {
                         s.Indeterminate = false;
                         s.Percent = pct;
-                        s.ProgressLine = $"下载中 {pct:0}% · {SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(meter.Observe(p.ProgressedBytes))}";
+                        s.ProgressLine = $"下载中 {pct:0}% · {SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
+                                         (eta.Length > 0 ? " · " + eta : "");
                         s.ButtonText = $"下载中 {pct:0}%";
                     });
                     DownloadTaskService.Instance.Update(centerTask, pct,
-                        $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)}");
+                        $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
+                        (eta.Length > 0 ? " · " + eta : ""));
                 }));
 
             SetStage(1, 4, "S.Home.Stage.CheckJava", "正在检查 Java 环境");
+            // v0.1.10：启动文案更详细 —— 明确告知 Java 要求与推荐值
             // fix5：沿 inheritsFrom 链解析所需 Java 大版本（子版本 json 常缺 javaVersion）
             var requiredMajor = JavaManager.RequiredJavaMajorChain(
                 AppSettings.Instance.GameRoot, version);
+            Log($"[启动] 本版本需要 Java {requiredMajor}，推荐 Java {JavaManager.RecommendedJavaMajor(AppSettings.Instance.GameRoot, version)}（当前版本支持的最高版本）。");
             string? javaToUse = null;
             // v0.1.6：版本独立 Java 路径优先（版本设置中指定；无效时回落全局设置）
             var verJavaSetting = VersionSettingsStore.Get(version)?.JavaPath;
@@ -711,20 +727,27 @@ public partial class HomePage : Page
                 }
                 var (installMajor, askDir) = ask.Value;
                 Log($"未找到可用的 Java {installMajor}，开始下载安装到 {askDir}（仅首次需要）...");
-                var jTask = DownloadTaskService.Instance.Start($"下载 Java {installMajor} (Temurin JRE)",
+                var jTask = DownloadTaskService.Instance.StartKeyed($"java-install:{installMajor}",
+                    $"下载 Java {installMajor} (Temurin JRE)",
                     (string)FindResource("S.Task.CheckingFiles"));
                 try
                 {
-                    var jp = new Progress<double>(p => Dispatcher.Invoke(() =>
+                    // v0.1.10：Java 下载也显示速度与剩余时间（此前只有百分比）
+                    var jp = new Progress<JavaManager.JavaDownloadProgress>(p => Dispatcher.Invoke(() =>
                     {
+                        var eta = SpeedMeter.FormatEta(p.TotalBytes - p.DoneBytes, p.SpeedBps);
+                        var line = $"下载 Java {installMajor}: {p.Percent:0}% · " +
+                                   $"{SpeedMeter.FormatBytes(p.DoneBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · " +
+                                   SpeedMeter.FormatSpeed(p.SpeedBps) +
+                                   (eta.Length > 0 ? " · " + eta : "");
                         LaunchProgressHub.Update(s =>
                         {
                             s.Indeterminate = false;
-                            s.Percent = p;
-                            s.ProgressLine = $"下载 Java {installMajor}: {p:0}%";
-                            s.ButtonText = $"Java {p:0}%";
+                            s.Percent = p.Percent;
+                            s.ProgressLine = line;
+                            s.ButtonText = $"Java {p.Percent:0}%";
                         });
-                        DownloadTaskService.Instance.Update(jTask, p, $"下载中 {p:0}%");
+                        DownloadTaskService.Instance.Update(jTask, p.Percent, line);
                     }));
                     javaToUse = await JavaManager.EnsureJreAsync(installMajor, App.LauncherService.Http, jp, Log, askDir, launchCt);
                     DownloadTaskService.Instance.Complete(jTask, "Java 安装完成");
@@ -750,7 +773,7 @@ public partial class HomePage : Page
                 return;
             }
 
-            Log("正在检查游戏文件（jar / 资源 / 库）...");
+            Log("正在检查游戏文件（主 jar / 资源 / 库）——首次启动约需下载 300–500 MB，可在任务中心查看实时速度与剩余时间...");
             LaunchProgressHub.Update(s => s.ButtonText = (string)FindResource("S.Home.Starting"));
             // 离线皮肤（PCL 式）：离线账号设置过皮肤时，文件校验完成后注入 client jar
             string? offlineSkinPath = acc.Type == "offline"

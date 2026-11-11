@@ -13,7 +13,8 @@
         <StackPanel Grid.Row="0">
             <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Task.Title}" Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Task.Subtitle}"
-                       Margin="0,0,0,12" />
+                       Margin="0,0,0,2" />
+            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Task.ClickHint}" Margin="0,0,0,12" />
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">

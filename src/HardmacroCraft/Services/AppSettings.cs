@@ -93,6 +93,12 @@ public class AppSettings
     /// <summary>游戏窗口高度（0 = 游戏默认）。</summary>
     public int GameHeight { get; set; }
     /// <summary>
+    /// v0.1.10 游戏窗口大小模式（对齐 PCL）：default = 默认 1280×720；
+    /// custom = 使用 GameWidth / GameHeight；match-launcher = 与启动器窗口大小一致。
+    /// GameFullscreen 为 true 时忽略此设置（以 --fullscreen 启动）。
+    /// </summary>
+    public string GameWindowSizeMode { get; set; } = "default";
+    /// <summary>
     /// CurseForge REST API Key（免费，console.curseforge.com 申请）。
     /// 仅保存在本机便携 config/settings.json，不随源码分发。
     /// </summary>
