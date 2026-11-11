@@ -222,6 +222,14 @@
     <sys:String x:Key="S.Mod.LoadMore">Load More</sys:String>
     <sys:String x:Key="S.Mod.NoMore">No more results</sys:String>
     <sys:String x:Key="S.Mod.Search">Search</sys:String>
+    <sys:String x:Key="S.Mod.FilterBtn">Filters</sys:String>
+    <sys:String x:Key="S.Mod.FilterTitle">Filter options</sys:String>
+    <sys:String x:Key="S.Mod.FilterReset">Reset</sys:String>
+    <sys:String x:Key="S.Mod.FilterPlatform">Platform</sys:String>
+    <sys:String x:Key="S.Mod.FilterSort">Sort</sys:String>
+    <sys:String x:Key="S.Mod.FilterType">Type</sys:String>
+    <sys:String x:Key="S.Mod.FilterLoader">Loader</sys:String>
+    <sys:String x:Key="S.Mod.FilterVersion">Target version</sys:String>
     <sys:String x:Key="S.Mod.Download">Download</sys:String>
     <sys:String x:Key="S.Mod.BadgeDownloads">{0:N0} downloads</sys:String>
     <sys:String x:Key="S.Mod.BadgeFollows">{0:N0} followers</sys:String>

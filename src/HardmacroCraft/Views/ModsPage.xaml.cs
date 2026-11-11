@@ -50,6 +50,7 @@ public partial class ModsPage : Page
         SelectItemByTag(CmbType, AppSettings.Instance.LastModType);
         SelectItemByTag(CmbLoader, AppSettings.Instance.LastModLoader);
         RefreshPlatformUi();
+        UpdateFilterSummary();
     }
 
     private static void SelectItemByTag(System.Windows.Controls.ComboBox cb, string? tag)
@@ -65,6 +66,23 @@ public partial class ModsPage : Page
         AppSettings.Instance.LastModType = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
         AppSettings.Instance.LastModLoader = Loader;
         try { AppSettings.Instance.Save(); } catch { }
+        UpdateFilterSummary();
+    }
+
+    /// <summary>v0.1.8：筛选按钮上的激活条件计数（平台 / 类型 / 加载器任一非默认即计数）。</summary>
+    internal static int CountActiveFilters(string platform, string type, string loader)
+    {
+        int n = 0;
+        if (platform != "modrinth") n++;
+        if (type != "mod") n++;
+        if (loader != "any") n++;
+        return n;
+    }
+
+    private void UpdateFilterSummary()
+    {
+        var n = CountActiveFilters(Platform, LocalType, Loader);
+        TxtFilterCount.Text = n > 0 ? $"（{n}）" : "";
     }
 
     /// <summary>读语言键的统一小助手（缺省空串）。</summary>
@@ -240,6 +258,34 @@ public partial class ModsPage : Page
     }
 
     private async void BtnSearch_Click(object sender, RoutedEventArgs e) => await SearchAsync();
+
+    /// <summary>v0.1.8：筛选按钮 → 弹出筛选卡片（PCL 式，再点一次或点外部关闭）。</summary>
+    private void BtnFilter_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateFilterSummary();
+        PupFilter.IsOpen = !PupFilter.IsOpen;
+    }
+
+    /// <summary>v0.1.8：重置筛选（平台 / 类型 / 加载器回默认；目标版本与排序保留）。</summary>
+    private void BtnFilterReset_Click(object sender, RoutedEventArgs e)
+    {
+        SelectItemByTag(CmbPlatform, "modrinth");
+        SelectItemByTag(CmbType, "mod");
+        SelectItemByTag(CmbLoader, "any");
+        RememberFilters();
+    }
+
+    /// <summary>v0.1.8：记住目标版本，下次进页自动选中同一版本（PCL 同款）。</summary>
+    private void CmbTargetVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        var v = CmbTargetVersion.SelectedItem as string;
+        if (!string.IsNullOrEmpty(v) && AppSettings.Instance.LastVersion != v)
+        {
+            AppSettings.Instance.LastVersion = v;
+            try { AppSettings.Instance.Save(); } catch { }
+        }
+    }
 
     private async void CmbSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {

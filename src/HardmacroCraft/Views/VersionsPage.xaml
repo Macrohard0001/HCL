@@ -59,6 +59,7 @@
 
         <!-- v0.1.6 版本列表（PCL 式）：图标（加载器 / 创建来源）+ 名称 + 副标题；单击进版本设置 -->
         <ListBox Grid.Row="3" x:Name="LstVersions" Style="{StaticResource HmListBox}"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
                  SelectionMode="Single"
                  MouseDoubleClick="LstVersions_MouseDoubleClick"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">

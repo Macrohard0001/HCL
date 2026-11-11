@@ -20,27 +20,72 @@
             <TextBlock x:Name="TxtSubtitle" Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Mod.Subtitle}" />
         </StackPanel>
 
-        <!-- 搜索工具条（fix5：自适应换行，小窗口不再挤丢搜索框） -->
+        <!-- 搜索工具条（v0.1.8：筛选收进「筛选」按钮 + 弹出卡片，PCL 式；工具条不再平铺下拉框） -->
         <Border Grid.Row="1" Style="{StaticResource HmCard}" Margin="0,0,0,12">
-            <StackPanel>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ui:TextBox x:Name="TxtQuery" MinHeight="38" MinWidth="160"
-                                PlaceholderText="{DynamicResource S.Mod.SearchHint}" KeyDown="TxtQuery_KeyDown" />
-                    <ui:Button Grid.Column="1" x:Name="BtnSearch" MinHeight="38" MinWidth="96" Margin="8,0,0,0"
-                               Content="{DynamicResource S.Mod.Search}"
-                               Appearance="Primary" Icon="{ui:SymbolIcon Search24}" Click="BtnSearch_Click" />
-                </Grid>
-                <WrapPanel Margin="0,8,0,0">
-                    <ComboBox x:Name="CmbPlatform" MinHeight="38" MinWidth="112" Margin="0,0,8,4"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox x:Name="TxtQuery" MinHeight="38" MinWidth="160"
+                            PlaceholderText="{DynamicResource S.Mod.SearchHint}" KeyDown="TxtQuery_KeyDown" />
+                <ui:Button Grid.Column="1" x:Name="BtnFilter" MinHeight="38" MinWidth="92" Margin="8,0,0,0"
+                           Click="BtnFilter_Click" ToolTip="{DynamicResource S.Mod.FilterTitle}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Filter24" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource S.Mod.FilterBtn}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtFilterCount" Margin="4,0,0,0" VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Grid.Column="2" x:Name="BtnSearch" MinHeight="38" MinWidth="96" Margin="8,0,0,0"
+                           Content="{DynamicResource S.Mod.Search}"
+                           Appearance="Primary" Icon="{ui:SymbolIcon Search24}" Click="BtnSearch_Click" />
+            </Grid>
+        </Border>
+
+        <!-- v0.1.8 筛选弹出卡片（PCL 式：按钮弹出 / 点外部关闭 / 选择即生效并记忆） -->
+        <Popup Grid.Row="1" x:Name="PupFilter" PlacementTarget="{Binding ElementName=BtnFilter}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
+            <Border Width="344" CornerRadius="10" Padding="16,14"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="22" ShadowDepth="2" Opacity="0.32" />
+                </Border.Effect>
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Filter24" FontSize="15"
+                                           Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                            <TextBlock Text="{DynamicResource S.Mod.FilterTitle}" FontWeight="SemiBold" FontSize="13.5"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                        <ui:Button Grid.Column="1" x:Name="BtnFilterReset" MinHeight="30" Padding="10,0"
+                                   Content="{DynamicResource S.Mod.FilterReset}"
+                                   Icon="{ui:SymbolIcon FilterDismiss24}" Click="BtnFilterReset_Click"
+                                   ToolTip="{DynamicResource S.Mod.FilterReset}" />
+                    </Grid>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterPlatform}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbPlatform" MinHeight="36" Margin="0,0,0,10"
                               SelectionChanged="CmbPlatform_SelectionChanged">
                         <ComboBoxItem Content="{DynamicResource S.Mod.PlatformModrinth}" IsSelected="True" Tag="modrinth" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.PlatformCF}" Tag="curseforge" />
                     </ComboBox>
-                    <ComboBox x:Name="CmbSort" MinHeight="38" MinWidth="118" Margin="0,0,8,4"
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterSort}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbSort" MinHeight="36" Margin="0,0,0,10"
                               SelectionChanged="CmbSort_SelectionChanged">
                         <ComboBoxItem Content="{DynamicResource S.Mod.SortRelevance}" IsSelected="True" Tag="relevance" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.SortDownloads}" Tag="downloads" />
@@ -48,14 +93,20 @@
                         <ComboBoxItem Content="{DynamicResource S.Mod.SortNewest}" Tag="newest" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.SortUpdated}" Tag="updated" />
                     </ComboBox>
-                    <ComboBox x:Name="CmbType" MinHeight="38" MinWidth="118" Margin="0,0,8,4"
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterType}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbType" MinHeight="36" Margin="0,0,0,10"
                               SelectionChanged="CmbType_SelectionChanged">
                         <ComboBoxItem Content="{DynamicResource S.Mod.TypeMod}" IsSelected="True" Tag="mod" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.TypeResource}" Tag="resourcepack" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.TypeShader}" Tag="shader" />
                         <ComboBoxItem Content="{DynamicResource S.Mod.TypeData}" Tag="datapack" />
                     </ComboBox>
-                    <ComboBox x:Name="CmbLoader" MinHeight="38" MinWidth="104" Margin="0,0,8,4"
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterLoader}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbLoader" MinHeight="36" Margin="0,0,0,10"
                               SelectionChanged="CmbLoader_SelectionChanged"
                               ToolTip="{DynamicResource S.Mod.LoaderHint}">
                         <ComboBoxItem Content="{DynamicResource S.Mod.LoaderAll}" IsSelected="True" Tag="any" />
@@ -64,19 +115,24 @@
                         <ComboBoxItem Content="NeoForge" Tag="neoforge" />
                         <ComboBoxItem Content="Quilt" Tag="quilt" />
                     </ComboBox>
-                    <ComboBox x:Name="CmbTargetVersion" MinHeight="38" MinWidth="180" Margin="0,0,8,4" />
-                </WrapPanel>
-            </StackPanel>
-        </Border>
 
-        <!-- 搜索结果（PCL 式信息卡行；fix5：限高使页面可整体滚动）
+                    <TextBlock Text="{DynamicResource S.Mod.FilterVersion}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbTargetVersion" MinHeight="36"
+                              SelectionChanged="CmbTargetVersion_SelectionChanged" />
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- 搜索结果（PCL 式信息卡行；v0.1.8：撑满剩余空间 + 列表虚拟化回收）
              v0.1.5：同一格子叠放 搜索过渡层 / 空结果提示 / 模组详情页（覆盖层，PCL 式页内切换） -->
         <Grid Grid.Row="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <ListBox Grid.Row="0" x:Name="LstResults" Style="{StaticResource HmListBox}"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
                      PreviewMouseLeftButtonUp="LstResults_PreviewMouseUp">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -267,6 +323,7 @@
                                Click="BtnDeleteMod_Click" />
                 </Grid>
                 <ListBox x:Name="LstLocalMods" MinHeight="110" MaxHeight="170"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
                          Style="{StaticResource HmListBox}" BorderThickness="0"
                          SelectionMode="Single" />
             </StackPanel>

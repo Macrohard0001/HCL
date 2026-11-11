@@ -46,7 +46,8 @@
         </Border>
 
         <!-- 结果列表（PCL 式信息卡行） -->
-        <ListBox Grid.Row="2" x:Name="LstResults" Style="{StaticResource HmListBox}">
+        <ListBox Grid.Row="2" x:Name="LstResults" Style="{StaticResource HmListBox}"
+                 VirtualizingPanel.VirtualizationMode="Recycling">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="12,10">
