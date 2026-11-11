@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HmCoreTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5bff0480d1966311769208e613e65e5739dee6e3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dae4807ecaae37349c696626f6fe28434a8e8b4f")]
 [assembly: System.Reflection.AssemblyProductAttribute("HmCoreTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HmCoreTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

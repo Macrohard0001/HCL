@@ -248,6 +248,22 @@ public partial class LoaderPickerWindow : FluentWindow
                     break;
             }
 
+            // v0.1.9（对齐 PCL 的下载行为）：装载器装好后立刻把该版本的全部游戏文件
+            // （原版主 jar / libraries / assets）下载到位 —— 此前只有原版直装会下载，
+            // Forge / Fabric 等要等首次启动才补全，用户装完点启动还要等一次大下载。
+            if (row.Id is not ("vanilla" or "forbric"))
+            {
+                var installedId = App.LauncherService.GetInstalledVersions()
+                    .FirstOrDefault(v => !versionsBefore.Contains(v));
+                if (installedId != null)
+                {
+                    if (!_backgrounded)
+                        TxtStatus.Text = FindRes("S.Dl.GameFiles");
+                    DownloadTaskService.Instance.Update(_centerTask, 0, FindRes("S.Dl.GameFiles"));
+                    await App.LauncherService.InstallAsync(installedId, fileProgress, byteProgress, ct);
+                }
+            }
+
             // fix5：自定义版本名称（PCL 同款）——安装成功后重命名新增的版本目录
             var customName = TxtVersionName.Text?.Trim();
             if (row.Id != "forbric" && !string.IsNullOrEmpty(customName))

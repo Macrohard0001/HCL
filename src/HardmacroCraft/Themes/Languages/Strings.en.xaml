@@ -40,6 +40,7 @@
     <sys:String x:Key="S.Home.JavaAskLocation">Install location (editable, portable inside the launcher folder by default):</sys:String>
     <sys:String x:Key="S.Home.JavaAskVersion">Java version:</sys:String>
     <sys:String x:Key="S.Home.JavaAskRecommended"> (recommended)</sys:String>
+    <sys:String x:Key="S.Home.JavaAskMinNote">This version needs Java {0} at minimum; Java {1} is recommended (the highest Java it supports).</sys:String>
     <sys:String x:Key="S.Home.JavaAskInstall">Install &amp;&amp; Launch</sys:String>
     <sys:String x:Key="S.Home.OfflineName">Player name</sys:String>
     <sys:String x:Key="S.Home.Log">Game Log</sys:String>
@@ -189,6 +190,7 @@
     <sys:String x:Key="S.Dl.LoaderInstalling">Installing {0} {1}…</sys:String>
     <sys:String x:Key="S.Dl.LoaderDone">Installed</sys:String>
     <sys:String x:Key="S.Dl.LoaderDone2">{0} {1} installed. Select it on the launch page.</sys:String>
+    <sys:String x:Key="S.Dl.GameFiles">Downloading game files (main jar / libraries / assets) so it is ready to play...</sys:String>
     <sys:String x:Key="S.Dl.LoaderFail">Install failed: </sys:String>
     <sys:String x:Key="S.Dl.BtnBackground">Background</sys:String>
     <sys:String x:Key="S.Dl.BtnBackgroundTip">Close this window and keep installing in the background — track progress in the Task Center</sys:String>
@@ -236,6 +238,8 @@
     <sys:String x:Key="S.Mod.BadgeUpdated">Updated {0}</sys:String>
     <sys:String x:Key="S.Mod.BadgeSupports">Supports {0}+</sys:String>
     <sys:String x:Key="S.Mod.Local">Local Mods (selected version)</sys:String>
+    <sys:String x:Key="S.Mod.Disabled">Disabled</sys:String>
+    <sys:String x:Key="S.Mod.LocalSearch">Search local files…</sys:String>
     <sys:String x:Key="S.Mod.SubtitleCF">Search and download from CurseForge, the world's largest mod platform with far more content than Modrinth.</sys:String>
     <sys:String x:Key="S.Mod.NeedKey">[No API Key configured: fill it in Settings → CurseForge API Key, free at console.curseforge.com]</sys:String>
     <sys:String x:Key="S.Mod.PlatformModrinth">Modrinth</sys:String>
@@ -291,6 +295,11 @@
     <sys:String x:Key="S.Set.CfKeyHint">Free: register at console.curseforge.com → Apply for an API Key. Stored only in local config/settings.json. Modrinth needs no key.</sys:String>
     <sys:String x:Key="S.Set.CfKeyGet">Get a Key</sys:String>
     <sys:String x:Key="S.Mod.Toggle">Enable / Disable</sys:String>
+    <sys:String x:Key="S.Mod.DeleteConfirmN">Delete {0} selected files?</sys:String>
+    <sys:String x:Key="S.Mod.DeleteConfirm1">Delete this file?
+</sys:String>
+    <sys:String x:Key="S.Mod.DeleteTip">Delete selected local files (multi-select supported)</sys:String>
+    <sys:String x:Key="S.Mod.ToggleTip">Toggle enable / disable (Ctrl / Shift multi-select supported)</sys:String>
 
     <!-- Versions -->
     <sys:String x:Key="S.Ver.Title">Versions</sys:String>
@@ -324,6 +333,8 @@
     <sys:String x:Key="S.Vs.IsoHint">Overrides isolation for this version only; the global switch is in Settings → Game Directory.</sys:String>
     <sys:String x:Key="S.Vs.GroupJava">Java</sys:String>
     <sys:String x:Key="S.Vs.JavaPh">Empty = follow global setting (folder or javaw.exe path)</sys:String>
+    <sys:String x:Key="S.Vs.JavaBrowseTip">Pick javaw.exe (its folder is searched automatically)</sys:String>
+    <sys:String x:Key="S.Vs.JavaBrowse">Browse</sys:String>
     <sys:String x:Key="S.Vs.GroupMemory">Memory</sys:String>
     <sys:String x:Key="S.Vs.MemoryOverride">Allocate memory for this version</sys:String>
     <sys:String x:Key="S.Vs.MemoryValue">{0} MB</sys:String>
@@ -334,6 +345,11 @@
     <sys:String x:Key="S.Vs.ServerPh">Default server address for this version (auto-fills the join dialog); empty = no preset</sys:String>
     <sys:String x:Key="S.Vs.Reset">Reset</sys:String>
     <sys:String x:Key="S.Vs.Save">Save</sys:String>
+    <sys:String x:Key="S.Vs.OpenLogsDir">Open logs</sys:String>
+    <sys:String x:Key="S.Vs.OpenModsDir">Open mods</sys:String>
+    <sys:String x:Key="S.Vs.OpenSavesDir">Open saves</sys:String>
+    <sys:String x:Key="S.Vs.OpenVersionDir">Open version folder</sys:String>
+    <sys:String x:Key="S.Vs.GroupDirs">Folders</sys:String>
 
     <!-- Join server dialog -->
     <sys:String x:Key="S.Join.Title">Join Server</sys:String>
