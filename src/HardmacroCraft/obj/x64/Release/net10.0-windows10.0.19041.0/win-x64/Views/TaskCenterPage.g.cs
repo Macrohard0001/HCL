@@ -63,7 +63,7 @@ namespace HardmacroCraft.Views {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/HardmacroCraftLauncher;V0.1.7.0;component/views/taskcenterpage.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/HardmacroCraftLauncher;V0.1.8.0;component/views/taskcenterpage.xaml", System.UriKind.Relative);
             
             #line 1 "../../../../../../Views/TaskCenterPage.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

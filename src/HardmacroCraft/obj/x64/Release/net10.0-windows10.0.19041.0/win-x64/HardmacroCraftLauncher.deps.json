@@ -7,7 +7,7 @@
   "targets": {
     ".NETCoreApp,Version=v10.0": {},
     ".NETCoreApp,Version=v10.0/win-x64": {
-      "HardmacroCraftLauncher/0.1.7": {
+      "HardmacroCraftLauncher/0.1.8": {
         "dependencies": {
           "CmlLib.Core": "4.1.0",
           "CmlLib.Core.Installer.Forge": "2.0.0",
@@ -1012,7 +1012,7 @@
     }
   },
   "libraries": {
-    "HardmacroCraftLauncher/0.1.7": {
+    "HardmacroCraftLauncher/0.1.8": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
