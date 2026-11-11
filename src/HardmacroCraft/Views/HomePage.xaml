@@ -66,7 +66,7 @@
                     Visibility="Collapsed">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <ui:SymbolIcon Symbol="Gamepad24" FontSize="16"
+                        <ui:SymbolIcon Symbol="Games24" FontSize="16"
                                        Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
                         <TextBlock Text="{DynamicResource S.Home.InstancesTitle}" FontWeight="Medium" FontSize="13"
                                    Margin="8,0,0,0" VerticalAlignment="Center" />
