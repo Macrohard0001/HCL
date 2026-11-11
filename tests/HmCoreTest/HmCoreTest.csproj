@@ -31,8 +31,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SkinService.cs" Link="Services/SkinService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionInfo.cs" Link="Services/VersionInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ServerList.cs" Link="Services/ServerList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameInstanceManager.cs" Link="Services/GameInstanceManager.cs" />

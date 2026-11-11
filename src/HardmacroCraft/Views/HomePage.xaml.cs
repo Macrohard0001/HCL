@@ -54,13 +54,19 @@ public partial class HomePage : Page
         ApplyLaunchUi();
         Loaded += async (_, _) =>
         {
+            // v0.1.8 紧急修复：版本列表每次进入首页都刷新 —— 此前只在首次 Loaded 刷新，
+            // 在下载页装完新版本回到首页，下拉框里根本没有它（选不了也启动不了）；
+            // 主流启动器装完立即可见。账号 / 实例 / 最近启动同步刷新。
+            var keep = SelectedVersion;
+            await RefreshVersionsAsync();
+            if (keep != null && _versionItems.Any(i => i.Name == keep))
+                CmbVersions.SelectedValue = keep;
+            RefreshAccountUi();
+            RefreshRecent();
+            RefreshInstances();
             if (!_loaded)
             {
                 _loaded = true;
-                await RefreshVersionsAsync();
-                RefreshAccountUi();
-                RefreshRecent();
-                RefreshInstances();
                 // 自动登录（记住密码 + 自动登录的验证站账号静默重登）
                 _ = TryAutoLoginAsync();
             }
@@ -405,12 +411,24 @@ public partial class HomePage : Page
         => BtnManageAccounts_Click(sender, e);
 
     // ---------- 启动 ----------
+
+    /// <summary>
+    /// v0.1.8 紧急修复：启动前置失败 / 启动失败的反馈 —— PCL 式弹窗提示 + 自动展开日志。
+    /// 此前这类原因只写进默认折叠的日志框，用户点「启动」看起来毫无反应。
+    /// </summary>
+    private void LaunchBlock(string msg)
+    {
+        Log(msg);
+        SetLogOpen(true); // 日志自动展开，失败原因直接可见
+        try { HmMsg.Info(Window.GetWindow(this), "无法启动", msg); } catch { /* 弹窗失败至少日志已展开 */ }
+    }
+
     private async void BtnLaunch_Click(object sender, RoutedEventArgs e)
     {
         var version = SelectedVersion;
         if (version == null)
         {
-            Log("请先选择或下载一个版本。");
+            LaunchBlock("请先选择或下载一个版本：可在「下载游戏」页安装，或点右上角刷新版本列表。");
             return;
         }
         await LaunchAsync(version);
@@ -434,7 +452,7 @@ public partial class HomePage : Page
         var version = SelectedVersion;
         if (version == null)
         {
-            Log("请先选择或下载一个版本。");
+            LaunchBlock("请先选择或下载一个版本。");
             return;
         }
         // 预填：版本独立设置的进服地址 > 上次使用的地址
@@ -483,7 +501,7 @@ public partial class HomePage : Page
         var acc = AccountStore.Instance.Current;
         if (acc == null)
         {
-            Log("请先登录账号（微软正版或离线）。");
+            LaunchBlock("请先登录账号：主页账号卡「账号管理」（微软正版 / 第三方验证站 / 离线均可）。");
             return;
         }
 
@@ -531,7 +549,7 @@ public partial class HomePage : Page
                         }
                         else
                         {
-                            Log("微软令牌刷新失败且没有缓存令牌，已停止启动，请重新登录微软账号: " + ex.Message);
+                            LaunchBlock("微软令牌刷新失败且没有缓存令牌，已停止启动：请重新登录微软账号（正版登录还需在设置中填写 Azure Client ID）。\n\n" + ex.Message);
                             return;
                         }
                     }
@@ -543,7 +561,7 @@ public partial class HomePage : Page
                 }
                 else
                 {
-                    Log("微软账号缺少有效令牌：请重新登录微软账号（正版登录还需在设置中填写 Azure Client ID）。");
+                    LaunchBlock("微软账号缺少有效令牌：请重新登录微软账号（正版登录还需在设置中填写 Azure Client ID）。");
                     return;
                 }
             }
@@ -718,14 +736,14 @@ public partial class HomePage : Page
                 catch (Exception jex)
                 {
                     DownloadTaskService.Instance.Fail(jTask, "Java 下载失败: " + jex.Message);
-                    Log("Java 自动安装失败: " + jex.Message);
-                    Log("请到 设置 → Java 一键安装，或在 设置 → Java 路径 填写本机已安装的 Java 后重试。");
+                    LaunchBlock("Java 自动安装失败：" + jex.Message +
+                        "\n\n请到「设置 → Java 一键安装」重试，或在「设置 → Java 路径」填写本机已安装的 Java 后重试。");
                     return;
                 }
             }
             if (javaToUse == null && !JavaManager.ExistsOnPath())
             {
-                Log("本机未找到 Java：请在 设置 → Java 一键安装（自动下载），或填写已安装的 Java 路径。");
+                LaunchBlock("本机未找到 Java：请在「设置 → Java 一键安装」（自动下载），或在设置中填写已安装的 Java 路径。");
                 return;
             }
 
@@ -811,7 +829,7 @@ public partial class HomePage : Page
         }
         catch (Exception ex)
         {
-            Log("启动失败: " + ex.Message);
+            LaunchBlock("启动失败：" + ex.Message + "\n\n详情见下方日志（若反复失败，可把日志发给开发者排查）。");
             LaunchProgressHub.Update(s =>
             {
                 s.Indeterminate = false;
@@ -970,8 +988,11 @@ public partial class HomePage : Page
     // ===== 首页 UI：日志区展开/收起 =====
 
     private void BtnToggleLog_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        => SetLogOpen(PnlLogBox.Visibility == Visibility.Collapsed);
+
+    /// <summary>展开 / 收起日志卡（v0.1.8：从事件处理器拆出，供启动失败时自动展开）。</summary>
+    private void SetLogOpen(bool open)
     {
-        var open = PnlLogBox.Visibility == Visibility.Collapsed;
         PnlLogBox.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         // v0.1.7：展开时日志卡撑满中部剩余空间；收起时回到一条紧凑标题栏
         CardLog.VerticalAlignment = open ? VerticalAlignment.Stretch : VerticalAlignment.Top;
@@ -1043,5 +1064,78 @@ public class OfflineInputDialog : System.Windows.Controls.UserControl
     public OfflineInputDialog()
     {
         Content = NameBox;
+    }
+}
+
+/// <summary>
+/// v0.1.8 紧急修复：消息 / 确认对话框（FluentWindow，跟随深浅色主题）。
+/// 关键反馈（无法启动 / 启动失败 / 安装完成）必须弹窗可见 —— PCL 同款，
+/// 不再只写进默认折叠的日志框让用户以为点了没反应。
+/// </summary>
+public static class HmMsg
+{
+    public static void Info(Window? owner, string title, string msg) => Show(owner, title, msg, true);
+
+    public static bool Confirm(Window? owner, string title, string msg) => Show(owner, title, msg, false);
+
+    /// <returns>info 模式恒为 true；confirm 模式返回用户是否点了「启动 / 确定」。</returns>
+    private static bool Show(Window? owner, string title, string msg, bool infoOnly)
+    {
+        var confirmed = false;
+        var height = 170 + Math.Min(160, 20 * Math.Max(1, msg.Count(c => c == '\n')));
+
+        var win = new Wpf.Ui.Controls.FluentWindow
+        {
+            Title = title,
+            Width = 480,
+            Height = height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            WindowBackdropType = Wpf.Ui.Controls.WindowBackdropType.Mica,
+            ExtendsContentIntoTitleBar = true,
+        };
+        owner ??= System.Windows.Application.Current.Windows.OfType<Window>()
+            .LastOrDefault(w => !ReferenceEquals(w, win));
+        if (owner != null && !ReferenceEquals(owner, win))
+            win.Owner = owner;
+
+        var sp = new StackPanel { Margin = new Thickness(20) };
+        var tb = new System.Windows.Controls.TextBlock
+        {
+            Text = msg,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 13.5,
+            Margin = new Thickness(0, 0, 0, 16),
+        };
+        tb.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
+
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var btnOk = new Wpf.Ui.Controls.Button
+        {
+            Content = infoOnly ? "确定" : "启动",
+            Appearance = ControlAppearance.Primary,
+            MinHeight = 34,
+            MinWidth = 110,
+        };
+        btnRow.Children.Add(btnOk);
+        if (!infoOnly)
+        {
+            var btnCancel = new Wpf.Ui.Controls.Button
+            {
+                Content = "取消",
+                MinHeight = 34,
+                MinWidth = 90,
+                Margin = new Thickness(8, 0, 0, 0),
+            };
+            btnCancel.Click += (_, _) => win.Close();
+            btnRow.Children.Add(btnCancel);
+        }
+        btnOk.Click += (_, _) => { confirmed = true; win.Close(); };
+
+        sp.Children.Add(tb);
+        sp.Children.Add(btnRow);
+        FluentDialog.SetContent(win, sp); // 挂标题栏（含关闭按钮）
+        win.ShowDialog();
+        return confirmed;
     }
 }

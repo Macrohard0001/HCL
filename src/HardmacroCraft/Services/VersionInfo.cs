@@ -135,7 +135,26 @@ public static class VersionInfo
         string text;
         try { text = File.ReadAllText(jsonFile); }
         catch { return McLoaderKind.Vanilla; }
-        return DetectLoaderFromJson(text, name);
+        var mainKind = DetectLoaderFromJson(text, name);
+        if (mainKind != McLoaderKind.Vanilla) return mainKind;
+
+        // v0.1.8 紧急修复：自定义版本（目录名 / 主 json 不含加载器特征串，但目录里另有
+        // 加载器安装器写入的 json，如 inheritsFrom 合并结构）—— 扫描目录内其余 json，
+        // 任一带加载器特征即按该加载器展示（纯净版 json 不会误判）。
+        try
+        {
+            foreach (var j in Directory.GetFiles(versionDir, "*.json"))
+            {
+                if (string.Equals(Path.GetFullPath(j), Path.GetFullPath(jsonFile), StringComparison.OrdinalIgnoreCase))
+                    continue;
+                string t2;
+                try { t2 = File.ReadAllText(j); } catch { continue; }
+                var k2 = DetectLoaderFromJson(t2, Path.GetFileNameWithoutExtension(j));
+                if (k2 != McLoaderKind.Vanilla) return k2;
+            }
+        }
+        catch { /* 目录读取失败按已得结果返回 */ }
+        return mainKind;
     }
 
     private static string? SafeFirstJson(string dir)
