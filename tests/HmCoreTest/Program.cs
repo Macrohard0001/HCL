@@ -2069,6 +2069,35 @@ try
 catch (Exception ex) { Check("第 31 节 v0.1.7（文案键）", false, ex.Message); }
 
 
+// 32 v0.1.8：筛选弹出卡 + 全页面主容器去滚动 + 列表虚拟化（结构与文案回归）
+try
+{
+    var langDir32 = FindUp("src/HardmacroCraft/Themes/Languages");
+    var zh32 = File.ReadAllText(Path.Combine(langDir32, "Strings.zh-CN.xaml"));
+    var en32 = File.ReadAllText(Path.Combine(langDir32, "Strings.en.xaml"));
+    var keys32 = new[] { "S.Mod.FilterBtn", "S.Mod.FilterTitle", "S.Mod.FilterReset", "S.Mod.FilterPlatform",
+        "S.Mod.FilterSort", "S.Mod.FilterType", "S.Mod.FilterLoader", "S.Mod.FilterVersion" };
+    var miss32 = keys32.Where(k => !zh32.Contains($"x:Key=\"{k}\"") || !en32.Contains($"x:Key=\"{k}\"")).ToList();
+    Check("筛选弹出卡文案键 zh/en 齐全", miss32.Count == 0, "缺: " + string.Join(", ", miss32));
+
+    var views32 = FindUp("src/HardmacroCraft/Views");
+    var mods32 = File.ReadAllText(Path.Combine(views32, "ModsPage.xaml"));
+    Check("模组页筛选按钮 + 弹出卡片结构存在",
+        mods32.Contains("x:Name=\"BtnFilter\"") && mods32.Contains("x:Name=\"PupFilter\"")
+        && mods32.Contains("x:Name=\"BtnFilterReset\"") && mods32.Contains("x:Name=\"CmbTargetVersion\""));
+
+    var dl32 = File.ReadAllText(Path.Combine(views32, "DownloadGamePage.xaml"));
+    Check("下载游戏页主容器不再滚动（无根级 ScrollViewer）", !dl32.Contains("<ScrollViewer"));
+    Check("下载游戏页版本列表撑满剩余空间（不再限高 430）", !dl32.Contains("MaxHeight=\"430\""));
+
+    var virtualized = new[] { "ModsPage.xaml", "ModpacksPage.xaml", "VersionsPage.xaml", "DownloadGamePage.xaml" };
+    var missV = virtualized.Where(f => !File.ReadAllText(Path.Combine(views32, f))
+        .Contains("VirtualizationMode=\"Recycling\"")).ToList();
+    Check("大列表虚拟化回收模式齐全", missV.Count == 0, "缺: " + string.Join(", ", missV));
+}
+catch (Exception ex) { Check("第 32 节 v0.1.8（筛选卡 / 去滚动 / 虚拟化）", false, ex.Message); }
+
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

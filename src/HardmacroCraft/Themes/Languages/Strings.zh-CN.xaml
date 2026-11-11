@@ -222,6 +222,14 @@
     <sys:String x:Key="S.Mod.LoadMore">加载更多</sys:String>
     <sys:String x:Key="S.Mod.NoMore">没有更多结果了</sys:String>
     <sys:String x:Key="S.Mod.Search">搜索</sys:String>
+    <sys:String x:Key="S.Mod.FilterBtn">筛选</sys:String>
+    <sys:String x:Key="S.Mod.FilterTitle">筛选条件</sys:String>
+    <sys:String x:Key="S.Mod.FilterReset">重置</sys:String>
+    <sys:String x:Key="S.Mod.FilterPlatform">平台</sys:String>
+    <sys:String x:Key="S.Mod.FilterSort">排序</sys:String>
+    <sys:String x:Key="S.Mod.FilterType">类型</sys:String>
+    <sys:String x:Key="S.Mod.FilterLoader">加载器</sys:String>
+    <sys:String x:Key="S.Mod.FilterVersion">目标版本</sys:String>
     <sys:String x:Key="S.Mod.Download">下载</sys:String>
     <sys:String x:Key="S.Mod.BadgeDownloads">{0:N0} 下载</sys:String>
     <sys:String x:Key="S.Mod.BadgeFollows">{0:N0} 关注</sys:String>
