@@ -15,7 +15,6 @@ public partial class InstancesPage : Page
 {
     private readonly DispatcherTimer _timer;
     private RefreshThrottle? _throttle;
-    private bool _loadedOnce;
 
     public InstancesPage()
     {
@@ -25,17 +24,7 @@ public partial class InstancesPage : Page
         Loaded += (_, _) =>
         {
             Refresh();
-            ApplyRefreshPolicy();
-            GameInstanceManager.Changed += OnInstancesChanged;
-            if (!_loadedOnce)
-            {
-                _loadedOnce = true;
-                _timer.Start();
-            }
-            else
-            {
-                _timer.Start();
-            }
+            ApplyRefreshPolicy(); // 轮询定时器 / 事件订阅的启停统一在策略里处理
         };
         Unloaded += (_, _) =>
         {
