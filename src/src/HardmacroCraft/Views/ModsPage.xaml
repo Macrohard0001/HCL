@@ -1,0 +1,302 @@
+<Page x:Class="HardmacroCraft.Views.ModsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <!-- v0.1.7：主容器不再滚动（响应式）—— 结果列表撑满剩余空间，仅列表内部滚动。
+         v0.1.11：本机 Mod 管理已迁移至「版本设置 → Mod 管理」（每版本独立管理，PCL 式）。 -->
+    <Grid Margin="32,24,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,2">
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Mod.Title}" />
+            <TextBlock x:Name="TxtSubtitle" Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Mod.Subtitle}" />
+        </StackPanel>
+
+        <!-- 搜索工具条（v0.1.8：筛选收进「筛选」按钮 + 弹出卡片，PCL 式；工具条不再平铺下拉框） -->
+        <Border Grid.Row="1" Style="{StaticResource HmCard}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox x:Name="TxtQuery" MinHeight="38" MinWidth="160"
+                            PlaceholderText="{DynamicResource S.Mod.SearchHint}" KeyDown="TxtQuery_KeyDown" />
+                <ui:Button Grid.Column="1" x:Name="BtnFilter" MinHeight="38" MinWidth="92" Margin="8,0,0,0"
+                           Click="BtnFilter_Click" ToolTip="{DynamicResource S.Mod.FilterTitle}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Filter24" FontSize="15" VerticalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource S.Mod.FilterBtn}" Margin="6,0,0,0"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtFilterCount" Margin="4,0,0,0" VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Grid.Column="2" x:Name="BtnSearch" MinHeight="38" MinWidth="96" Margin="8,0,0,0"
+                           Content="{DynamicResource S.Mod.Search}"
+                           Appearance="Primary" Icon="{ui:SymbolIcon Search24}" Click="BtnSearch_Click" />
+            </Grid>
+        </Border>
+
+        <!-- v0.1.8 筛选弹出卡片（PCL 式：按钮弹出 / 点外部关闭 / 选择即生效并记忆） -->
+        <Popup Grid.Row="1" x:Name="PupFilter" PlacementTarget="{Binding ElementName=BtnFilter}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
+            <Border Width="344" CornerRadius="10" Padding="16,14"
+                    Background="{DynamicResource ApplicationBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="22" ShadowDepth="2" Opacity="0.32" />
+                </Border.Effect>
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Filter24" FontSize="15"
+                                           Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                            <TextBlock Text="{DynamicResource S.Mod.FilterTitle}" FontWeight="SemiBold" FontSize="13.5"
+                                       Margin="8,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                        <ui:Button Grid.Column="1" x:Name="BtnFilterReset" MinHeight="30" Padding="10,0"
+                                   Content="{DynamicResource S.Mod.FilterReset}"
+                                   Icon="{ui:SymbolIcon FilterDismiss24}" Click="BtnFilterReset_Click"
+                                   ToolTip="{DynamicResource S.Mod.FilterReset}" />
+                    </Grid>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterPlatform}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbPlatform" MinHeight="36" Margin="0,0,0,10"
+                              SelectionChanged="CmbPlatform_SelectionChanged">
+                        <ComboBoxItem Content="{DynamicResource S.Mod.PlatformModrinth}" IsSelected="True" Tag="modrinth" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.PlatformCF}" Tag="curseforge" />
+                    </ComboBox>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterSort}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbSort" MinHeight="36" Margin="0,0,0,10"
+                              SelectionChanged="CmbSort_SelectionChanged">
+                        <ComboBoxItem Content="{DynamicResource S.Mod.SortRelevance}" IsSelected="True" Tag="relevance" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.SortDownloads}" Tag="downloads" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.SortFollows}" Tag="follows" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.SortNewest}" Tag="newest" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.SortUpdated}" Tag="updated" />
+                    </ComboBox>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterType}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbType" MinHeight="36" Margin="0,0,0,10"
+                              SelectionChanged="CmbType_SelectionChanged">
+                        <ComboBoxItem Content="{DynamicResource S.Mod.TypeMod}" IsSelected="True" Tag="mod" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.TypeResource}" Tag="resourcepack" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.TypeShader}" Tag="shader" />
+                        <ComboBoxItem Content="{DynamicResource S.Mod.TypeData}" Tag="datapack" />
+                    </ComboBox>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterLoader}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbLoader" MinHeight="36" Margin="0,0,0,10"
+                              SelectionChanged="CmbLoader_SelectionChanged"
+                              ToolTip="{DynamicResource S.Mod.LoaderHint}">
+                        <ComboBoxItem Content="{DynamicResource S.Mod.LoaderAll}" IsSelected="True" Tag="any" />
+                        <ComboBoxItem Content="Forge" Tag="forge" />
+                        <ComboBoxItem Content="Fabric" Tag="fabric" />
+                        <ComboBoxItem Content="NeoForge" Tag="neoforge" />
+                        <ComboBoxItem Content="Quilt" Tag="quilt" />
+                    </ComboBox>
+
+                    <TextBlock Text="{DynamicResource S.Mod.FilterVersion}" FontSize="12" Margin="0,0,0,4"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox x:Name="CmbTargetVersion" MinHeight="36"
+                              SelectionChanged="CmbTargetVersion_SelectionChanged" />
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- 搜索结果（PCL 式信息卡行；v0.1.8：撑满剩余空间 + 列表虚拟化回收）
+             v0.1.5：同一格子叠放 搜索过渡层 / 空结果提示 / 模组详情页（覆盖层，PCL 式页内切换） -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ListBox Grid.Row="0" x:Name="LstResults" Style="{StaticResource HmListBox}"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     PreviewMouseLeftButtonUp="LstResults_PreviewMouseUp">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="12,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                      Checked="ChkSelect_Changed" Unchecked="ChkSelect_Changed" />
+                            <Border Grid.Column="1" Width="52" Height="52" CornerRadius="9"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                <Image Source="{Binding IconUrl}" Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14.5"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{Binding AuthorText}" FontSize="11.5" Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Description}" FontSize="12" Margin="0,2,0,5"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" MaxHeight="34" TextWrapping="Wrap" />
+                                <!-- 徽章行：分类 / 下载 / 关注 / 更新时间 / 支持版本 -->
+                                <ItemsControl ItemsSource="{Binding Badges}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="4" Padding="6,1.5" Margin="0,0,6,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <TextBlock Text="{Binding}" FontSize="10.5"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <ui:Button Grid.Column="3" Content="{DynamicResource S.Mod.Download}"
+                                       Appearance="Primary" MinHeight="36" VerticalAlignment="Center"
+                                       Click="BtnDownload_Click" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 空结果提示（v0.1.5，PCL 式） -->
+            <StackPanel Grid.Row="0" x:Name="PnlEmpty" Visibility="Collapsed" Margin="0,40"
+                        HorizontalAlignment="Center">
+                <ui:SymbolIcon Symbol="SearchInfo24" FontSize="34" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock x:Name="TxtEmpty" Margin="0,10,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- 搜索过渡层（v0.1.5，PCL 式「正在搜索」） -->
+            <Border Grid.RowSpan="2" x:Name="PnlSearching" Visibility="Collapsed"
+                    Background="{DynamicResource ApplicationBackgroundBrush}" Opacity="0.82" CornerRadius="8"
+                    KeyboardNavigation.TabNavigation="None" Focusable="False">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ui:ProgressRing Width="42" Height="42" IsIndeterminate="True" />
+                    <TextBlock x:Name="TxtSearching" Margin="0,12,0,0" HorizontalAlignment="Center" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- 模组详情页（v0.1.5，PCL 式：单击结果行进入，返回按钮回列表） -->
+            <Border Grid.RowSpan="2" x:Name="PnlDetail" Visibility="Collapsed"
+                    Background="{DynamicResource ApplicationBackgroundBrush}" CornerRadius="8">
+                <ScrollViewer Style="{StaticResource HmScrollViewer}">
+                    <StackPanel Margin="4,2,4,8">
+                        <Grid Margin="0,0,0,10">
+                            <ui:Button x:Name="BtnDetailBack" Content="{DynamicResource S.Mod.DetailBack}"
+                                       Icon="{ui:SymbolIcon ArrowLeft24}" MinHeight="34"
+                                       HorizontalAlignment="Left" Click="BtnDetailBack_Click" />
+                            <ui:Button Content="{DynamicResource S.Mod.DetailOpenWeb}"
+                                       Icon="{ui:SymbolIcon Link24}" MinHeight="34"
+                                       HorizontalAlignment="Right" Click="BtnDetailOpenWeb_Click" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Border Width="64" Height="64" CornerRadius="10"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                <Grid>
+                                    <Image x:Name="ImgDetailIcon" Stretch="UniformToFill" Visibility="Collapsed" />
+                                    <ui:SymbolIcon x:Name="IcoDetailFallback" Symbol="PuzzlePiece24" FontSize="26"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtDetailTitle" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock x:Name="TxtDetailAuthor" FontSize="12" Margin="0,3,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="TxtDetailBadges" FontSize="11.5" Margin="0,3,0,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <ui:Button x:Name="BtnDetailDownload" Content="{DynamicResource S.Mod.Download}"
+                                   Appearance="Primary" Icon="{ui:SymbolIcon ArrowDownload24}" MinHeight="38"
+                                   HorizontalAlignment="Left" Click="BtnDetailDownload_Click" />
+                        <Border Margin="0,12,0,0" CornerRadius="8" Padding="14,10"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}">
+                            <TextBlock x:Name="TxtDetailBody" FontSize="12.5" TextWrapping="Wrap" LineHeight="20"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- 本机 Mod 管理（PCL 式：列出 / 禁用 / 启用 / 删除） -->
+        <!-- 批量操作条（PCL 式：勾选后一键批量安装） -->
+        <Border Grid.Row="3" x:Name="PnlBatch" Style="{StaticResource HmCard}" Margin="0,0,0,12"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="CheckboxChecked24" FontSize="16" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
+                <TextBlock Text="{DynamicResource S.Mod.BatchTitle}" Style="{StaticResource HmSectionTitle}"
+                           FontSize="13" Margin="8,0,14,0" VerticalAlignment="Center" />
+                <ui:Button Content="{DynamicResource S.Mod.BatchAll}" MinHeight="34" MinWidth="76" Margin="0,0,8,0"
+                           Click="BtnSelectAll_Click" />
+                <ui:Button Content="{DynamicResource S.Mod.BatchNone}" MinHeight="34" MinWidth="76" Margin="0,0,8,0"
+                           Click="BtnClearSelect_Click" />
+                <ui:Button x:Name="BtnBatchDownload" Content="{DynamicResource S.Mod.BatchGo}"
+                           Appearance="Primary" MinHeight="34" MinWidth="130" Margin="0,0,8,0"
+                           Icon="{ui:SymbolIcon ArrowDownload24}" IsEnabled="False"
+                           Click="BtnBatchDownload_Click" />
+                <!-- v0.1.5：模组预设（PCL 式一键装机单） -->
+                <ui:Button x:Name="BtnSavePreset" Content="{DynamicResource S.Mod.PresetSave}"
+                           MinHeight="34" MinWidth="96" Margin="0,0,8,0"
+                           Icon="{ui:SymbolIcon Save24}" IsEnabled="False"
+                           Click="BtnSavePreset_Click"
+                           ToolTip="{DynamicResource S.Mod.PresetSaveTip}" />
+                <ui:Button x:Name="BtnPresets" Content="{DynamicResource S.Mod.Presets}"
+                           MinHeight="34" MinWidth="96" Margin="0,0,8,0"
+                           Icon="{ui:SymbolIcon BookmarkMultiple24}"
+                           Click="BtnPresets_Click"
+                           ToolTip="{DynamicResource S.Mod.PresetsTip}" />
+                <TextBlock Text="{DynamicResource S.Mod.BatchHint}" FontSize="11.5" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- 加载更多（Modrinth 分页） -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+            <ui:Button x:Name="BtnMore" Content="{DynamicResource S.Mod.LoadMore}"
+                       Icon="{ui:SymbolIcon ChevronDown24}" MinHeight="34" MinWidth="160"
+                       Click="BtnMore_Click" Visibility="Collapsed" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="5" Margin="0,10,0,0">
+            <ProgressBar x:Name="PbProgress" Height="6" IsIndeterminate="False" Maximum="100" />
+            <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" Margin="0,6,0,0"
+                       TextWrapping="Wrap" MaxHeight="70" />
+        </StackPanel>
+    </Grid>
+</Page>
