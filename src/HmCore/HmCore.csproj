@@ -17,6 +17,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>HardmacroCraft.Services</RootNamespace>
+    <!-- 无 WPF 目标：Services 里的 WPF 专属代码（如窗口尺寸读取）用 HCL_HEADLESS 关闭 -->
+    <DefineConstants>$(DefineConstants);HCL_HEADLESS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,6 +47,14 @@
     <Compile Include="../HardmacroCraft/Services/SystemInfo.cs" Link="Services/SystemInfo.cs" />
     <Compile Include="../HardmacroCraft/Services/VersionKinds.cs" Link="Services/VersionKinds.cs" />
     <Compile Include="../HardmacroCraft/Services/GameOptions.cs" Link="Services/GameOptions.cs" />
+    <!-- v0.1.11：补齐 LauncherService / AppSettings / DownloadTaskService 间接依赖的源码链接
+         （此前缺链导致 HmCore 单独编译报错） -->
+    <Compile Include="../HardmacroCraft/Services/VersionInfo.cs" Link="Services/VersionInfo.cs" />
+    <Compile Include="../HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
+    <Compile Include="../HardmacroCraft/Services/MemoryManager.cs" Link="Services/MemoryManager.cs" />
+    <Compile Include="../HardmacroCraft/Services/PortablePath.cs" Link="Services/PortablePath.cs" />
+    <Compile Include="../HardmacroCraft/Services/UiRefreshPolicy.cs" Link="Services/UiRefreshPolicy.cs" />
+    <Compile Include="../HardmacroCraft/Services/LaunchProgressCalc.cs" Link="Services/LaunchProgressCalc.cs" />
   </ItemGroup>
 
 </Project>

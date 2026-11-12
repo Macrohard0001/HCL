@@ -23,6 +23,9 @@ public partial class HomePage : Page
     /// <summary>v0.1.7：窗口等待超时 —— 超时后按运行中处理（少数环境拿不到窗口句柄）。</summary>
     private static readonly TimeSpan WindowWaitTimeout = TimeSpan.FromSeconds(240);
     private object? _btnLaunchDefault;
+    // v0.1.11：启动进度统一计算器与平滑显示值（随启动流程重置，静态与 _launching 同一生命周期）
+    private static LaunchProgressCalc? _progressCalc;
+    private static double _shownPct;
 
     /// <summary>v0.1.6：当前首页实例（供版本管理页「启动」跳转后直连启动，规避导航后取不到页面实例）。</summary>
     public static HomePage? Current { get; private set; }
@@ -40,30 +43,34 @@ public partial class HomePage : Page
         // v0.1.1：订阅启动进度中枢 —— 启动中切页再回来，新实例立即回放当前进度
         LaunchProgressHub.Changed += ApplyLaunchUi;
         LaunchProgressHub.CancelRequested += OnHubCancelRequested;
-        // v0.1.7：运行实例卡（多实例管理）——注册 / 状态变化 / 退出都从这里刷新
-        GameInstanceManager.Changed += OnInstancesChanged;
+        // v0.1.7：实例日志仍写入主页日志区（实例列表已迁移到「实例管理」页 v0.1.11）
         GameInstanceManager.Log += OnInstanceLog;
         Unloaded += (_, _) =>
         {
             LaunchProgressHub.Changed -= ApplyLaunchUi;
             LaunchProgressHub.CancelRequested -= OnHubCancelRequested;
-            GameInstanceManager.Changed -= OnInstancesChanged;
             GameInstanceManager.Log -= OnInstanceLog;
             if (Current == this) Current = null;
         };
         ApplyLaunchUi();
+        // v0.1.11：恢复共享日志（切页不再清空）与展开状态（持久化，重启也恢复）
+        lock (LogLock)
+        {
+            if (LogLines.Count > 0) TxtLog.Text = string.Join(Environment.NewLine, LogLines);
+        }
+        TxtLog.ScrollToEnd();
+        SetLogOpen(AppSettings.Instance.HomeLogOpen);
         Loaded += async (_, _) =>
         {
             // v0.1.8 紧急修复：版本列表每次进入首页都刷新 —— 此前只在首次 Loaded 刷新，
             // 在下载页装完新版本回到首页，下拉框里根本没有它（选不了也启动不了）；
-            // 主流启动器装完立即可见。账号 / 实例 / 最近启动同步刷新。
+            // 主流启动器装完立即可见。账号 / 最近启动同步刷新。
             var keep = SelectedVersion;
             await RefreshVersionsAsync();
             if (keep != null && _versionItems.Any(i => i.Name == keep))
                 CmbVersions.SelectedValue = keep;
             RefreshAccountUi();
             RefreshRecent();
-            RefreshInstances();
             if (!_loaded)
             {
                 _loaded = true;
@@ -107,6 +114,24 @@ public partial class HomePage : Page
         {
             Log("自动登录失败（可在登录窗口重新登录）: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// v0.1.11：启动进度统一出口 —— 平滑显示值（PCL 式逼近，永不回跳到真实值之下后横跳）、
+    /// 写进度中枢（跨页面回放）与任务中心任务。所有进度回调（文件尺 / 字节尺）都走这里。
+    /// </summary>
+    private static void ShowLaunchProgress(double actual, string line, DownloadTaskService.TaskItem? task)
+    {
+        _shownPct = LaunchProgressCalc.Smooth(_shownPct, actual);
+        LaunchProgressHub.Update(s =>
+        {
+            s.Indeterminate = false;
+            s.Percent = _shownPct;
+            s.ProgressLine = line;
+            s.ButtonText = $"下载中 {actual:0}%";
+        });
+        if (task != null)
+            DownloadTaskService.Instance.Update(task, _shownPct, line);
     }
 
     /// <summary>v0.1.1：把启动进度中枢的快照回放到本实例的控件上。</summary>
@@ -159,16 +184,7 @@ public partial class HomePage : Page
         LaunchProgressHub.Update(s => s.CancelEnabled = false);
     }
 
-    // ===== v0.1.7 运行实例卡（多实例管理：查看 / 结束） =====
-
-    /// <summary>实例列表行视图模型（属性绑定到实例卡模板）。</summary>
-    public sealed record InstanceRow(string Version, string StateText, string PidText, int Pid);
-
-    private void OnInstancesChanged()
-    {
-        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(OnInstancesChanged); return; }
-        RefreshInstances();
-    }
+    // ===== v0.1.7 运行实例日志（实例列表 UI 已迁移到「实例管理」页 v0.1.11） =====
 
     private void OnInstanceLog(string line)
     {
@@ -176,30 +192,7 @@ public partial class HomePage : Page
         Log(line);
     }
 
-    private void RefreshInstances()
-    {
-        var list = GameInstanceManager.Instances;
-        CardInstances.Visibility = list.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        TxtInstanceCount.Text = string.Format(
-            App.Current.TryFindResource("S.Home.InstanceCount") as string ?? "{0} 个", list.Count);
-        PnlInstances.ItemsSource = list.Select(i => new InstanceRow(
-            i.Version,
-            i.State == GameInstanceState.Running
-                ? App.Current.TryFindResource("S.Home.InstanceRunning") as string ?? "运行中"
-                : App.Current.TryFindResource("S.Home.InstanceWaiting") as string ?? "等待窗口出现",
-            $"PID {i.Pid}",
-            i.Pid)).ToList();
-    }
-
-    private void BtnKillInstance_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is int pid && GameInstanceManager.Kill(pid))
-            Log($"[实例] 已请求结束游戏进程（PID {pid}，含其派生子进程）...");
-        else
-            Log("[实例] 结束失败：进程可能已退出。");
-    }
-
-    /// <summary>主页最近启动快捷键（PCL/HMCL 式）。</summary>
+    /// <summary>主页最近启动快捷键（图标对齐版本列表：加载器图标 / 原版草方块）。</summary>
     private void RefreshRecent()
     {
         PnlRecent.Children.Clear();
@@ -208,30 +201,42 @@ public partial class HomePage : Page
         foreach (var v in recent)
         {
             var installed = App.LauncherService.GetInstalledVersions().Contains(v);
+            // v0.1.11：图标不再硬编码草方块 —— 与首页下拉框同一套规则（加载器图标 / 原版草方块），
+            // 修复「最近启动的 Forge / Fabric 版本也显示草方块」的问题
+            ImageSource? icon = null;
+            string? badge = null;
+            Brush? badgeBrush = null;
+            try
+            {
+                var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, v);
+                (icon, badge, badgeBrush) = VersionIconProvider.DescribeIcon(desc);
+            }
+            catch { /* 版本目录读取失败时回退草方块 */ }
+            icon ??= new System.Windows.Media.Imaging.BitmapImage(
+                new Uri("pack://application:,,,/Assets/grass.png"));
+            var chipContent = new StackPanel { Orientation = Orientation.Horizontal };
+            chipContent.Children.Add(new System.Windows.Controls.Image
+            {
+                Source = icon,
+                Width = 16, Height = 16,
+                Stretch = Stretch.Uniform,
+                                VerticalAlignment = VerticalAlignment.Center,
+            });
+            chipContent.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = v, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 0, 0),
+                Opacity = installed ? 1.0 : 0.45,
+                FontSize = 12,
+            });
+            if (chipContent.Children[0] is System.Windows.Controls.Image chipImg)
+                RenderOptions.SetBitmapScalingMode(chipImg, BitmapScalingMode.NearestNeighbor);
             var chip = new Wpf.Ui.Controls.Button
             {
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Children =
-                    {
-                        new System.Windows.Controls.Image
-                        {
-                            Source = new System.Windows.Media.Imaging.BitmapImage(
-                                new Uri("pack://application:,,,/Assets/grass.png")),
-                            Width = 18, Height = 18,
-                            Stretch = Stretch.Uniform,
-                        },
-                        new System.Windows.Controls.TextBlock
-                        {
-                            Text = v, VerticalAlignment = VerticalAlignment.Center,
-                            Margin = new Thickness(7, 0, 0, 0),
-                            Opacity = installed ? 1.0 : 0.45,
-                        },
-                    },
-                },
-                MinHeight = 36,
-                Margin = new Thickness(0, 0, 8, 8),
+                Content = chipContent,
+                MinHeight = 30,
+                Padding = new Thickness(8, 3, 10, 3),
+                Margin = new Thickness(0, 0, 6, 6),
                 ToolTip = installed ? v : v + "（已不存在，点击重试）",
             };
             chip.Click += async (_, _) =>
@@ -245,24 +250,34 @@ public partial class HomePage : Page
 
     private const int LogCapLines = 500;   // v0.1.3：日志超过 600 行时修剪回 500 行，防长会话撑爆内存
     private const int LogTrimToLines = 500;
-    private readonly List<string> _logLines = new();
+    // v0.1.11：日志缓冲改为静态（跨页面实例共享）—— 此前 _logLines 是实例字段，
+    // Wpf-Ui 导航每次新建页面实例，切个标签回来日志就被清空并折叠。
+    // 现在全实例共享同一条环形缓冲，展开状态另持久化到 config（HomeLogOpen）。
+    private static readonly List<string> LogLines = new();
+    private static readonly object LogLock = new();
 
     private void Log(string line)
     {
-        Dispatcher.Invoke(() =>
+        string entry;
+        List<string>? full = null;
+        lock (LogLock)
         {
-            _logLines.Add($"[{DateTime.Now:HH:mm:ss}] {line}");
-            if (_logLines.Count > LogCapLines + 100)
+            entry = $"[{DateTime.Now:HH:mm:ss}] {line}";
+            LogLines.Add(entry);
+            if (LogLines.Count > LogCapLines + 100)
             {
                 // v0.1.3 环形修剪：只保留最近 500 行（游戏输出 / 补全日志可达数千行）
-                _logLines.RemoveRange(0, _logLines.Count - LogTrimToLines);
-                TxtLog.Text = string.Join(Environment.NewLine, _logLines);
-                TxtLog.ScrollToEnd();
-                return;
+                LogLines.RemoveRange(0, LogLines.Count - LogTrimToLines);
+                full = LogLines.ToList();
             }
-            TxtLog.AppendText(_logLines[^1] + Environment.NewLine);
+        }
+        void Apply()
+        {
+            if (full != null) TxtLog.Text = string.Join(Environment.NewLine, full);
+            else TxtLog.AppendText(entry + Environment.NewLine);
             TxtLog.ScrollToEnd();
-        });
+        }
+        if (Dispatcher.CheckAccess()) Apply(); else Dispatcher.BeginInvoke(Apply);
     }
 
     private void RefreshAccountUi()
@@ -507,6 +522,9 @@ public partial class HomePage : Page
 
         _launching = true;
         LaunchProgressHub.Begin(version); // v0.1.1：进度入库（跨页面存活），本实例与新实例都会回放
+        // v0.1.11：统一进度源（修复进度条乱蹦）—— 字节尺 / 文件尺合并 + PCL 式显示平滑
+        _progressCalc = new LaunchProgressCalc();
+        _shownPct = 0;
         try
         {
             // fix6：内存显示实际生效值（自动检测 / 手动；v0.1.6 起含版本独立设置覆盖），与启动日志一致
@@ -622,44 +640,34 @@ public partial class HomePage : Page
             var fileProgress = new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(p =>
                 Dispatcher.Invoke(() =>
                 {
-                    var pct = p.TotalTasks > 0 ? p.ProgressedTasks * 100.0 / p.TotalTasks : 0;
-                    taskPct = pct;
+                    // v0.1.11：文件尺先入统一计算器，百分比由字节尺 / 文件尺仲裁（避免两把尺交替横跳）
+                    _progressCalc?.OnFiles(p.ProgressedTasks, p.TotalTasks);
+                    var pct = _progressCalc?.Compute();
+                    if (pct == null) return;
+                    taskPct = pct.Value;
                     // v0.1.10：按已耗时估算到启动完成（补全阶段）的剩余时间（PCL 式）
-                    var eta = filesSw.Elapsed.TotalSeconds > 3 && pct >= 3
-                        ? SpeedMeter.FormatEtaSeconds(filesSw.Elapsed.TotalSeconds / pct * (100 - pct))
+                    var eta = filesSw.Elapsed.TotalSeconds > 3 && pct.Value >= 3
+                        ? SpeedMeter.FormatEtaSeconds(filesSw.Elapsed.TotalSeconds / pct.Value * (100 - pct.Value))
                         : "";
                     var line = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}" +
                                (eta.Length > 0 ? " · " + eta : "");
-                    // v0.1.1：写进进度中枢（本实例与导航切换后的新实例同步回放）
-                    LaunchProgressHub.Update(s =>
-                    {
-                        s.Indeterminate = false;
-                        s.Percent = pct;
-                        s.ProgressLine = line;
-                        s.ButtonText = $"下载中 {pct:0}%";
-                    });
-                    DownloadTaskService.Instance.Update(centerTask, pct, line);
+                    ShowLaunchProgress(pct.Value, line, centerTask);
                 }));
             var meter = new SpeedMeter();
             var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
                 Dispatcher.Invoke(() =>
                 {
                     if (p.TotalBytes <= 0) return;
-                    var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
                     var speed = meter.Observe(p.ProgressedBytes);
+                    _progressCalc?.OnBytes(p.ProgressedBytes, p.TotalBytes);
+                    var pct = _progressCalc?.Compute();
+                    if (pct == null) return;
+                    taskPct = pct.Value;
                     // v0.1.10：剩余时间（按字节与当前速度估算，到启动完成的下载部分）
                     var eta = SpeedMeter.FormatEta(p.TotalBytes - p.ProgressedBytes, speed);
-                    LaunchProgressHub.Update(s =>
-                    {
-                        s.Indeterminate = false;
-                        s.Percent = pct;
-                        s.ProgressLine = $"下载中 {pct:0}% · {SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
-                                         (eta.Length > 0 ? " · " + eta : "");
-                        s.ButtonText = $"下载中 {pct:0}%";
-                    });
-                    DownloadTaskService.Instance.Update(centerTask, pct,
-                        $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
-                        (eta.Length > 0 ? " · " + eta : ""));
+                    var line = $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
+                               (eta.Length > 0 ? " · " + eta : "");
+                    ShowLaunchProgress(pct.Value, line, centerTask);
                 }));
 
             SetStage(1, 4, "S.Home.Stage.CheckJava", "正在检查 Java 环境");
@@ -1016,13 +1024,19 @@ public partial class HomePage : Page
     private void BtnToggleLog_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         => SetLogOpen(PnlLogBox.Visibility == Visibility.Collapsed);
 
-    /// <summary>展开 / 收起日志卡（v0.1.8：从事件处理器拆出，供启动失败时自动展开）。</summary>
+    /// <summary>展开 / 收起日志卡（v0.1.8：从事件处理器拆出，供启动失败时自动展开）。
+    /// v0.1.11：展开状态持久化到 config（切页 / 重启后恢复，不再切个标签就折叠）。</summary>
     private void SetLogOpen(bool open)
     {
         PnlLogBox.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         // v0.1.7：展开时日志卡撑满中部剩余空间；收起时回到一条紧凑标题栏
         CardLog.VerticalAlignment = open ? VerticalAlignment.Stretch : VerticalAlignment.Top;
         IcoLogToggle.Symbol = open ? SymbolRegular.ChevronUp24 : SymbolRegular.ChevronDown24;
+        if (AppSettings.Instance.HomeLogOpen != open)
+        {
+            AppSettings.Instance.HomeLogOpen = open;
+            AppSettings.Instance.Save();
+        }
     }
 }
 

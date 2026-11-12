@@ -37,11 +37,11 @@ public partial class MainWindow : FluentWindow
             RootNavigation.Navigated += (_, e) =>
             {
                 currentPage = e.Page as System.Windows.Controls.Page;
-                DisableNavigationViewOuterScroll(); // v0.1.9：每次导航后确保关闭外层动态滚动
+                DisableNavigationViewOuterScrollWithRetry(); // v0.1.9：每次导航后确保关闭外层动态滚动
             };
         }
         catch { currentPage = null; }
-        Loaded += (_, _) => DisableNavigationViewOuterScroll(); // 首次加载同样处理
+        Loaded += (_, _) => DisableNavigationViewOuterScrollWithRetry(); // 首次加载同样处理
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key != System.Windows.Input.Key.Escape) return;
@@ -51,21 +51,23 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>
-    /// v0.1.9：消除「日志容器造成的首页滚动」。
-    /// Wpf-Ui 的 NavigationViewContentPresenter 默认 IsDynamicScrollViewerEnabled=true，
-    /// 页面被包在 DynamicScrollViewer 里：展开首页日志后 TextBox 按全部文本高度参与
-    /// 无限高度测量，整页被撑高、出现外层滚动条（日志内滚永远不生效）。
-    /// 所有页面均已自管滚动（页内 ScrollViewer / 列表虚拟化），这里关闭外层动态滚动。
+    /// v0.1.11：带重试的外层滚动禁用。v0.1.9 的实现只在导航瞬间找一次 presenter，
+    /// 模板尚未实例化时静默失败且不再补试 —— 首页日志展开仍可能包进 DynamicScrollViewer
+    /// 出现整页滚动。现在在导航后按 Loaded / Background 优先级重试多次，直到成功关闭为止。
     /// </summary>
-    private void DisableNavigationViewOuterScroll()
+    private void DisableNavigationViewOuterScrollWithRetry()
     {
-        try
+        for (var i = 0; i < 6; i++)
         {
-            var presenter = FindDescendant<Wpf.Ui.Controls.NavigationViewContentPresenter>(RootNavigation);
-            presenter?.SetValue(
-                Wpf.Ui.Controls.NavigationViewContentPresenter.IsDynamicScrollViewerEnabledProperty, false);
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var presenter = FindDescendant<Wpf.Ui.Controls.NavigationViewContentPresenter>(RootNavigation);
+                presenter?.SetValue(
+                    Wpf.Ui.Controls.NavigationViewContentPresenter.IsDynamicScrollViewerEnabledProperty,
+                    false);
+            }), i == 0 ? System.Windows.Threading.DispatcherPriority.Loaded
+                       : System.Windows.Threading.DispatcherPriority.Background);
         }
-        catch { /* 模板尚未加载时忽略；Navigated / Loaded 会再次尝试 */ }
     }
 
     private static T? FindDescendant<T>(System.Windows.DependencyObject? d) where T : System.Windows.DependencyObject

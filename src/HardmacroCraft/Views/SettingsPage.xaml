@@ -3,7 +3,9 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <!-- v0.1.7：主容器不滚动 —— 标题固定，设置内容在内部区域滚动（对齐系统设置式页面） -->
+    <!-- v0.1.7：主容器不滚动 —— 标题固定，设置内容在内部区域滚动（对齐系统设置式页面）
+         v0.1.11：设置项全面分组整理（外观 / 游戏目录 / 游戏内存 / Java / 启动 / 网络 / 启动器维护），
+         新增「界面刷新频率」与「相对路径增强」。 -->
     <Grid Margin="32,24,32,24" MaxWidth="880" HorizontalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,7 +20,7 @@
         <ScrollViewer Grid.Row="1" Style="{StaticResource HmScrollViewer}">
             <StackPanel>
 
-            <!-- 外观（主题切换：即时生效，字体颜色跟随主题资源） -->
+            <!-- ===== 1. 外观 ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -36,11 +38,40 @@
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeLight}" Tag="light" />
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeSystem}" Tag="system" />
                         </ComboBox>
+                        <TextBlock Text="{DynamicResource S.Set.Language}" FontWeight="Medium"
+                                   VerticalAlignment="Center" Margin="24,0,12,0" />
+                        <ComboBox x:Name="CmbLanguage" MinHeight="38" MinWidth="140">
+                            <ComboBoxItem Content="简体中文" Tag="zh-CN" IsSelected="True" />
+                            <ComboBoxItem Content="English" Tag="en" />
+                        </ComboBox>
                     </StackPanel>
+
+                    <!-- v0.1.11：界面刷新频率（自动 / 手动 FPS / 事件驱动 / 事件驱动限频） -->
+                    <TextBlock Text="{DynamicResource S.Set.UiRefresh}" FontWeight="Medium" Margin="0,16,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.UiRefreshHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <WrapPanel Orientation="Horizontal">
+                        <ComboBox x:Name="CmbUiRefresh" MinHeight="38" MinWidth="230" SelectionChanged="CmbUiRefresh_Changed">
+                            <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshAuto}" Tag="auto" IsSelected="True" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshManual}" Tag="manual" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshEvent}" Tag="event" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshEventLimited}" Tag="event-limited" />
+                        </ComboBox>
+                        <StackPanel x:Name="PnlUiRefreshFps" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
+                            <TextBlock Text="{DynamicResource S.Set.UiRefreshFps}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ui:NumberBox x:Name="NumUiFps" MinWidth="96" MinHeight="36" Minimum="1" Maximum="240"
+                                          Value="30" SmallChange="1" LargeChange="10" />
+                        </StackPanel>
+                        <StackPanel x:Name="PnlUiRefreshMaxFps" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
+                            <TextBlock Text="{DynamicResource S.Set.UiRefreshMaxFps}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ui:NumberBox x:Name="NumUiMaxFps" MinWidth="96" MinHeight="36" Minimum="1" Maximum="240"
+                                          Value="30" SmallChange="1" LargeChange="10" />
+                        </StackPanel>
+                    </WrapPanel>
                 </StackPanel>
             </Border>
 
-            <!-- 游戏目录 -->
+            <!-- ===== 2. 游戏目录 ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -58,10 +89,19 @@
                         <ui:Button Grid.Column="1" MinHeight="38" Content="{DynamicResource S.Set.Browse}"
                                    Click="BtnBrowseRoot_Click" />
                     </Grid>
+
+                    <!-- v0.1.11：相对路径增强（移动磁盘 / 整目录迁移友好） -->
+                    <CheckBox x:Name="ChkRelativePaths" Content="{DynamicResource S.Set.RelativePaths}" Margin="0,14,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.RelativePathsHint}" Style="{StaticResource HmHint}"
+                               Margin="24,0,0,10" TextWrapping="Wrap" />
+
+                    <CheckBox x:Name="ChkIsolation" Content="{DynamicResource S.Set.Isolation}" Margin="0,4,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.IsolationHint}" Style="{StaticResource HmHint}" Margin="24,0,0,2"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 
-            <!-- 内存 / Java -->
+            <!-- ===== 3. 游戏内存 ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -83,7 +123,51 @@
                                TextWrapping="Wrap" Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" />
 
                     <Slider x:Name="SldMemory" Minimum="1024" Maximum="32768" TickFrequency="512"
-                            IsSnapToTickEnabled="True" Margin="0,0,0,16" ValueChanged="SldMemory_ValueChanged" />
+                            IsSnapToTickEnabled="True" Margin="0,0,0,8" ValueChanged="SldMemory_ValueChanged" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== 4. 启动器维护（内存优化 / 手动清理 / 日志滚动） ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.LauncherMemGroup}" />
+                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.LauncherMemGroupHint}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <CheckBox x:Name="ChkLauncherMemOpt" Content="{DynamicResource S.Set.LauncherMemOpt}" Margin="0,0,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.LauncherMemOptHint}" Style="{StaticResource HmHint}" Margin="24,0,0,6"
+                               TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button x:Name="BtnMemClean" Content="{DynamicResource S.Set.MemCleanNow}"
+                                   Icon="{ui:SymbolIcon Broom24}" MinHeight="34" MinWidth="110"
+                                   Click="BtnMemClean_Click" />
+                        <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!-- v0.1.11：日志平滑滚动开关（任务详情 / 设置页等日志区域共用） -->
+                    <CheckBox x:Name="ChkSmoothScroll" Content="{DynamicResource S.Set.SmoothScroll}" Margin="0,14,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.SmoothScrollHint}" Style="{StaticResource HmHint}"
+                               Margin="24,0,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== 5. Java ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.JavaManage}" />
+                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.JavaManageHint}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <CheckBox x:Name="ChkAutoJava" Content="{DynamicResource S.Set.AutoJava}" Margin="0,0,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.AutoJavaHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
 
                     <TextBlock Text="{DynamicResource S.Set.Java}" FontWeight="Medium" Margin="0,0,0,6" />
                     <Grid>
@@ -100,74 +184,7 @@
                                        ToolTip="选择 Java 所在文件夹（自动搜索 javaw.exe）" Click="BtnBrowseJavaFolder_Click" />
                         </StackPanel>
                     </Grid>
-                    <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.JavaPathHint}" Margin="0,6,0,0" />
-
-                    <!-- fix8：默认 JVM 优化参数（PCL 同款，推荐开启） -->
-                    <CheckBox x:Name="ChkJvmOptimize" Content="{DynamicResource S.Set.JvmOptimize}" Margin="0,16,0,2"
-                              IsChecked="True" />
-                    <TextBlock Text="{DynamicResource S.Set.JvmOptimizeHint}" Style="{StaticResource HmHint}" Margin="24,0,0,10"
-                               TextWrapping="Wrap" />
-
-                    <TextBlock Text="{DynamicResource S.Set.JvmArgs}" FontWeight="Medium" Margin="0,0,0,6" />
-                    <TextBlock Text="{DynamicResource S.Set.JvmArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <ui:TextBox x:Name="TxtJvmArgs" MinHeight="38" FontFamily="Consolas"
-                                PlaceholderText="-XX:+UseG1GC -Dfile.encoding=UTF-8" />
-
-                    <!-- fix8：自定义游戏参数（PCL 的“游戏参数”） -->
-                    <TextBlock Text="{DynamicResource S.Set.GameArgs}" FontWeight="Medium" Margin="0,16,0,6" />
-                    <TextBlock Text="{DynamicResource S.Set.GameArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <ui:TextBox x:Name="TxtGameArgs" MinHeight="38" FontFamily="Consolas"
-                                PlaceholderText="--fullscreen --demo" />
-
-                    <!-- v0.1.1：下载线程数（多线程预取） -->
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{DynamicResource S.Set.DownloadThreads}" FontWeight="Medium" />
-                            <TextBlock Text="{DynamicResource S.Set.DownloadThreadsHint}" Style="{StaticResource HmHint}"
-                                       Margin="0,4,0,0" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="36"
-                                      VerticalAlignment="Center" Minimum="1" Maximum="256" Value="64"
-                                      SmallChange="1" LargeChange="16" />
-                    </Grid>
-
-                    <!-- v0.1.1：每次启动重新校验文件 -->
-                    <CheckBox x:Name="ChkVerifyFiles" Content="{DynamicResource S.Set.VerifyEvery}" Margin="0,16,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.VerifyEveryHint}" Style="{StaticResource HmHint}" Margin="24,0,0,10"
-                               TextWrapping="Wrap" />
-
-                    <!-- v0.1.3：启动器内存优化（重大操作后 + 空闲时段自动回收） -->
-                    <CheckBox x:Name="ChkLauncherMemOpt" Content="{DynamicResource S.Set.LauncherMemOpt}" Margin="0,6,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.LauncherMemOptHint}" Style="{StaticResource HmHint}" Margin="24,0,0,6"
-                               TextWrapping="Wrap" />
-                    <!-- v0.1.10：手动触发清理（PCL 式立即回收） -->
-                    <StackPanel Orientation="Horizontal">
-                        <ui:Button x:Name="BtnMemClean" Content="{DynamicResource S.Set.MemCleanNow}"
-                                   Icon="{ui:SymbolIcon Broom24}" MinHeight="34" MinWidth="110"
-                                   Click="BtnMemClean_Click" />
-                        <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}"
-                                   VerticalAlignment="Center" Margin="12,0,0,0"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Java 自动管理 -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.JavaManage}" />
-                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.JavaManageHint}" />
-                        </StackPanel>
-                    </StackPanel>
-
-                    <CheckBox x:Name="ChkAutoJava" Content="{DynamicResource S.Set.AutoJava}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.AutoJavaHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+                    <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.JavaPathHint}" Margin="0,6,0,12" />
 
                     <!-- fix5：Java 下载位置自定义 -->
                     <TextBlock Text="{DynamicResource S.Set.JavaDir}" FontWeight="Medium" Margin="0,0,0,6" />
@@ -204,27 +221,59 @@
                 </StackPanel>
             </Border>
 
-            <!-- 网络 / 启动行为 -->
+            <!-- ===== 6. 启动 ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.Behavior}" />
+                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.LaunchGroup}" />
+                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.LaunchGroupHint}" />
                         </StackPanel>
                     </StackPanel>
 
-                    <CheckBox x:Name="ChkMirror" Content="{DynamicResource S.Set.Mirror}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.MirrorHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+                    <!-- JVM 优化 / JVM 参数 / 游戏参数 -->
+                    <CheckBox x:Name="ChkJvmOptimize" Content="{DynamicResource S.Set.JvmOptimize}" Margin="0,0,0,2"
+                              IsChecked="True" />
+                    <TextBlock Text="{DynamicResource S.Set.JvmOptimizeHint}" Style="{StaticResource HmHint}" Margin="24,0,0,10"
+                               TextWrapping="Wrap" />
 
-                    <CheckBox x:Name="ChkIsolation" Content="{DynamicResource S.Set.Isolation}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.IsolationHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+                    <TextBlock Text="{DynamicResource S.Set.JvmArgs}" FontWeight="Medium" Margin="0,0,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.JvmArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
+                    <ui:TextBox x:Name="TxtJvmArgs" MinHeight="38" FontFamily="Consolas"
+                                PlaceholderText="-XX:+UseG1GC -Dfile.encoding=UTF-8" />
 
-                    <!-- fix7：跳过初始屏幕（PCL 同款可选） -->
+                    <TextBlock Text="{DynamicResource S.Set.GameArgs}" FontWeight="Medium" Margin="0,16,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.GameArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
+                    <ui:TextBox x:Name="TxtGameArgs" MinHeight="38" FontFamily="Consolas"
+                                PlaceholderText="--fullscreen --demo" />
+
+                    <!-- 窗口大小（v0.1.10：默认 / 与启动器一致 / 自定义） -->
+                    <TextBlock Text="{DynamicResource S.Set.Resolution}" FontWeight="Medium" Margin="0,16,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.ResolutionHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
+                    <WrapPanel Orientation="Horizontal">
+                        <ComboBox x:Name="CmbWindowMode" MinHeight="38" MinWidth="200"
+                                  SelectionChanged="CmbWindowMode_Changed">
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeDefault}" Tag="default" IsSelected="True" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeMatch}" Tag="match-launcher" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeCustom}" Tag="custom" />
+                        </ComboBox>
+                        <StackPanel x:Name="PnlWindowSize" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
+                            <ui:TextBox x:Name="TxtGameWidth" MinHeight="38" Width="110"
+                                        PlaceholderText="1280" TextAlignment="Center" />
+                            <TextBlock Text="×" FontSize="16" VerticalAlignment="Center" Margin="8,0" />
+                            <ui:TextBox x:Name="TxtGameHeight" MinHeight="38" Width="110"
+                                        PlaceholderText="720" TextAlignment="Center" />
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <CheckBox x:Name="ChkFullscreen" Content="{DynamicResource S.Set.Fullscreen}" Margin="0,14,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.FullscreenHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12"
+                               TextWrapping="Wrap" />
+
                     <CheckBox x:Name="ChkSkipOnboarding" Content="{DynamicResource S.Set.SkipOnboarding}" Margin="0,0,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.SkipOnboardingHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12"
                                TextWrapping="Wrap" />
 
-                    <!-- fix7：游戏语言（PCL 同款可选） -->
                     <TextBlock Text="{DynamicResource S.Set.GameLang}" FontWeight="Medium" Margin="0,0,0,6" />
                     <ComboBox x:Name="CmbGameLang" MinHeight="38" Width="240" HorizontalAlignment="Left" Margin="0,0,0,12">
                         <ComboBoxItem Content="{DynamicResource S.Set.GameLangKeep}" Tag="" IsSelected="True" />
@@ -236,39 +285,45 @@
                     <TextBlock Text="{DynamicResource S.Set.HideOnStartHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
 
                     <CheckBox x:Name="ChkExitOnGameExit" Content="{DynamicResource S.Set.ExitOnGameExit}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.ExitOnGameExitHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+                    <TextBlock Text="{DynamicResource S.Set.ExitOnGameExitHint}" Style="{StaticResource HmHint}" Margin="24,0,0,2"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
 
-                    <TextBlock Text="{DynamicResource S.Set.Language}" FontWeight="Medium" Margin="0,0,0,6" />
-                    <ComboBox x:Name="CmbLanguage" MinHeight="38" Width="240" HorizontalAlignment="Left" Margin="0,0,0,12">
-                        <ComboBoxItem Content="简体中文" Tag="zh-CN" IsSelected="True" />
-                        <ComboBoxItem Content="English" Tag="en" />
-                    </ComboBox>
-
-                    <TextBlock Text="{DynamicResource S.Set.Resolution}" FontWeight="Medium" Margin="0,0,0,6" />
-                    <TextBlock Text="{DynamicResource S.Set.ResolutionHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <!-- v0.1.10：窗口大小模式（PCL 同款：默认 / 与启动器一致 / 自定义） -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <ComboBox x:Name="CmbWindowMode" MinHeight="38" MinWidth="200"
-                                  SelectionChanged="CmbWindowMode_Changed">
-                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeDefault}" Tag="default" IsSelected="True" />
-                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeMatch}" Tag="match-launcher" />
-                            <ComboBoxItem Content="{DynamicResource S.Set.WinModeCustom}" Tag="custom" />
-                        </ComboBox>
-                    </StackPanel>
-                    <StackPanel x:Name="PnlWindowSize" Orientation="Horizontal" Visibility="Collapsed">
-                        <ui:TextBox x:Name="TxtGameWidth" MinHeight="38" Width="110"
-                                    PlaceholderText="1280" TextAlignment="Center" />
-                        <TextBlock Text="×" FontSize="16" VerticalAlignment="Center" Margin="8,0" />
-                        <ui:TextBox x:Name="TxtGameHeight" MinHeight="38" Width="110"
-                                    PlaceholderText="720" TextAlignment="Center" />
+            <!-- ===== 7. 网络 ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.NetworkGroup}" />
+                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.NetworkGroupHint}" />
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- fix8：全屏启动（PCL 同款，忽略分辨率设置） -->
-                    <CheckBox x:Name="ChkFullscreen" Content="{DynamicResource S.Set.Fullscreen}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.FullscreenHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12"
+                    <CheckBox x:Name="ChkMirror" Content="{DynamicResource S.Set.Mirror}" Margin="0,0,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.MirrorHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+
+                    <!-- v0.1.1：下载线程数（多线程预取） -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource S.Set.DownloadThreads}" FontWeight="Medium" />
+                            <TextBlock Text="{DynamicResource S.Set.DownloadThreadsHint}" Style="{StaticResource HmHint}"
+                                       Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="36"
+                                      VerticalAlignment="Center" Minimum="1" Maximum="256" Value="64"
+                                      SmallChange="1" LargeChange="16" />
+                    </Grid>
+
+                    <CheckBox x:Name="ChkVerifyFiles" Content="{DynamicResource S.Set.VerifyEvery}" Margin="0,0,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.VerifyEveryHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12"
                                TextWrapping="Wrap" />
 
-                    <TextBlock Text="{DynamicResource S.Set.AzureId}" FontWeight="Medium" Margin="0,16,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.AzureId}" FontWeight="Medium" Margin="0,0,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.AzureIdHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
                     <ui:TextBox x:Name="TxtAzureId" MinHeight="38" />
                     <ui:Button Content="{DynamicResource S.Azure.OpenGuide}" Appearance="Transparent" Padding="8,2,8,2"

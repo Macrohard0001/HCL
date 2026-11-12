@@ -28,8 +28,8 @@
     <sys:String x:Key="S.Home.QuickServerBtn">一键进服</sys:String>
     <sys:String x:Key="S.Home.VersionSettingsTip">版本设置（仅对此版本生效）</sys:String>
 <sys:String x:Key="S.Home.Launch">启动游戏</sys:String>
-    <sys:String x:Key="S.Home.Stage.CheckJava">正在检查 Java 环境</sys:String>
-    <sys:String x:Key="S.Home.Stage.Files">正在补全游戏文件</sys:String>
+    <sys:String x:Key="S.Home.Stage.CheckJava">正在获取 Java</sys:String>
+    <sys:String x:Key="S.Home.Stage.Files">正在补全文件</sys:String>
     <sys:String x:Key="S.Home.Stage.Launch">正在启动游戏</sys:String>
     <sys:String x:Key="S.Home.CancelLaunchTip">取消本次启动（下载 / 安装 / 补全文件阶段生效）</sys:String>
     <sys:String x:Key="S.Home.Starting">启动中…</sys:String>
@@ -47,7 +47,7 @@
     <sys:String x:Key="S.Home.OpenLogs">日志目录</sys:String>
     <sys:String x:Key="S.Home.OpenCrash">崩溃报告</sys:String>
     <sys:String x:Key="S.Home.Recent">最近启动</sys:String>
-    <sys:String x:Key="S.Home.Stage.WaitWindow">等待游戏窗口出现</sys:String>
+    <sys:String x:Key="S.Home.Stage.WaitWindow">正在等待游戏窗口出现</sys:String>
     <sys:String x:Key="S.Home.WaitWindow">正在等待游戏窗口出现…</sys:String>
     <sys:String x:Key="S.Home.WaitWindowHint">游戏窗口出现前可能需要一段时间（首次启动加载较慢，属正常现象）。</sys:String>
     <sys:String x:Key="S.Home.GameRunning">游戏运行中，可关闭窗口（日志继续记录）</sys:String>
@@ -447,7 +447,7 @@
     <sys:String x:Key="S.Task.Done">已完成</sys:String>
     <sys:String x:Key="S.Task.Failed">失败</sys:String>
     <sys:String x:Key="S.Task.Canceled">已取消</sys:String>
-    <sys:String x:Key="S.Task.Prepare">准备游戏文件（{0}）</sys:String>
+    <sys:String x:Key="S.Task.Prepare">启动游戏（{0}）</sys:String>
     <sys:String x:Key="S.Task.CheckingFiles">正在检查并补全游戏文件</sys:String>
     <sys:String x:Key="S.Task.Ready">游戏文件就绪</sys:String>
     <sys:String x:Key="S.Task.DetailTitle">任务详情</sys:String>
@@ -467,9 +467,9 @@
     <sys:String x:Key="S.Vs.WinMatch">与启动器窗口大小一致</sys:String>
     <sys:String x:Key="S.Vs.WinCustom">自定义宽高</sys:String>
     <sys:String x:Key="S.Vs.WinHint">全屏启动开启时忽略窗口大小设置。</sys:String>
-    <sys:String x:Key="S.Vs.GroupMods">Mod 与内容</sys:String>
+    <sys:String x:Key="S.Vs.GroupMods">Mod 管理</sys:String>
     <sys:String x:Key="S.Vs.OpenModsPage">打开 Mod 管理</sys:String>
-    <sys:String x:Key="S.Vs.ModsHint">在该版本的 Mod 管理页可搜索 / 启停 / 删除 Mod，目标版本已自动选中；也可用下方目录入口直接打开 Mod 文件夹。</sys:String>
+    <sys:String x:Key="S.Vs.ModsHint">管理该版本的 Mod / 资源包 / 光影 / 数据包（目录随隔离状态变化）；下载新 Mod 仍可在「Mod 资源」页完成。</sys:String>
     <sys:String x:Key="S.Vs.OpenPacksDir">打开资源包</sys:String>
     <sys:String x:Key="S.Mod.PresetTaskTitle">一键安装预设（{0}）</sys:String>
     <sys:String x:Key="S.Mod.PresetGroup">—— {0}（共 {1} 个）→ {2}</sys:String>
@@ -513,4 +513,37 @@
     <sys:String x:Key="S.Azure.OpenRegister">打开"应用注册"页</sys:String>
     <sys:String x:Key="S.Azure.Close">我知道了</sys:String>
     <sys:String x:Key="S.Azure.OpenGuide">如何获取 Azure Client ID？（分步引导）</sys:String>
+
+    <!-- v0.1.11 -->
+    <sys:String x:Key="S.Nav.Instances">实例管理</sys:String>
+    <sys:String x:Key="S.Inst.Title">实例管理</sys:String>
+    <sys:String x:Key="S.Inst.Subtitle">运行中的游戏实例：查看详情、结束进程（支持多开）。</sys:String>
+    <sys:String x:Key="S.Inst.Empty">当前没有正在运行的游戏实例。启动游戏后，这里会显示实时状态。</sys:String>
+    <sys:String x:Key="S.Inst.DetailTitle">实例详情</sys:String>
+    <sys:String x:Key="S.Inst.State">状态</sys:String>
+    <sys:String x:Key="S.Inst.StartedAt">启动时间</sys:String>
+    <sys:String x:Key="S.Inst.Elapsed">已运行</sys:String>
+    <sys:String x:Key="S.Inst.ProcessAlive">进程状态</sys:String>
+    <sys:String x:Key="S.Inst.Alive">运行中</sys:String>
+    <sys:String x:Key="S.Inst.Exited">已退出</sys:String>
+    <sys:String x:Key="S.Set.UiRefresh">界面刷新频率</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshHint">控制任务中心 / 实例管理等轮询界面的刷新方式：自动（默认 500ms 轮询）；手动（按指定 FPS 轮询）；事件驱动（有变化才刷新，最省电）；事件驱动（限频）（有变化时按最大频率刷新）。</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshAuto">自动</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshManual">手动（指定 FPS）</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshEvent">事件驱动（有变化立刻刷新）</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshEventLimited">事件驱动（限制最大频率）</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshFps">刷新 FPS：</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshMaxFps">最大 FPS：</sys:String>
+    <sys:String x:Key="S.Set.RelativePaths">相对路径增强（便于移动磁盘迁移）</sys:String>
+    <sys:String x:Key="S.Set.RelativePathsHint">开启后，位于启动器目录内的路径（游戏目录 / Java 运行时目录等）在配置文件中以相对路径保存：整个启动器文件夹拷到其他盘符或电脑后，无需重新配置即可继续使用。启动器目录外的路径不受影响。</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemGroup">启动器维护</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemGroupHint">启动器内存占用优化、手动清理与日志滚动体验。</sys:String>
+    <sys:String x:Key="S.Set.SmoothScroll">日志平滑滚动动画</sys:String>
+    <sys:String x:Key="S.Set.SmoothScrollHint">开启后任务详情 / 日志区域的滚轮滚动带平滑动画（滚动中随时拖动滚动条可立即接管）。</sys:String>
+    <sys:String x:Key="S.Set.LaunchGroup">启动</sys:String>
+    <sys:String x:Key="S.Set.LaunchGroupHint">JVM 参数、游戏窗口大小与启动行为。</sys:String>
+    <sys:String x:Key="S.Set.NetworkGroup">网络</sys:String>
+    <sys:String x:Key="S.Set.NetworkGroupHint">下载源、下载线程数与各类服务 Key。</sys:String>
+    <sys:String x:Key="S.Vs.ModsHint2">双击条目直接切换启用状态；Ctrl / Shift 可多选。</sys:String>
+
 </ResourceDictionary>

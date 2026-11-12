@@ -47,6 +47,9 @@
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Tasks}"
                                        Icon="{ui:SymbolIcon TaskListLtr24}"
                                        TargetPageType="{x:Type views:TaskCenterPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Instances}"
+                                       Icon="{ui:SymbolIcon Games24}"
+                                       TargetPageType="{x:Type views:InstancesPage}" />
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Settings}"

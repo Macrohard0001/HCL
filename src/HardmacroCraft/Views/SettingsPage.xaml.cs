@@ -32,6 +32,15 @@ public partial class SettingsPage : Page
             // v0.1.3：启动器内存优化 + 当前占用展示
             ChkLauncherMemOpt.IsChecked = AppSettings.Instance.AutoMemoryOptimize;
             RefreshLauncherMem();
+            // v0.1.11：相对路径增强 / 日志平滑滚动
+            ChkRelativePaths.IsChecked = AppSettings.Instance.UseRelativePaths;
+            ChkSmoothScroll.IsChecked = AppSettings.Instance.SmoothScrollLogs;
+            // v0.1.11：界面刷新频率
+            foreach (ComboBoxItem i in CmbUiRefresh.Items)
+                if ((string)i.Tag == AppSettings.Instance.UiRefreshMode) { CmbUiRefresh.SelectedItem = i; break; }
+            NumUiFps.Value = Math.Clamp(AppSettings.Instance.UiRefreshFps, 1, 240);
+            NumUiMaxFps.Value = Math.Clamp(AppSettings.Instance.UiRefreshMaxFps, 1, 240);
+            RefreshUiRefreshPanels();
             // v0.1.10：窗口大小模式（PCL 同款）
             foreach (ComboBoxItem i in CmbWindowMode.Items)
                 if ((string)i.Tag == AppSettings.Instance.GameWindowSizeMode) { CmbWindowMode.SelectedItem = i; break; }
@@ -121,6 +130,20 @@ public partial class SettingsPage : Page
     {
         if (TxtGameWidth == null) return; // XAML 加载期保护
         RefreshWindowSizePanel();
+    }
+
+    /// <summary>v0.1.11：界面刷新频率切换 —— 手动 / 事件限频模式才显示 FPS 输入框。</summary>
+    private void CmbUiRefresh_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (NumUiFps == null) return; // XAML 加载期保护
+        RefreshUiRefreshPanels();
+    }
+
+    private void RefreshUiRefreshPanels()
+    {
+        if (CmbUiRefresh.SelectedItem is not ComboBoxItem item || item.Tag is not string mode) return;
+        PnlUiRefreshFps.Visibility = mode == UiRefreshPolicy.ModeManual ? Visibility.Visible : Visibility.Collapsed;
+        PnlUiRefreshMaxFps.Visibility = mode == UiRefreshPolicy.ModeEventLimited ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RefreshWindowSizePanel()
@@ -303,6 +326,13 @@ public partial class SettingsPage : Page
         s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
         // v0.1.3：启动器内存优化开关；关闭后立即做一次优化以便用户看到变化
         s.AutoMemoryOptimize = ChkLauncherMemOpt.IsChecked == true;
+        // v0.1.11：相对路径增强 / 日志平滑滚动 / 界面刷新频率
+        s.UseRelativePaths = ChkRelativePaths.IsChecked == true;
+        s.SmoothScrollLogs = ChkSmoothScroll.IsChecked == true;
+        s.UiRefreshMode = CmbUiRefresh.SelectedItem is ComboBoxItem ur && ur.Tag is string urTag
+            ? UiRefreshPolicy.Normalize(urTag) : UiRefreshPolicy.ModeAuto;
+        s.UiRefreshFps = NumUiFps.Value is >= 1 and <= 240 ? (int)NumUiFps.Value!.Value : 30;
+        s.UiRefreshMaxFps = NumUiMaxFps.Value is >= 1 and <= 240 ? (int)NumUiMaxFps.Value!.Value : 30;
         s.MemoryAuto = ChkMemAuto.IsChecked == true;
         s.MemoryMb = (int)SldMemory.Value;
         s.UseMirror = ChkMirror.IsChecked == true;
