@@ -32,6 +32,10 @@ public class DownloadTaskService
         /// <summary>fix7：可取消任务持有的取消源（StartCancellable 登记，RequestCancel 触发）。</summary>
         internal CancellationTokenSource? Cts { get; set; }
 
+        /// <summary>v0.1.12：取消是否已请求（用于立即反馈「正在取消…」，避免点完取消后
+        /// 卡片长时间停在「运行中」让用户以为取消卡住了）。</summary>
+        public bool CancelRequested { get; internal set; }
+
         public bool IsActive => Status == "running";
         /// <summary>任务是否可以取消（运行中且登记了取消源）。</summary>
         public bool CanCancel => IsActive && Cts != null;
@@ -44,7 +48,20 @@ public class DownloadTaskService
         /// OperationCanceledException 后调用 DownloadTaskService.Cancel 写入。</summary>
         public void RequestCancel()
         {
+            // v0.1.12：立即反馈「正在取消…」—— 此前点了取消后卡片仍是「运行中」+
+            // 原进度文案，业务侧感知令牌往往要等网络超时，看起来像取消卡住了
+            CancelRequested = true;
             try { Cts?.Cancel(); } catch { /* CTS 已释放等场景忽略 */ }
+            if (IsActive)
+            {
+                lock (_logLock)
+                {
+                    _logs.Add($"[{DateTime.Now:HH:mm:ss}] 正在取消…（等当前文件 / 网络操作结束后生效）");
+                    if (_logs.Count > 300)
+                        _logs.RemoveRange(0, _logs.Count - 300);
+                }
+            }
+            DownloadTaskService.Instance.NotifyChanged();
         }
 
         /// <summary>v0.1.10：追加一条任务日志（线程安全，最多保留 300 行，超出丢弃最早的）。</summary>
@@ -163,6 +180,9 @@ public class DownloadTaskService
     public void Complete(TaskItem item, string? detail = null) => Finish(item, "done", detail);
     public void Fail(TaskItem item, string? detail = null) => Finish(item, "failed", detail);
     public void Cancel(TaskItem item, string? detail = null) => Finish(item, "canceled", detail);
+
+    /// <summary>v0.1.12：任务列表变化事件的触发入口（供 TaskItem 内部反向通知）。</summary>
+    internal void NotifyChanged() => Changed?.Invoke();
 
     private void Finish(TaskItem item, string status, string? detail)
     {

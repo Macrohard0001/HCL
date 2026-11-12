@@ -1,0 +1,101 @@
+<Page x:Class="HardmacroCraft.Views.ModSetupPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <!-- v0.1.12 一键配置 Mods：预设（一组云端 Mod 清单）→ 一键配置到版本 / 一键移除。
+         预设来自「Mod 页保存预设」或「从已装版本导入」（SHA1 反查 Modrinth 项目）。 -->
+    <Grid Margin="32,24,32,24" MaxWidth="920" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Msu.Title}" Margin="0,0,0,2" />
+            <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Msu.Subtitle}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 目标版本 + 新建预设 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="{DynamicResource S.Msu.TargetVersion}" VerticalAlignment="Center"
+                       Margin="0,0,8,0" FontSize="13" />
+            <ComboBox x:Name="CmbVersion" MinWidth="180" MinHeight="34"
+                      SelectionChanged="CmbVersion_SelectionChanged" />
+            <ui:Button x:Name="BtnImport" Content="{DynamicResource S.Msu.Import}"
+                       Icon="{ui:SymbolIcon FolderOpen24}" MinHeight="34" Margin="10,0,0,0"
+                       Click="BtnImport_Click" />
+            <ui:Button x:Name="BtnNewPreset" Content="{DynamicResource S.Msu.NewPreset}"
+                       Icon="{ui:SymbolIcon Add24}" MinHeight="34" Margin="8,0,0,0"
+                       Click="BtnNewPreset_Click" />
+        </StackPanel>
+
+        <!-- 左：预设列表 / 右：预设详情 -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource HmCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Style="{StaticResource HmSectionTitle}"
+                               Text="{DynamicResource S.Msu.PresetList}" Margin="0,0,0,8" />
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="PnlPresets" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource HmCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock x:Name="TxtPresetName" Style="{StaticResource HmSectionTitle}"
+                                   Text="{DynamicResource S.Msu.NoPreset}" />
+                        <TextBlock x:Name="TxtPresetMeta" Style="{StaticResource HmHint}" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="PnlItems" />
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <ui:Button x:Name="BtnApply" Content="{DynamicResource S.Msu.Apply}"
+                                   Icon="{ui:SymbolIcon Checkmark24}" MinHeight="34" MinWidth="120"
+                                   Appearance="Primary" Click="BtnApply_Click" />
+                        <ui:Button x:Name="BtnRemove" Content="{DynamicResource S.Msu.Remove}"
+                                   Icon="{ui:SymbolIcon Delete24}" MinHeight="34" MinWidth="120"
+                                   Margin="8,0,0,0" Click="BtnRemove_Click" />
+                        <ui:Button x:Name="BtnRename" Content="{DynamicResource S.Msu.Rename}"
+                                   Icon="{ui:SymbolIcon Edit24}" MinHeight="34" Margin="8,0,0,0"
+                                   Click="BtnRename_Click" />
+                        <ui:Button x:Name="BtnDelete" Content="{DynamicResource S.Acct.Delete}"
+                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="34" Margin="8,0,0,0"
+                                   Appearance="Danger" Click="BtnDelete_Click" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="3" x:Name="TxtLog" FontSize="12" Margin="0,10,0,0"
+                               TextWrapping="Wrap" MaxHeight="110"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <TextBlock Grid.Row="3" x:Name="TxtHint" Style="{StaticResource HmHint}" Margin="0,10,0,0"
+                   Text="{DynamicResource S.Msu.Hint}" TextWrapping="Wrap" />
+    </Grid>
+</Page>

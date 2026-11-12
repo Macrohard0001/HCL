@@ -29,19 +29,24 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.11";
+    public const string LauncherVersion = "0.1.12";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
 
-    /// <summary>v0.1.1：支持取消 —— 等闸门期间用户点「取消」立即退出（以前会干等 15 分钟超时）。</summary>
-    private static async Task<T> RunInInstallGateAsync<T>(CancellationToken ct, Func<Task<T>> work)
+    /// <summary>v0.1.1：支持取消 —— 等闸门期间用户点「取消」立即退出（以前会干等 15 分钟超时）。
+    /// v0.1.12 卡住修复：等待期间每 10 秒输出一条等待日志（此前静默等满 15 分钟，
+    /// 用户只看到进度不动以为是死机）；waitLog 为 null 时保持旧行为。</summary>
+    private static async Task<T> RunInInstallGateAsync<T>(CancellationToken ct, Func<Task<T>> work, Action<string>? waitLog = null)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         while (true)
         {
-            if (await InstallGate.WaitAsync(TimeSpan.FromMinutes(15), ct)) break;
-            throw new InvalidOperationException(
-                "另一个安装任务超过 15 分钟仍未结束，本次操作已取消。可到任务中心查看进行中的任务，或重启启动器后重试。");
+            if (await InstallGate.WaitAsync(TimeSpan.FromSeconds(10), ct)) break;
+            if (sw.Elapsed > TimeSpan.FromMinutes(15))
+                throw new InvalidOperationException(
+                    "另一个安装任务超过 15 分钟仍未结束，本次操作已取消。可到任务中心查看进行中的任务，或重启启动器后重试。");
+            waitLog?.Invoke($"[启动] 正在等待另一个安装任务完成（已等待 {sw.Elapsed.TotalSeconds:0} 秒；可在任务中心查看或取消）...");
         }
         try { return await work(); }
         finally { InstallGate.Release(); }
@@ -807,7 +812,7 @@ public class LauncherService : IDisposable
         }
         else
         {
-            await RunInInstallGateAsync(ct, async () =>
+            await RunInInstallGateAsync<object?>(ct, async () =>
             {
                 // v0.1.1 多线程预取：CmlLib 内置安装器逐个下载，2800+ 个资源文件串行极慢；
                 // 先按设置页线程数并发预取（已完整的自动跳过），失败不中断（内置安装器兜底）。
@@ -824,7 +829,8 @@ public class LauncherService : IDisposable
                     onLog?.Invoke("[启动] 多线程预取中断，改由内置安装器继续: " + pex.Message);
                 }
                 await Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask();
-            });
+                return null;
+            }, (Action<string>?)onLog);
             VerifyStamp.Write(AppSettings.Instance.GameRoot, versionName);
         }
 
@@ -862,7 +868,18 @@ public class LauncherService : IDisposable
 
         onLog?.Invoke("[启动] 游戏文件就绪，正在创建游戏进程...");
         onStage?.Invoke(3); // fix7：阶段回调 → 主页显示「正在启动游戏【3/3】」
-        var process = await Launcher.CreateProcessAsync(versionName, option);
+        // v0.1.12 卡住修复：创建进程阶段每 30 秒输出一次心跳日志（拉取版本/库清单慢时
+        // 用户能看到“仍在推进”而不是以为卡死），且取消令牌立即生效（不再无限干等）。
+        var createTask = Launcher.CreateProcessAsync(versionName, option).AsTask();
+        var swCreate = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            var done = await Task.WhenAny(createTask, Task.Delay(TimeSpan.FromSeconds(30), ct));
+            if (done == createTask) break;
+            if (ct.IsCancellationRequested) throw new OperationCanceledException(ct);
+            onLog?.Invoke($"[启动] 正在构建启动参数 / 校验环境（已等待 {swCreate.Elapsed.TotalSeconds:0} 秒；网络慢时会更久）...");
+        }
+        var process = await createTask; // 传播创建阶段的真实异常
         var wrapper = new ProcessWrapper(process);
         if (onLog != null)
         {

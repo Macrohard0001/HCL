@@ -31,6 +31,8 @@ public static class ModPresetWindow
         };
         owner ??= App.Current.Windows.OfType<Window>().LastOrDefault(w => !ReferenceEquals(w, win));
         if (owner != null && !ReferenceEquals(owner, win)) win.Owner = owner;
+        // v0.1.12：Esc 关闭（PCL 同款人性化优化）
+        win.PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) win.Close(); };
 
         var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         var root = new StackPanel { Margin = new Thickness(24, 20, 24, 20) };

@@ -153,6 +153,11 @@
                     <CheckBox x:Name="ChkSmoothScroll" Content="{DynamicResource S.Set.SmoothScroll}" Margin="0,14,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.SmoothScrollHint}" Style="{StaticResource HmHint}"
                                Margin="24,0,0,0" TextWrapping="Wrap" />
+
+                    <!-- v0.1.12：一键配置 Mods —— 开始移除前先备份（PCL 式兜底） -->
+                    <CheckBox x:Name="ChkModSetupBackup" Content="{DynamicResource S.Set.ModSetupBackup}" Margin="0,14,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.ModSetupBackupHint}" Style="{StaticResource HmHint}"
+                               Margin="24,0,0,0" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

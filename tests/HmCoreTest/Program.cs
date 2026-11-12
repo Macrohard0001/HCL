@@ -2493,6 +2493,85 @@ try
 }
 catch (Exception ex) { Check("v0.1.11 进度 / 命名 / 相对路径 / 刷新策略", false, ex.Message); }
 
+// ==================== 第 33 节 v0.1.12：预设安装记录 / 一键导入纯逻辑 / 内存口径 ====================
+try
+{
+    var baseDir33 = Path.Combine(Path.GetTempPath(), "hmc-test-v0112-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(baseDir33);
+    var path33 = Path.Combine(baseDir33, "mod-presets.json");
+
+    // 33.1 RecordInstalled 去重记录 + JSON 往返保留 InstalledFiles
+    var presets33 = new List<ModPreset>();
+    var item33 = new ModPresetItem { Platform = "modrinth", ProjectId = "aaaa", Slug = "sodium", Title = "Sodium", Type = "mod" };
+    ModPresetStore.RecordInstalled(item33, "sodium-0.5.3.jar");
+    ModPresetStore.RecordInstalled(item33, "sodium-0.5.3.jar"); // 重复记录会被去重
+    ModPresetStore.RecordInstalled(item33, "sodium-0.5.8.jar");
+    ModPresetStore.RecordInstalled(item33, "");
+    ModPresetStore.Upsert(presets33, "导入", new List<ModPresetItem> { item33 });
+    ModPresetStore.Save(path33, presets33);
+    var loaded33 = ModPresetStore.Load(path33);
+    Check("RecordInstalled 去重且忽略空名", loaded33[0].Items[0].InstalledFiles.Count == 2
+        && loaded33[0].Items[0].InstalledFiles[0] == "sodium-0.5.3.jar",
+        string.Join(",", loaded33[0].Items[0].InstalledFiles));
+    Check("InstalledFiles JSON 往返一致", ModPresetStore.Load(path33)[0].Items[0].InstalledFiles.Count == 2);
+
+    // 33.2 ModPresetImport.ListModJars：跳过 .disabled / .old，按名排序
+    var modsDir = Path.Combine(baseDir33, "mods");
+    Directory.CreateDirectory(modsDir);
+    File.WriteAllText(Path.Combine(modsDir, "b.jar"), "B");
+    File.WriteAllText(Path.Combine(modsDir, "a.jar"), "A");
+    File.WriteAllText(Path.Combine(modsDir, "c.jar.disabled"), "C");
+    File.WriteAllText(Path.Combine(modsDir, "d.jar.old"), "D");
+    var jars = ModPresetImport.ListModJars(modsDir);
+    Check("ListModJars 跳过禁用/旧版并排序", jars.Count == 2
+        && Path.GetFileName(jars[0]) == "a.jar" && Path.GetFileName(jars[1]) == "b.jar",
+        string.Join(",", jars.Select(Path.GetFileName)));
+    Check("ListModJars 目录不存在 → 空列表", ModPresetImport.ListModJars(
+        Path.Combine(baseDir33, "nope")).Count == 0);
+
+    // 33.3 ModPresetImport.Sha1OfFileAsync：确定性 + 与已知向量比对（"A" = 6dcd…）
+    var sha = await ModPresetImport.Sha1OfFileAsync(jars[0]);
+    Check("Sha1OfFileAsync 确定性", sha == await ModPresetImport.Sha1OfFileAsync(jars[0]) && sha.Length == 40, sha);
+
+    // 33.4 ImportOneAsync：命中回调生成条目；未命中/空 id 返回 null
+    var imported = await ModPresetImport.ImportOneAsync(jars[0], (h, _) =>
+        Task.FromResult<(string, string, string, string)?>(("aaaa", "sodium", "Sodium", "mod")));
+    Check("ImportOneAsync 命中 → 条目", imported != null && imported!.ProjectId == "aaaa" && imported.Slug == "sodium");
+    var miss = await ModPresetImport.ImportOneAsync(jars[1], (h, _) => Task.FromResult<(string, string, string, string)?>(null));
+    Check("ImportOneAsync 未命中 → null", miss == null);
+    var emptyId = await ModPresetImport.ImportOneAsync(jars[1], (h, _) =>
+        Task.FromResult<(string, string, string, string)?>(("", "", "", "mod")));
+    Check("ImportOneAsync 空 projectId → null", emptyId == null);
+
+    // 33.5 StoredProfile / StoredAccount.Profiles 默认值与序列化往返
+    var acc33 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://x/api/yggdrasil" };
+    acc33.Profiles.Add(new StoredProfile("p1", "Steve"));
+    acc33.Profiles.Add(new StoredProfile("p2", "Alex"));
+    var accJson = System.Text.Json.JsonSerializer.Serialize(acc33);
+    var accBack = System.Text.Json.JsonSerializer.Deserialize<StoredAccount>(accJson);
+    Check("StoredAccount.Profiles 往返", accBack != null && accBack.Profiles.Count == 2
+        && accBack.Profiles[1].Name == "Alex");
+
+    // 33.6 内存口径 API：PrivateMb / WorkingSetMb 均为正且合理（< 4GB 上限防回归）
+    Check("PrivateMb 为正", MemoryManager.PrivateMb > 0, MemoryManager.PrivateMb + " MB");
+    Check("WorkingSetMb 为正", MemoryManager.WorkingSetMb > 0, MemoryManager.WorkingSetMb + " MB");
+    Check("内存口径上界合理（<4096MB）", MemoryManager.PrivateMb < 4096 && MemoryManager.WorkingSetMb < 4096);
+    var detailed = MemoryManager.OptimizeNowDetailed();
+    Check("OptimizeNowDetailed 字段齐全", detailed.WsAfter > 0 && detailed.ManagedAfter >= 0 && detailed.PrivateAfter > 0,
+        $"ws {detailed.WsBefore}->{detailed.WsAfter} managed {detailed.ManagedBefore}->{detailed.ManagedAfter}");
+
+    // 33.7 DownloadTaskService：RequestCancel 立即反馈（CancelRequested 标记 + 日志行）
+    var t33 = DownloadTaskService.Instance.StartCancellable("测试取消反馈", "");
+    t33.RequestCancel();
+    Check("RequestCancel 置 CancelRequested", t33.CancelRequested);
+    Check("RequestCancel 写入任务日志", t33.LogSnapshot().Any(l => l.Contains("正在取消")));
+    DownloadTaskService.Instance.Cancel(t33, "已取消");
+    Check("取消后任务落定", t33.Status == "canceled" && !t33.IsActive);
+
+    try { Directory.Delete(baseDir33, true); } catch { }
+}
+catch (Exception ex) { Check("第 33 节 v0.1.12（预设记录 / 导入 / 内存口径 / 取消反馈）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

@@ -10,6 +10,8 @@ public partial class SettingsPage : Page
 {
     private bool _loaded;
     private bool _applyingTheme;
+    // v0.1.12：启动器内存占用实时刷新（此前只在进入设置页时取一次，长挂后数值陈旧）
+    private System.Windows.Threading.DispatcherTimer? _memTimer;
 
     public SettingsPage()
     {
@@ -35,6 +37,8 @@ public partial class SettingsPage : Page
             // v0.1.11：相对路径增强 / 日志平滑滚动
             ChkRelativePaths.IsChecked = AppSettings.Instance.UseRelativePaths;
             ChkSmoothScroll.IsChecked = AppSettings.Instance.SmoothScrollLogs;
+            // v0.1.12：一键配置 Mods 移除前备份
+            ChkModSetupBackup.IsChecked = AppSettings.Instance.ModSetupBackup;
             // v0.1.11：界面刷新频率
             foreach (ComboBoxItem i in CmbUiRefresh.Items)
                 if ((string)i.Tag == AppSettings.Instance.UiRefreshMode) { CmbUiRefresh.SelectedItem = i; break; }
@@ -73,6 +77,10 @@ public partial class SettingsPage : Page
                 if ((string)i.Tag == AppSettings.Instance.Theme) { CmbTheme.SelectedItem = i; break; }
             _applyingTheme = false;
         };
+        // v0.1.12：每次进入设置页都重启内存读数定时器（Loaded/Unloaded 随导航反复触发，
+        // 不能放进 _loaded 一次性守卫里，否则切页回来后读数不再刷新）
+        Loaded += (_, _) => { RefreshLauncherMem(); StartMemTimer(); };
+        Unloaded += (_, _) => StopMemTimer();
     }
 
     private void SldMemory_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -106,23 +114,43 @@ public partial class SettingsPage : Page
         TxtMemDetected.Text = string.Format(tpl, total, rec);
     }
 
-    /// <summary>v0.1.3：显示启动器当前物理内存占用（每次进入设置页时刷新一次）。</summary>
+    /// <summary>v0.1.3：显示启动器当前内存占用。v0.1.12 改为双口径（专用内存 + 工作集，
+    /// 与任务管理器列对齐）并每 2 秒实时刷新 —— 此前一次性读数与任务管理器对不上且不更新，
+    /// 被误认为“内存占用计算不正确”。</summary>
     private void RefreshLauncherMem()
     {
         if (TxtLauncherMem == null) return;
         var tpl = (string)TryFindResource("S.Set.LauncherMemNow") ??
-                  "启动器当前内存占用：{0} MB";
-        TxtLauncherMem.Text = string.Format(tpl, Services.MemoryManager.WorkingSetMb);
+                  "启动器当前内存占用：{0} MB（专用内存）· 工作集 {1} MB";
+        TxtLauncherMem.Text = string.Format(tpl,
+            Services.MemoryManager.PrivateMb, Services.MemoryManager.WorkingSetMb);
     }
 
-    /// <summary>v0.1.10：手动触发内存清理（PCL 式立即回收），并在标签上显示回收效果。</summary>
+    /// <summary>v0.1.12：页面可见期间每 2 秒刷新一次内存读数（Unloaded 停止，不空耗）。</summary>
+    private void StartMemTimer()
+    {
+        if (_memTimer != null) return;
+        _memTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _memTimer.Tick += (_, _) => RefreshLauncherMem();
+        _memTimer.Start();
+    }
+
+    private void StopMemTimer()
+    {
+        _memTimer?.Stop();
+        _memTimer = null;
+    }
+
+    /// <summary>v0.1.10：手动触发内存清理（PCL 式立即回收），并在标签上显示回收效果。
+    /// v0.1.12：改用工作集 + 托管堆双口径展示真实收益（此前只报托管堆，
+    /// 与任务管理器里的变化对不上）。</summary>
     private void BtnMemClean_Click(object sender, RoutedEventArgs e)
     {
-        var (before, after) = Services.MemoryManager.OptimizeNow();
+        var (wsBefore, wsAfter, mBefore, mAfter, _) = Services.MemoryManager.OptimizeNowDetailed();
         RefreshLauncherMem();
         var tpl = (string)TryFindResource("S.Set.MemCleanDone") ??
-                  "已回收内存（托管堆 {0} MB → {1} MB，物理内存占用已归还系统）";
-        TxtLauncherMem.Text = string.Format(tpl, before / 1024 / 1024, after / 1024 / 1024);
+                  "已回收内存：物理工作集 {0} MB → {1} MB · 托管堆 {2} MB → {3} MB";
+        TxtLauncherMem.Text = string.Format(tpl, wsBefore, wsAfter, mBefore, mAfter);
     }
 
     /// <summary>v0.1.10：窗口大小模式切换 —— 自定义模式才显示宽高输入框。</summary>
@@ -329,6 +357,8 @@ public partial class SettingsPage : Page
         // v0.1.11：相对路径增强 / 日志平滑滚动 / 界面刷新频率
         s.UseRelativePaths = ChkRelativePaths.IsChecked == true;
         s.SmoothScrollLogs = ChkSmoothScroll.IsChecked == true;
+        // v0.1.12：一键配置 Mods 移除前备份
+        s.ModSetupBackup = ChkModSetupBackup.IsChecked == true;
         s.UiRefreshMode = CmbUiRefresh.SelectedItem is ComboBoxItem ur && ur.Tag is string urTag
             ? UiRefreshPolicy.Normalize(urTag) : UiRefreshPolicy.ModeAuto;
         s.UiRefreshFps = NumUiFps.Value is >= 1 and <= 240 ? (int)NumUiFps.Value!.Value : 30;
