@@ -45,7 +45,7 @@ public partial class ModsPage : Page
         Current = this;
         Unloaded += (_, _) => { if (Current == this) Current = null; };
         RestoreFilters();
-        Loaded += (_, _) => { RefreshTargets(); RefreshLocalMods(); };
+        Loaded += (_, _) => RefreshTargets();
     }
 
     /// <summary>v0.1.5：恢复上次使用的平台 / 类型 / 加载器（PCL 式记住筛选）。</summary>
@@ -163,153 +163,14 @@ public partial class ModsPage : Page
     private void Log(string s) => Dispatcher.Invoke(() => TxtProgress.Text += s + Environment.NewLine);
     private void ClearLog() => Dispatcher.Invoke(() => TxtProgress.Text = "");
 
-    // ---------- 本机 Mod 管理（v0.1.9 对齐 PCL：元数据列表 / 多选 / 搜索 / 双击启停；
-    //           .disabled 后缀 = 禁用；列表跟随搜索类型与目标版本切换目录） ----------
-
-    /// <summary>本机 Mod 条目视图模型（绑定零转换器）。</summary>
-    public sealed class LocalModItem
-    {
-        public string FileName { get; init; } = "";
-        public string DisplayName { get; init; } = "";
-        public string ModVersion { get; init; } = "";
-        public string Description { get; init; } = "";
-        public string Loader { get; init; } = "unknown";
-        public bool Enabled { get; init; } = true;
-        public string SizeText { get; init; } = "";
-        public string LoaderText => Loader switch
-        {
-            "fabric" => "Fabric",
-            "quilt" => "Quilt",
-            "forge" => "Forge",
-            "neoforge" => "NeoForge",
-            _ => "",
-        };
-        public string StateText { get; init; } = "";
-        /// <summary>加载器徽章可见性（unknown 不显示）。</summary>
-        public System.Windows.Visibility LoaderVis =>
-            LoaderText.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-        /// <summary>禁用状态徽章可见性。</summary>
-        public System.Windows.Visibility StateVis =>
-            StateText.Length > 0 ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-    }
-
-    private void RefreshLocalMods()
-    {
-        try
-        {
-            var dir = TargetDir(LocalType);
-            TxtLocalDir.Text = dir;
-            var kw = (TxtLocalQuery.Text ?? "").Trim();
-            var all = LocalModScanner.ScanDir(dir);
-            if (kw.Length > 0)
-                all = all.Where(m => m.FileName.Contains(kw, StringComparison.OrdinalIgnoreCase)
-                                     || m.DisplayName.Contains(kw, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-            LstLocalMods.ItemsSource = all.Select(m => new LocalModItem
-            {
-                FileName = m.FileName,
-                DisplayName = m.DisplayName,
-                ModVersion = m.ModVersion,
-                Description = m.Description,
-                Loader = m.Loader,
-                Enabled = m.Enabled,
-                SizeText = FormatSize(m.SizeBytes),
-                StateText = m.Enabled ? "" : S("S.Mod.Disabled"),
-            }).ToList();
-        }
-        catch (Exception ex)
-        {
-            LstLocalMods.ItemsSource = Array.Empty<LocalModItem>();
-            Log("读取目录失败: " + ex.Message);
-        }
-    }
-
-    private void TxtLocalQuery_TextChanged(object sender, TextChangedEventArgs e) => RefreshLocalMods();
-
-    private void BtnLocalRefresh_Click(object sender, RoutedEventArgs e) => RefreshLocalMods();
+    // ---------- 本机 Mod 管理（v0.1.11 已迁移至「版本设置 → Mod 管理」） ----------
+    // 旧的本机列表 / 启停 / 删除 UI 已从本页移除：版本内 Mod 管理现在直接在
+    // 版本独立设置窗口完成（版本维度更清晰，目录跟随该版本的隔离生效值）。
 
     private void CmbType_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // 搜索类型切换时本地管理列表跟随显示对应目录（mod / resourcepack / shaderpacks / datapacks）
         if (!IsLoaded) return;
-        RefreshLocalMods();
         RememberFilters();
-    }
-
-    private void BtnOpenModDir_Click(object sender, RoutedEventArgs e)
-    {
-        var dir = TargetDir(LocalType);
-        Directory.CreateDirectory(dir);
-        Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
-    }
-
-    /// <summary>选中的本机 Mod（多选，含 Ctrl/Shift；返回文件名列表）。</summary>
-    private List<string> SelectedLocalMods => LstLocalMods.SelectedItems
-        ?.Cast<LocalModItem>().Select(i => i.FileName).ToList() ?? new List<string>();
-
-    /// <summary>切换启用状态（.disabled 后缀翻转；PCL 同款）。</summary>
-    private static void ToggleModFile(string dir, string name)
-    {
-        var full = Path.Combine(dir, name);
-        if (name.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
-            File.Move(full, full[..^".disabled".Length]);
-        else
-            File.Move(full, full + ".disabled");
-    }
-
-    private void BtnToggleMod_Click(object sender, RoutedEventArgs e)
-    {
-        var names = SelectedLocalMods;
-        if (names.Count == 0) return;
-        var dir = TargetDir(LocalType);
-        var ok = 0;
-        foreach (var name in names)
-        {
-            try
-            {
-                ToggleModFile(dir, name);
-                ok++;
-            }
-            catch (Exception ex)
-            {
-                Log("切换失败: " + name + " — " + ex.Message);
-            }
-        }
-        if (ok > 0) Log(ok == 1 ? "已切换: " + names[0] : $"已切换 {ok} 项的启用状态。");
-        RefreshLocalMods();
-    }
-
-    /// <summary>双击条目直接切换启用状态（PCL 同款手感）。</summary>
-    private void LstLocalMods_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (LstLocalMods.SelectedItem is LocalModItem) BtnToggleMod_Click(sender, e);
-    }
-
-    private void BtnDeleteMod_Click(object sender, RoutedEventArgs e)
-    {
-        var names = SelectedLocalMods;
-        if (names.Count == 0) return;
-        // v0.1.9：删除前确认（多选时列出数量，PCL 式防误删）
-        var confirmMsg = names.Count == 1
-            ? (S("S.Mod.DeleteConfirm1") + names[0])
-            : string.Format(S("S.Mod.DeleteConfirmN"), names.Count);
-        if (!HmMsg.Confirm(Window.GetWindow(this), S("S.Ver.Delete"), confirmMsg)) return;
-        var dir = TargetDir(LocalType);
-        var ok = 0;
-        foreach (var name in names)
-        {
-            try
-            {
-                File.Delete(Path.Combine(dir, name));
-                ok++;
-            }
-            catch (Exception ex)
-            {
-                Log("删除失败: " + name + " — " + ex.Message);
-            }
-        }
-        if (ok > 0) Log(ok == 1 ? "已删除: " + names[0] : $"已删除 {ok} 项。");
-        RefreshLocalMods();
     }
 
     private async void TxtQuery_KeyDown(object sender, KeyEventArgs e)
@@ -339,8 +200,6 @@ public partial class ModsPage : Page
     private void CmbTargetVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!IsLoaded) return;
-        // v0.1.9：目标版本切换 → 本机列表 / 目录提示跟随刷新（目录可能随隔离状态变化）
-        RefreshLocalMods();
         var v = CmbTargetVersion.SelectedItem as string;
         if (!string.IsNullOrEmpty(v) && AppSettings.Instance.LastVersion != v)
         {
@@ -519,8 +378,6 @@ public partial class ModsPage : Page
                     await ResolveCfDependenciesAsync(picked.Cf, dir,
                         gameVersion, Loader);
             }
-
-            RefreshLocalMods();
         }
         catch (Exception ex)
         {
@@ -833,9 +690,7 @@ public partial class ModsPage : Page
             }
             Log(string.Format(
                 App.Current.TryFindResource("S.Mod.BatchDone") as string
-                    ?? "批量安装完成：{0} 成功，{1} 失败。", okCount, failCount));
-            RefreshLocalMods();
-        }
+                    ?? "批量安装完成：{0} 成功，{1} 失败。", okCount, failCount));        }
         finally
         {
             _busy = false;
@@ -1092,9 +947,7 @@ public partial class ModsPage : Page
             if (failCount == 0)
                 DownloadTaskService.Instance.Complete(presetTask, doneMsg);
             else
-                DownloadTaskService.Instance.Fail(presetTask, doneMsg);
-            RefreshLocalMods();
-        }
+                DownloadTaskService.Instance.Fail(presetTask, doneMsg);        }
         finally
         {
             _busy = false;

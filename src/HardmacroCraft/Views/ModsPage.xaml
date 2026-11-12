@@ -3,13 +3,13 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
-    <!-- v0.1.7：主容器不再滚动（响应式）—— 结果列表撑满剩余空间，仅列表内部滚动 -->
+    <!-- v0.1.7：主容器不再滚动（响应式）—— 结果列表撑满剩余空间，仅列表内部滚动。
+         v0.1.11：本机 Mod 管理已迁移至「版本设置 → Mod 管理」（每版本独立管理，PCL 式）。 -->
     <Grid Margin="32,24,32,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -293,101 +293,7 @@
                        Click="BtnMore_Click" Visibility="Collapsed" />
         </StackPanel>
 
-        <Border Grid.Row="5" Style="{StaticResource HmCard}" Margin="0,12,0,0">
-            <StackPanel>
-                <Grid Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:SymbolIcon Symbol="PuzzlePiece24" FontSize="16"
-                                       Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
-                        <TextBlock Text="{DynamicResource S.Mod.Local}" Style="{StaticResource HmSectionTitle}"
-                                   FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <!-- v0.1.9：本机列表搜索 + 目标目录提示（PCL 式） -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                        <ui:TextBox x:Name="TxtLocalQuery" MinHeight="34" Width="180"
-                                    PlaceholderText="{DynamicResource S.Mod.LocalSearch}"
-                                    TextChanged="TxtLocalQuery_TextChanged" />
-                        <TextBlock x:Name="TxtLocalDir" FontSize="11" Margin="12,0,0,0" VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis" MaxWidth="360"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                    </StackPanel>
-                    <ui:Button Grid.Column="2" Content="{DynamicResource S.Mod.OpenDir}"
-                               Icon="{ui:SymbolIcon Folder24}" MinHeight="34" Margin="0,0,8,0"
-                               Click="BtnOpenModDir_Click" />
-                    <ui:Button Grid.Column="3" Content="{DynamicResource S.Ver.Refresh}"
-                               Icon="{ui:SymbolIcon ArrowClockwise24}" MinHeight="34" Margin="0,0,8,0"
-                               Click="BtnLocalRefresh_Click" />
-                    <ui:Button Grid.Column="4" x:Name="BtnToggleMod" Content="{DynamicResource S.Mod.Toggle}"
-                               Icon="{ui:SymbolIcon EyeOff24}" MinHeight="34" Margin="0,0,8,0"
-                               Click="BtnToggleMod_Click" ToolTip="{DynamicResource S.Mod.ToggleTip}" />
-                    <ui:Button Grid.Column="5" x:Name="BtnDeleteMod" Content="{DynamicResource S.Ver.Delete}"
-                               Appearance="Danger" Icon="{ui:SymbolIcon Delete24}" MinHeight="34"
-                               Click="BtnDeleteMod_Click" ToolTip="{DynamicResource S.Mod.DeleteTip}" />
-                </Grid>
-                <!-- v0.1.9：本机 Mod 条目带元数据（名字 / 版本 / 加载器 / 启用状态），
-                     多选（Ctrl/Shift）+ 双击切换启用状态，PCL 同款 -->
-                <ListBox x:Name="LstLocalMods" MinHeight="110" MaxHeight="220"
-                         VirtualizingPanel.VirtualizationMode="Recycling"
-                         Style="{StaticResource HmListBox}" BorderThickness="0"
-                         SelectionMode="Extended"
-                         MouseDoubleClick="LstLocalMods_MouseDoubleClick">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="2,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="Medium"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                               MaxWidth="360" />
-                                    <TextBlock Text="{Binding ModVersion}" FontSize="11" Margin="8,0,0,0"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock Text="{Binding FileName}" FontSize="10.5" Margin="10,0,0,0"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                               MaxWidth="300"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                </StackPanel>
-                                <!-- 徽章：加载器 / 大小 / 状态 -->
-                                <Border Grid.Column="1" CornerRadius="4" Padding="6,1.5" Margin="6,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        Visibility="{Binding LoaderVis}">
-                                    <TextBlock Text="{Binding LoaderText}" FontSize="10.5"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </Border>
-                                <TextBlock Grid.Column="2" Text="{Binding SizeText}" FontSize="10.5" Margin="8,0,0,0"
-                                           VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                <Border Grid.Column="3" CornerRadius="4" Padding="6,1.5" Margin="8,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        Visibility="{Binding StateVis}">
-                                    <TextBlock Text="{Binding StateText}" FontSize="10.5"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
-        </Border>
-
-        <StackPanel Grid.Row="6" Margin="0,10,0,0">
+        <StackPanel Grid.Row="5" Margin="0,10,0,0">
             <ProgressBar x:Name="PbProgress" Height="6" IsIndeterminate="False" Maximum="100" />
             <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" Margin="0,6,0,0"
                        TextWrapping="Wrap" MaxHeight="70" />

@@ -35,10 +35,35 @@ public partial class LoaderPickerWindow : FluentWindow
     private bool _backgrounded;   // 后台模式：窗口关闭，任务继续，UI 回调只更新任务中心
     private CancellationTokenSource? _cts;
     private DownloadTaskService.TaskItem? _centerTask;
+    // v0.1.11：PCL 式默认版本名 —— 选加载器 / 加载器版本时自动预填（用户改过后不再覆盖）
+    private bool _nameEdited;
+    private bool _updatingName;
+
+    /// <summary>按当前加载器选择刷新默认版本名（用户手动改过则跳过）。</summary>
+    private void UpdateDefaultName()
+    {
+        if (_nameEdited || _installing) return;
+        var row = Selected;
+        if (row == null) return;
+        var loaderVersion = CmbLoaderVersion.SelectedItem as string;
+        if (loaderVersion == FindRes("S.Dl.LoaderLatest")) loaderVersion = null;
+        var name = VersionNaming.DefaultName(_mcVersion, row.Id, loaderVersion);
+        if (string.IsNullOrEmpty(name) || TxtVersionName.Text == name) return;
+        _updatingName = true;
+        TxtVersionName.Text = name;
+        _updatingName = false;
+    }
 
     public LoaderPickerWindow(string mcVersion)
     {
         InitializeComponent();
+        // v0.1.11：用户手动改过版本名后不再自动预填；程序赋值不触发 _nameEdited
+        TxtVersionName.TextChanged += (_, _) =>
+        {
+            if (!_updatingName) _nameEdited = TxtVersionName.Text.Length > 0;
+        };
+        // v0.1.11：切换加载器版本时同步刷新默认版本名（PCL 同款）
+        CmbLoaderVersion.SelectionChanged += (_, _) => UpdateDefaultName();
         _mcVersion = mcVersion;
         // fix7：Esc 关闭窗口（PCL 同款）
         PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) Close(); };
@@ -83,7 +108,6 @@ public partial class LoaderPickerWindow : FluentWindow
 
     private static System.Windows.Media.Imaging.BitmapImage LoadIcon(string path)
         => new(new Uri("pack://application:,,," + path));
-
     private string FindRes(string key) => FindResource(key) as string ?? key;
 
     private LoaderRow? Selected => LstLoaders.SelectedItem as LoaderRow;
@@ -94,6 +118,7 @@ public partial class LoaderPickerWindow : FluentWindow
         if (_installing) return;
         var row = Selected;
         if (row == null) return;
+        UpdateDefaultName(); // v0.1.11：切加载器时同步预填默认版本名（原版 = MC 版本号）
 
         // 原版不需要加载器版本；Forbric 走独立安装器（无镜像版本列表）
         CmbLoaderVersion.ItemsSource = null;
@@ -145,6 +170,7 @@ public partial class LoaderPickerWindow : FluentWindow
             CmbLoaderVersion.SelectedIndex = 0;
             TxtStatus.Text = string.Format(FindRes("S.Dl.LoaderFetched"), vers.Length);
             BtnInstall.IsEnabled = true;
+            UpdateDefaultName();
         }
         catch (Exception ex)
         {

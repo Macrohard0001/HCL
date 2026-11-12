@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.10";
+    public const string LauncherVersion = "0.1.11";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -129,11 +129,60 @@ public class LauncherService : IDisposable
         IProgress<CmlLib.Core.ByteProgress>? byteProgress, CancellationToken ct = default)
         => RunInInstallGateAsync(() => InstallCoreAsync(versionName, fileProgress, byteProgress, ct));
 
-    /// <summary>不带闸门的安装实现（供已持闸门的调用方复用，避免 SemaphoreSlim 嵌套死锁）。</summary>
+    /// <summary>不带闸门的安装实现（供已持闸门的调用方复用，避免 SemaphoreSlim 嵌套死锁）。
+    /// v0.1.11：网络类异常自动重试 2 次 —— 修复「安装失败： Received an unexpected EOF
+    /// or 0 bytes from the transport stream」等一次网络抖动即整体失败的问题
+    /// （CmlLib 内置安装器可重入：重试只补缺缺失文件，不会重复下载已完整文件）。</summary>
     private Task InstallCoreAsync(string versionName,
         IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
         IProgress<CmlLib.Core.ByteProgress>? byteProgress, CancellationToken ct = default)
-        => Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask();
+        => WithNetRetryAsync(2,
+            _ => Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask());
+
+    /// <summary>
+    /// v0.1.11：网络类异常重试包装（指数退避）。仅对「瞬时网络错误」重试 ——
+    /// EOF / 传输流中断 / 超时 / 连接重置等；校验失败、404 等确定性错误不重试。
+    /// </summary>
+    internal static async Task<T> WithNetRetryAsync<T>(int retries, Func<int, Task<T>> work, Action<string>? log = null)
+    {
+        Exception? last = null;
+        for (var attempt = 1; attempt <= retries + 1; attempt++)
+        {
+            try
+            {
+                return await work(attempt);
+            }
+            catch (OperationCanceledException)
+            {
+                throw; // 用户取消不重试
+            }
+            catch (Exception ex) when (attempt <= retries && IsTransientNetError(ex))
+            {
+                last = ex;
+                log?.Invoke($"[重试] 网络异常（第 {attempt}/{retries + 1} 次尝试）：{ex.Message}，稍后自动重试...");
+                await Task.Delay(TimeSpan.FromMilliseconds(1200 * attempt));
+            }
+        }
+        throw last!;
+    }
+
+    /// <summary>v0.1.11：无返回值任务的重试包装（CmlLib InstallAsync 返回 ValueTask，包装成 Task）。</summary>
+    internal static Task WithNetRetryAsync(int retries, Func<int, Task> work, Action<string>? log = null)
+        => WithNetRetryAsync<object?>(retries, async i => { await work(i); return null; }, log);
+
+    /// <summary>判断是否为可重试的瞬时网络错误（EOF / 传输流中断 / 超时 / 连接类）。</summary>
+    public static bool IsTransientNetError(Exception ex)
+    {
+        if (ex is IOException or System.Net.Http.HttpRequestException or TimeoutException) return true;
+        var msg = ex.Message;
+        return msg.Contains("EOF", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("transport stream", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("timeout", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("connection", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("连接", StringComparison.Ordinal)
+            || msg.Contains("超时", StringComparison.Ordinal);
+    }
 
     /// <summary>Forge 版本列表：BMCLAPI JSON 优先（国内直连 files.minecraftforge.net 常超时，
     /// "模组加载器获取失败"根因），失败回退 CmlLib 官方 HTML 抓取。</summary>
@@ -169,7 +218,7 @@ public class LauncherService : IDisposable
             var installer = new CmlLib.Core.Installer.Forge.ForgeInstaller(Launcher, Http);
             try
             {
-                await installer.Install(fv, options);
+                await WithNetRetryAsync(2, _ => installer.Install(fv, options));
             }
             catch (Exception) when (ct.IsCancellationRequested)
             {
@@ -178,7 +227,7 @@ public class LauncherService : IDisposable
             catch
             {
                 // BMCLAPI 直链 404（老版本分支路径差异）等 → 官方流程兜底（内部自抓 HTML 列表）
-                await installer.Install(mcVersion, forgeVersion);
+                await WithNetRetryAsync(1, _ => installer.Install(mcVersion, forgeVersion));
             }
         });
 
@@ -218,7 +267,7 @@ public class LauncherService : IDisposable
             };
             try
             {
-                await installer.Install(fv, options);
+                await WithNetRetryAsync(2, _ => installer.Install(fv, options));
             }
             catch (Exception) when (ct.IsCancellationRequested)
             {
@@ -949,7 +998,8 @@ public class LauncherService : IDisposable
         }
 
         if (items.Count == 0) return;
-        onLog?.Invoke($"[启动] 多线程预取：待下载 {items.Count} 个文件（{threads} 线程）...");
+        // v0.1.11：文案对齐主流启动器下载分段（「分析缺失文件」→「下载游戏文件」）
+        onLog?.Invoke($"[启动] 分析缺失文件完成：待下载 {items.Count} 个文件（{threads} 线程）...");
 
         var prog = new Progress<DownloadEngine.BatchProgress>(p =>
         {
@@ -959,7 +1009,7 @@ public class LauncherService : IDisposable
         });
         await DownloadEngine.DownloadBatchAsync(Http, items, threads, prog,
             null, ct); // 不逐文件写日志（2800 行会刷屏）；文件名经 fileProgress 进度行显示
-        onLog?.Invoke("[启动] 多线程预取完成。");
+        onLog?.Invoke("[启动] 游戏文件下载完成。");
     }
 
     /// <summary>

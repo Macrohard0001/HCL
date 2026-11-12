@@ -28,8 +28,8 @@
     <sys:String x:Key="S.Home.QuickServerBtn">Join Server</sys:String>
     <sys:String x:Key="S.Home.VersionSettingsTip">Version settings (applies to this version only)</sys:String>
 <sys:String x:Key="S.Home.Launch">Launch</sys:String>
-    <sys:String x:Key="S.Home.Stage.CheckJava">Checking Java environment</sys:String>
-    <sys:String x:Key="S.Home.Stage.Files">Completing game files</sys:String>
+    <sys:String x:Key="S.Home.Stage.CheckJava">Fetching Java</sys:String>
+    <sys:String x:Key="S.Home.Stage.Files">Completing files</sys:String>
     <sys:String x:Key="S.Home.Stage.Launch">Starting game</sys:String>
     <sys:String x:Key="S.Home.CancelLaunchTip">Cancel this launch (effective while downloading / installing / completing files)</sys:String>
     <sys:String x:Key="S.Home.Starting">Starting…</sys:String>
@@ -47,7 +47,7 @@
     <sys:String x:Key="S.Home.OpenLogs">Logs Folder</sys:String>
     <sys:String x:Key="S.Home.OpenCrash">Crash Reports</sys:String>
     <sys:String x:Key="S.Home.Recent">Recent Launches</sys:String>
-    <sys:String x:Key="S.Home.Stage.WaitWindow">Waiting for game window</sys:String>
+    <sys:String x:Key="S.Home.Stage.WaitWindow">Waiting for the game window</sys:String>
     <sys:String x:Key="S.Home.WaitWindow">Waiting for the game window to appear...</sys:String>
     <sys:String x:Key="S.Home.WaitWindowHint">This can take a while (first launch loads slower, which is normal).</sys:String>
     <sys:String x:Key="S.Home.GameRunning">Game is running. You can close this window (logging continues)</sys:String>
@@ -447,7 +447,7 @@
     <sys:String x:Key="S.Task.Done">Done</sys:String>
     <sys:String x:Key="S.Task.Failed">Failed</sys:String>
     <sys:String x:Key="S.Task.Canceled">Canceled</sys:String>
-    <sys:String x:Key="S.Task.Prepare">Preparing game files ({0})</sys:String>
+    <sys:String x:Key="S.Task.Prepare">Launch game ({0})</sys:String>
     <sys:String x:Key="S.Task.CheckingFiles">Checking and completing game files</sys:String>
     <sys:String x:Key="S.Task.Ready">Game files ready</sys:String>
     <sys:String x:Key="S.Task.DetailTitle">Task Details</sys:String>
@@ -467,9 +467,9 @@
     <sys:String x:Key="S.Vs.WinMatch">Match launcher window size</sys:String>
     <sys:String x:Key="S.Vs.WinCustom">Custom size</sys:String>
     <sys:String x:Key="S.Vs.WinHint">Ignored when fullscreen launch is enabled.</sys:String>
-    <sys:String x:Key="S.Vs.GroupMods">Mods &amp; content</sys:String>
+    <sys:String x:Key="S.Vs.GroupMods">Mods</sys:String>
     <sys:String x:Key="S.Vs.OpenModsPage">Open Mod manager</sys:String>
-    <sys:String x:Key="S.Vs.ModsHint">Search / toggle / delete mods for this version in the Mod manager page (target version pre-selected); use the folder buttons below to open the Mod folder directly.</sys:String>
+    <sys:String x:Key="S.Vs.ModsHint">Manage mods / resource packs / shaders / datapacks of this version (folders follow isolation state); download new mods on the Mods page.</sys:String>
     <sys:String x:Key="S.Vs.OpenPacksDir">Open resource packs</sys:String>
     <sys:String x:Key="S.Mod.PresetTaskTitle">Install preset ({0})</sys:String>
     <sys:String x:Key="S.Mod.PresetGroup">—— {0} ({1} items) → {2}</sys:String>
@@ -513,4 +513,37 @@
     <sys:String x:Key="S.Azure.OpenRegister">Open "App registrations"</sys:String>
     <sys:String x:Key="S.Azure.Close">Got it</sys:String>
     <sys:String x:Key="S.Azure.OpenGuide">How to get an Azure Client ID? (step-by-step)</sys:String>
+
+    <!-- v0.1.11 -->
+    <sys:String x:Key="S.Nav.Instances">Instances</sys:String>
+    <sys:String x:Key="S.Inst.Title">Instances</sys:String>
+    <sys:String x:Key="S.Inst.Subtitle">Running game instances: view details, kill processes (multi-instance supported).</sys:String>
+    <sys:String x:Key="S.Inst.Empty">No running game instances right now. They will appear here in real time after you launch the game.</sys:String>
+    <sys:String x:Key="S.Inst.DetailTitle">Instance details</sys:String>
+    <sys:String x:Key="S.Inst.State">State</sys:String>
+    <sys:String x:Key="S.Inst.StartedAt">Started at</sys:String>
+    <sys:String x:Key="S.Inst.Elapsed">Elapsed</sys:String>
+    <sys:String x:Key="S.Inst.ProcessAlive">Process</sys:String>
+    <sys:String x:Key="S.Inst.Alive">Running</sys:String>
+    <sys:String x:Key="S.Inst.Exited">Exited</sys:String>
+    <sys:String x:Key="S.Set.UiRefresh">UI refresh rate</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshHint">Controls how polling pages (task center / instances) refresh: Auto (default 500ms polling); Manual (poll at your own FPS); Event-driven (refresh only on changes, most power-friendly); Event-driven (limited) (refresh on changes up to a max rate).</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshAuto">Auto</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshManual">Manual (own FPS)</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshEvent">Event-driven (instant refresh)</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshEventLimited">Event-driven (limited rate)</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshFps">Refresh FPS:</sys:String>
+    <sys:String x:Key="S.Set.UiRefreshMaxFps">Max FPS:</sys:String>
+    <sys:String x:Key="S.Set.RelativePaths">Relative paths (portable-friendly)</sys:String>
+    <sys:String x:Key="S.Set.RelativePathsHint">When enabled, paths inside the launcher folder (game root / Java runtime etc.) are stored as relative paths in the config: you can move the whole launcher folder to another drive or PC without re-configuring. Paths outside the launcher folder are unaffected.</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemGroup">Launcher maintenance</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemGroupHint">Launcher memory optimization, manual cleanup and log scrolling experience.</sys:String>
+    <sys:String x:Key="S.Set.SmoothScroll">Smooth log scrolling</sys:String>
+    <sys:String x:Key="S.Set.SmoothScrollHint">Adds a smooth animation to wheel scrolling in task details / log areas (drag the scrollbar to take over instantly).</sys:String>
+    <sys:String x:Key="S.Set.LaunchGroup">Launch</sys:String>
+    <sys:String x:Key="S.Set.LaunchGroupHint">JVM arguments, game window size and launch behavior.</sys:String>
+    <sys:String x:Key="S.Set.NetworkGroup">Network</sys:String>
+    <sys:String x:Key="S.Set.NetworkGroupHint">Download source, download threads and service keys.</sys:String>
+    <sys:String x:Key="S.Vs.ModsHint2">Double-click an entry to toggle it; Ctrl / Shift for multi-select.</sys:String>
+
 </ResourceDictionary>

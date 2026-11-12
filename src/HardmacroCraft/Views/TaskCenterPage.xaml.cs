@@ -13,14 +13,53 @@ namespace HardmacroCraft.Views;
 public partial class TaskCenterPage : Page
 {
     private readonly DispatcherTimer _timer;
+    private RefreshThrottle? _throttle;
 
     public TaskCenterPage()
     {
         InitializeComponent();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Refresh();
-        Loaded += (_, _) => { Refresh(); _timer.Start(); };
-        Unloaded += (_, _) => _timer.Stop();
+        Loaded += (_, _) =>
+        {
+            Refresh();
+            ApplyRefreshPolicy();
+        };
+        Unloaded += (_, _) =>
+        {
+            _timer.Stop();
+            DownloadTaskService.Instance.Changed -= OnTasksChanged;
+        };
+    }
+
+    /// <summary>v0.1.11：刷新频率跟随「设置 → 界面刷新频率」（轮询 / 事件驱动 / 事件驱动限频）。</summary>
+    private void ApplyRefreshPolicy()
+    {
+        var s = AppSettings.Instance;
+        var mode = s.UiRefreshMode;
+        DownloadTaskService.Instance.Changed -= OnTasksChanged;
+        if (UiRefreshPolicy.IsEventDriven(mode))
+        {
+            // 事件驱动：停用轮询，任务状态变化时立刻（或限频后）刷新 —— 最省电
+            _timer.Stop();
+            _throttle = new RefreshThrottle(UiRefreshPolicy.EventMinIntervalMs(mode, s.UiRefreshMaxFps));
+            DownloadTaskService.Instance.Changed += OnTasksChanged;
+        }
+        else
+        {
+            _throttle = null;
+            var interval = UiRefreshPolicy.PollIntervalMs(mode, s.UiRefreshFps);
+            if (interval <= 0) interval = 500;
+            _timer.Interval = TimeSpan.FromMilliseconds(interval);
+            _timer.Start();
+        }
+    }
+
+    private void OnTasksChanged()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(OnTasksChanged); return; }
+        if (_throttle != null && !_throttle.TryRefresh(DateTime.Now)) return;
+        Refresh();
     }
 
     private void Refresh()
@@ -122,7 +161,8 @@ public partial class TaskCenterPage : Page
         var time = new TextBlock
         {
             FontSize = 11, Margin = new Thickness(0, 4, 0, 0),
-            Text = t.StartedAt.ToString("HH:mm:ss")
+            Text = (t.Percent >= 0 ? $"{t.Percent:0.#}% · " : "")
+                + t.StartedAt.ToString("HH:mm:ss")
                 + (t.IsActive ? "" : "  →  " + t.EndedAt.ToString("HH:mm:ss")),
         };
         time.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");

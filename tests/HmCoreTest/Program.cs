@@ -2397,6 +2397,102 @@ try
 }
 catch (Exception ex) { Check("v0.1.10 任务中心 / 版本隐藏", false, ex.Message); }
 
+// ==================== 第 32 节 v0.1.11：进度统一计算 / 版本命名 / 相对路径 / 界面刷新策略 ====================
+Console.WriteLine("\n---- 第 32 节 · v0.1.11（进度统一 / 命名 / 相对路径 / 刷新策略）----");
+
+try
+{
+    // 32.1 启动进度统一计算（修复进度条乱蹦）
+    var calc = new LaunchProgressCalc();
+    Check("无数据时 Compute 返回 null", calc.Compute() == null);
+    // 字节尺优先：总量稳定单调递增 3 次后获得信任
+    calc.OnBytes(100, 1000); calc.OnBytes(200, 1000); calc.OnBytes(300, 1000);
+    Check("字节尺稳定后成为主进度来源", calc.ByteDominant);
+    Check("字节尺百分比正确", Math.Abs(calc.Compute()!.Value - 30) < 0.001);
+    // 文件尺同时上报（内置安装器 2900 个文件的另一把尺）不应夺走主进度
+    calc.OnFiles(1200, 2900);
+    Check("字节尺优先于文件尺", calc.ByteDominant && Math.Abs(calc.Compute()!.Value - 30) < 0.001);
+    // 总量变化（逐文件上报）→ 字节尺降级回文件尺
+    calc.OnBytes(500, 800000); // 换了个大文件
+    Check("字节总量变化后字节尺降级", !calc.ByteDominant);
+    Check("降级后回落文件尺百分比", Math.Abs(calc.Compute()!.Value - 1200 * 100.0 / 2900) < 0.5);
+    // 字节进度回退（不支持续传重下）→ 降级
+    var calc2 = new LaunchProgressCalc();
+    calc2.OnBytes(100, 1000); calc2.OnBytes(300, 1000); calc2.OnBytes(500, 1000);
+    Check("稳定递增后字节尺可靠", calc2.ByteDominant);
+    calc2.OnBytes(200, 1000);
+    Check("字节进度回退后字节尺降级", !calc2.ByteDominant);
+
+    // 32.2 PCL 式显示平滑（上升逼近不越过、下降快速滑落）
+    Check("平滑：上升每拍靠拢但不越过真实值",
+        LaunchProgressCalc.Smooth(0, 100) <= 100 && LaunchProgressCalc.Smooth(0, 100) > 0);
+    Check("平滑：显示值收敛于真实值（多拍）",
+        Math.Abs(Enumerable.Range(0, 200).Aggregate(0.0, (s, _) => LaunchProgressCalc.Smooth(s, 66)) - 66) < 0.01);
+    Check("平滑：真实值低于显示值时回落且不低于真实值",
+        LaunchProgressCalc.Smooth(100, 10) >= 10 && LaunchProgressCalc.Smooth(100, 10) < 100);
+    Check("平滑：夹紧非法输入", LaunchProgressCalc.Smooth(-5, 150) >= 0 && LaunchProgressCalc.Smooth(-5, 150) <= 100);
+
+    // 32.3 版本默认命名（对齐主流启动器风格）
+    Check("原版默认名 = MC 版本", VersionNaming.DefaultName("1.20.1", "vanilla", null) == "1.20.1");
+    Check("Forge 默认名（下划线）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
+    Check("NeoForge 默认名", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "1.21.0-NeoForge_21.0.67");
+    Check("Fabric 默认名（空格）", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9") == "1.20.1-Fabric 0.16.9");
+    Check("LegacyFabric 默认名", VersionNaming.DefaultName("1.12.2", "legacyfabric", "1.13.1") == "1.12.2-LegacyFabric 1.13.1");
+    Check("Quilt 默认名", VersionNaming.DefaultName("1.20.1", "quilt", "0.26.0") == "1.20.1-Quilt 0.26.0");
+    Check("LiteLoader 默认名（无版本后缀）", VersionNaming.DefaultName("1.12.2", "liteloader", "1.12.2-SNAPSHOT") == "1.12.2-LiteLoader");
+    Check("未知加载器回落 <mc>-<kind>_<v>", VersionNaming.DefaultName("1.20.1", "forbric", "0.3.1") == "1.20.1-forbric_0.3.1");
+    Check("空 MC 版本返回空串", VersionNaming.DefaultName("", "forge", "47.2.0") == "");
+    Check("IsDefaultOrEmpty 判定", VersionNaming.IsDefaultOrEmpty("", "1.20.1", "forge", "47.2.0")
+        && VersionNaming.IsDefaultOrEmpty("1.20.1-Forge_47.2.0", "1.20.1", "forge", "47.2.0")
+        && !VersionNaming.IsDefaultOrEmpty("我的整合", "1.20.1", "forge", "47.2.0"));
+
+    // 32.4 相对路径增强（便携化迁移）
+    var baseDir = Path.Combine(Path.GetTempPath(), "hcl-test-rel-" + Guid.NewGuid().ToString("N"));
+    var sub = Path.Combine(baseDir, ".minecraft");
+    Check("ToRelative：目录内 → ./ 相对形式", PortablePath.ToRelative(baseDir, sub).StartsWith("./", StringComparison.Ordinal));
+    Check("ToRelative：目录外 → 保持绝对路径",
+        !PortablePath.ToRelative(baseDir, Path.Combine(Path.GetTempPath(), "elsewhere")).StartsWith("./", StringComparison.Ordinal));
+    Check("ToRelative：等于 baseDir 自身 → ./", PortablePath.ToRelative(baseDir, baseDir) == "./");
+    Check("ToRelative：空值原样返回", PortablePath.ToRelative(baseDir, "") == "");
+    var relForm = PortablePath.ToRelative(baseDir, sub);
+    Check("ToAbsolute：还原为绝对路径",
+        string.Equals(PortablePath.ToAbsolute(baseDir, relForm), Path.GetFullPath(sub), StringComparison.OrdinalIgnoreCase));
+    Check("ToAbsolute：绝对路径原样返回（兼容老配置）",
+        PortablePath.ToAbsolute(baseDir, sub) == sub);
+    Check("LooksRelative 判定", PortablePath.LooksRelative("./.minecraft") && !PortablePath.LooksRelative("C:\\games\\.minecraft"));
+
+    // 32.5 界面刷新策略（PCL 同款四档）
+    Check("模式规范化：非法回落 auto", UiRefreshPolicy.Normalize("oops") == UiRefreshPolicy.ModeAuto);
+    Check("模式校验", UiRefreshPolicy.IsValidMode("manual") && !UiRefreshPolicy.IsValidMode("fps"));
+    Check("auto → 500ms 轮询", UiRefreshPolicy.PollIntervalMs("auto", 60) == 500);
+    Check("manual 60fps → 约 16ms", UiRefreshPolicy.PollIntervalMs("manual", 60) == 16);
+    Check("manual 非法 fps 回落 60", UiRefreshPolicy.PollIntervalMs("manual", 0) == 16);
+    Check("事件驱动不轮询（0）", UiRefreshPolicy.PollIntervalMs("event", 60) == 0);
+    Check("event 限频间隔 = 1000/maxFps", UiRefreshPolicy.EventMinIntervalMs("event-limited", 30) == 33);
+    Check("event 不限频", UiRefreshPolicy.EventMinIntervalMs("event", 60) == 0);
+    Check("IsEventDriven", UiRefreshPolicy.IsEventDriven("event") && UiRefreshPolicy.IsEventDriven("event-limited")
+        && !UiRefreshPolicy.IsEventDriven("auto"));
+    // 节流器：event 模式全放行；限频模式首放后拦
+    var th = new RefreshThrottle(0);
+    Check("节流器：不限频全放行", th.TryRefresh(DateTime.Now) && th.TryRefresh(DateTime.Now));
+    var th2 = new RefreshThrottle(1000);
+    var t0 = DateTime.Now;
+    Check("节流器：限频首次放行", th2.TryRefresh(t0));
+    Check("节流器：间隔内拦截", !th2.TryRefresh(t0.AddMilliseconds(500)));
+    Check("节流器：间隔后放行", th2.TryRefresh(t0.AddMilliseconds(1100)));
+
+    // 32.6 AppSettings 新字段默认值
+    Check("新字段默认值", new AppSettings().UiRefreshMode == "auto"
+        && new AppSettings().UiRefreshFps == 30
+        && new AppSettings().UiRefreshMaxFps == 30
+        && !new AppSettings().UseRelativePaths
+        && !new AppSettings().HomeLogOpen
+        && new AppSettings().SmoothScrollLogs);
+
+    try { Directory.Delete(baseDir, true); } catch { }
+}
+catch (Exception ex) { Check("v0.1.11 进度 / 命名 / 相对路径 / 刷新策略", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

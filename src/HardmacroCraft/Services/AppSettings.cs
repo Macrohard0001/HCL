@@ -119,6 +119,24 @@ public class AppSettings
     /// 空 = 不修改（尊重游戏自身设置）；"zh_CN" / "en_US" 等。
     /// </summary>
     public string GameLang { get; set; } = "";
+    /// <summary>
+    /// v0.1.11 相对路径增强：开启后落在启动器目录内的路径（游戏根目录 / Java 运行时目录）
+    /// 以「./相对路径」形式保存，整个启动器文件夹拷到别的盘符 / 电脑后配置无需修改。
+    /// </summary>
+    public bool UseRelativePaths { get; set; }
+    /// <summary>
+    /// v0.1.11 界面刷新频率（PCL 同款）：auto 自动 / manual 手动 FPS / event 事件驱动 /
+    /// event-limited 事件驱动（限最大频率）。详见 UiRefreshPolicy。
+    /// </summary>
+    public string UiRefreshMode { get; set; } = UiRefreshPolicy.ModeAuto;
+    /// <summary>v0.1.11：UiRefreshMode=manual 时的轮询 FPS（1-240）。</summary>
+    public int UiRefreshFps { get; set; } = 30;
+    /// <summary>v0.1.11：UiRefreshMode=event-limited 时的最大刷新频率（1-240）。</summary>
+    public int UiRefreshMaxFps { get; set; } = 30;
+    /// <summary>v0.1.11：首页日志卡是否展开（切页 / 重启后恢复）。</summary>
+    public bool HomeLogOpen { get; set; }
+    /// <summary>v0.1.11：任务详情日志滚动动画（平滑滚动，可关）。</summary>
+    public bool SmoothScrollLogs { get; set; } = true;
 
     // ---- 存取 ----
     public static AppSettings Instance { get; private set; } = new();
@@ -136,6 +154,9 @@ public class AppSettings
             Services.BootLogger.Error("settings.json 解析失败，使用默认配置: " + ex.Message);
             Instance = new();
         }
+        // v0.1.11 相对路径增强：先把相对形式的路径解析回绝对路径，再做合法性清洗
+        Instance.GameRoot = PortablePath.ToAbsolute(AppDir, Instance.GameRoot);
+        Instance.JavaRuntimeDir = PortablePath.ToAbsolute(AppDir, Instance.JavaRuntimeDir);
         // 配置文件被手改坏（如 GameRoot 为空）或被历史泄漏路径污染时回退默认值，避免启动即崩
         Instance.GameRoot = SanitizeGameRoot(Instance.GameRoot, Instance.GameRootCustomized);
         // v0.1.1：目录创建失败（Program Files 只读 / OneDrive 接管桌面 / 杀软拦截）
@@ -203,9 +224,18 @@ public class AppSettings
     {
         try { Directory.CreateDirectory(ConfigDir); }
         catch (Exception ex) { Services.BootLogger.Error("config/ 目录创建失败: " + ex.Message); }
+        // v0.1.11 相对路径增强：开启时把启动器目录内的路径相对化后再落盘。
+        // 序列化的是临时快照，不改运行中的 Instance（绝对路径继续驱动一切业务）。
+        var snapshot = this;
+        if (UseRelativePaths)
+        {
+            snapshot = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, JsonOpts), JsonOpts) ?? this;
+            snapshot.GameRoot = PortablePath.ToRelative(AppDir, GameRoot);
+            snapshot.JavaRuntimeDir = PortablePath.ToRelative(AppDir, JavaRuntimeDir);
+        }
         // 写入临时文件后原子替换：写一半崩溃 / 断电不会留下半截 JSON
         var tmp = SettingsFile + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(this, JsonOpts));
+        File.WriteAllText(tmp, JsonSerializer.Serialize(snapshot, JsonOpts));
         try
         {
             File.Move(tmp, SettingsFile, overwrite: true);
