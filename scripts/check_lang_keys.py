@@ -2,7 +2,7 @@
 """扫描所有 XAML/CS 引用的语言 key，对照 Strings.zh-CN.xaml / en 检查缺失。"""
 import re, glob, sys
 
-root = "/tmp/my-project/src/HardmacroCraft"
+root = "/home/z/my-project/hcl2-src/src/HardmacroCraft"
 
 def dict_keys(path):
     return set(re.findall(r'x:Key="([^"]+)"', open(path, encoding="utf-8").read()))

@@ -41,6 +41,9 @@
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Mods}"
                                        Icon="{ui:SymbolIcon PuzzlePiece24}"
                                        TargetPageType="{x:Type views:ModsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.ModSetup}"
+                                       Icon="{ui:SymbolIcon GridDots24}"
+                                       TargetPageType="{x:Type views:ModSetupPage}" />
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Versions}"
                                        Icon="{ui:SymbolIcon LayerDiagonal24}"
                                        TargetPageType="{x:Type views:VersionsPage}" />

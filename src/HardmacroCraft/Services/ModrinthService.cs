@@ -131,6 +131,35 @@ public class ModrinthService
     public record ProjectDetail(string ProjectId, string Slug, string Title, string Body,
         string? IconUrl, long Downloads, long Follows, string Author, string WebUrl, string Source);
 
+    /// <summary>v0.1.12：SHA1 反查结果（一键配置·从版本导入预设用）。</summary>
+    public record ModrinthFileMatch(string ProjectId, string Slug, string Title, string ProjectType);
+
+    /// <summary>
+    /// 按文件 SHA1 反查 Modrinth 项目（Modrinth 官方 version_file 端点，404 = 未收录）。
+    /// 「一键配置」从已装版本导入预设的核心步骤：逐个 jar 算哈希 → 反查 → 生成预设条目，
+    /// 安装时再按游戏版本 / 加载器自动匹配最新兼容文件。
+    /// project_type 已映射为本启动器的目录类型（plugin → mod）。
+    /// </summary>
+    public async Task<ModrinthFileMatch?> GetProjectBySha1Async(string sha1, CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{Base}/version_file/{Uri.EscapeDataString(sha1.ToLowerInvariant())}?algorithm=sha1";
+            using var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return null; // 404 / 410：未被 Modrinth 收录
+            var version = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+            var projectId = version.TryGetProperty("project_id", out var pid) ? pid.GetString() ?? "" : "";
+            if (projectId.Length == 0) return null;
+            var proj = await _http.GetFromJsonAsync<JsonElement>($"{Base}/project/{projectId}", ct);
+            var slug = proj.TryGetProperty("slug", out var sl) ? sl.GetString() ?? projectId : projectId;
+            var title = proj.TryGetProperty("title", out var ti) ? ti.GetString() ?? slug : slug;
+            var ptype = proj.TryGetProperty("project_type", out var pt) ? pt.GetString() ?? "mod" : "mod";
+            if (ptype == "plugin") ptype = "mod"; // 插件按 mod 目录处理（服务端玩法不在本页范围）
+            return new ModrinthFileMatch(projectId, slug, title, ptype);
+        }
+        catch { return null; }
+    }
+
     /// <summary>拉取项目详情（Modrinth GET /project/{slug}，body 为 Markdown 原文）。</summary>
     public async Task<ProjectDetail> GetProjectAsync(string slugOrId, CancellationToken ct = default)
     {

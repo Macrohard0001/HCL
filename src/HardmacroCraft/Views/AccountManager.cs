@@ -23,13 +23,17 @@ public static class AccountManager
         var win = new Wpf.Ui.Controls.FluentWindow
         {
             Title = App.Current.TryFindResource("S.Acct.Title") as string ?? "账号管理",
-            Width = 520,
-            Height = 480,
+            Width = 540,
+            Height = 540,
+            MinWidth = 460,
+            MinHeight = 380,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.NoResize,
+            ResizeMode = ResizeMode.CanResize, // v0.1.12：账号多时可拉高（此前固定 480 不可调，多账号溢出）
             WindowBackdropType = Wpf.Ui.Controls.WindowBackdropType.Mica,
             ExtendsContentIntoTitleBar = true, // Mica backdrop 要求开启，否则 OnSourceInitialized 抛异常
         };
+        // v0.1.12：Esc 关闭（PCL 同款）
+        win.PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) win.Close(); };
         owner ??= App.Current.Windows.OfType<Window>().LastOrDefault(w => !ReferenceEquals(w, win));
         if (owner != null && !ReferenceEquals(owner, win)) win.Owner = owner;
 
@@ -50,9 +54,15 @@ public static class AccountManager
         root.Children.Add(title);
         root.Children.Add(subtitle);
 
-        // 账号列表容器（每次重建）
+        // 账号列表容器（每次重建）。v0.1.12：包一层 ScrollViewer（账号多时可滚动，不溢出）
         var list = new StackPanel();
-        root.Children.Add(list);
+        var listScroll = new ScrollViewer
+        {
+            Content = list,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            MaxHeight = 330,
+        };
+        root.Children.Add(listScroll);
 
         // 登录入口
         var addPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
@@ -286,20 +296,33 @@ public static class AccountManager
         menu.IsOpen = true;
     }
 
+    /// <summary>
+    /// 构建单个账号卡片（v0.1.12 重构，PCL 同款体验）：
+    /// - 整张卡片可点击 → 直接切换为当前账号（移除原先的「切换」按钮）；
+    /// - 当前账号左侧显示 Fluent 竖指示条（主题强调色，PCL 同款视觉锚点）；
+    /// - 第三方验证站多角色账号显示「切换角色」按钮（凭 accessToken 免密 refresh 绑定，
+    ///   无需重新登录；此前换角色必须重新输密码）。
+    /// </summary>
     private static UIElement BuildRow(Window win, StoredAccount acc, Action onChanged)
     {
-        var isCurrent = AccountStore.Instance.Current?.Name == acc.Name;
+        var isCurrent = AccountStore.Instance.Current?.Name == acc.Name
+            && AccountStore.Instance.Current?.Type == acc.Type;
         var (badge, badgeBrush) = TypeBadge(acc);
 
         var isOffline = acc.Type == "offline";
+        var isMultiRole = acc.Type == "authlib" && acc.Profiles.Count(p => p.Name != acc.Name) > 0;
         var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        if (isOffline)
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 皮肤按钮（离线账号专属）
+        if (isOffline || isMultiRole)
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // 皮肤（离线）/ 切换角色（多角色）
+        var delCol = isOffline ? 5 : isMultiRole ? 5 : 4;
+        while (grid.ColumnDefinitions.Count <= delCol)
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+        // 卡片本体：整体可点击切换账号；当前账号左侧 3.5px 强调色竖指示条（Fluent 风格）
         var card = new Border
         {
             CornerRadius = new CornerRadius(8),
@@ -307,8 +330,38 @@ public static class AccountManager
             Background = new SolidColorBrush(isCurrent
                 ? Color.FromArgb(0x22, 0x00, 0x77, 0xCC)
                 : Color.FromArgb(0x0D, 0x88, 0x88, 0x88)),
+            Cursor = System.Windows.Input.Cursors.Hand,
         };
-        Grid.SetColumnSpan(card, isOffline ? 5 : 4);
+        Grid.SetColumnSpan(card, grid.ColumnDefinitions.Count);
+        if (!isCurrent)
+        {
+            card.ToolTip = App.Current.TryFindResource("S.Acct.ClickToSwitch") as string ?? "点击切换到此账号";
+            card.MouseLeftButtonUp += (_, _) =>
+            {
+                AccountStore.Instance.CurrentName = acc.Name;
+                AccountStore.Instance.CurrentType = acc.Type; // 同名不同类型账号需要类型定位
+                AccountStore.Instance.Save();
+                onChanged();
+            };
+        }
+        var cardGrid = new Grid();
+        cardGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        cardGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var indicator = new Border
+        {
+            Width = 3.5,
+            CornerRadius = new CornerRadius(2),
+            Margin = new Thickness(-6, 2, 6, 2), // 贴卡片左缘（抵消 Padding 一半）
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Visibility = isCurrent ? Visibility.Visible : Visibility.Collapsed,
+        };
+        indicator.SetResourceReference(Border.BackgroundProperty, "SystemAccentColorPrimaryBrush");
+        Grid.SetColumn(indicator, 0);
+        cardGrid.Children.Add(indicator);
+        var contentHost = new StackPanel { Orientation = Orientation.Horizontal };
+        Grid.SetColumn(contentHost, 1);
+        cardGrid.Children.Add(contentHost);
+        card.Child = cardGrid;
         grid.Children.Add(card);
 
         var avatar = new Border
@@ -330,7 +383,7 @@ public static class AccountManager
         avatarGrid.Children.Add(avatarImg);
         avatarGrid.Children.Add(avatarText);
         avatar.Child = avatarGrid;
-        grid.Children.Add(avatar);
+        contentHost.Children.Add(avatar);
         _ = LoadAvatarIntoAsync(avatarImg, avatarText, acc);
 
         var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 8, 0) };
@@ -358,26 +411,22 @@ public static class AccountManager
         type.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
         info.Children.Add(namePanel);
         info.Children.Add(type);
-        Grid.SetColumn(info, 1);
-        grid.Children.Add(info);
+        contentHost.Children.Add(info);
 
-        if (!isCurrent)
+        // 第三方验证站多角色：凭 accessToken 直接 refresh 绑定其他角色（免密，无需重新登录）
+        if (isMultiRole)
         {
-            var btnUse = new Wpf.Ui.Controls.Button
+            var btnRole = new Wpf.Ui.Controls.Button
             {
-                Content = App.Current.TryFindResource("S.Acct.SetCurrent") as string ?? "切换",
+                Content = App.Current.TryFindResource("S.Acct.SwitchRole") as string ?? "切换角色",
                 MinHeight = 30, Padding = new Thickness(12, 0, 12, 0),
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0),
+                ToolTip = App.Current.TryFindResource("S.Acct.SwitchRoleTip") as string
+                    ?? "同一验证站账号下的多个角色可直接切换，无需重新登录",
             };
-            btnUse.Click += (_, _) =>
-            {
-                AccountStore.Instance.CurrentName = acc.Name;
-                AccountStore.Instance.CurrentType = acc.Type; // 同名不同类型账号需要类型定位（v0.1.3）
-                AccountStore.Instance.Save();
-                onChanged();
-            };
-            Grid.SetColumn(btnUse, 2);
-            grid.Children.Add(btnUse);
+            btnRole.Click += (_, _) => SwitchRoleAsync(win, acc, onChanged);
+            Grid.SetColumn(btnRole, 3);
+            grid.Children.Add(btnRole);
         }
 
         if (isOffline)
@@ -391,7 +440,7 @@ public static class AccountManager
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0),
             };
             btnSkin.Click += (_, _) => OpenSkinMenu(win, btnSkin, acc, onChanged);
-            Grid.SetColumn(btnSkin, 3);
+            Grid.SetColumn(btnSkin, isMultiRole ? 4 : 3);
             grid.Children.Add(btnSkin);
         }
 
@@ -412,9 +461,46 @@ public static class AccountManager
             AccountStore.Instance.Remove(acc.Name, acc.Type); // 只删对应类型，同名其他类型账号保留
             onChanged();
         };
-        Grid.SetColumn(btnDel, isOffline ? 4 : 3);
+        Grid.SetColumn(btnDel, delCol);
         grid.Children.Add(btnDel);
 
         return grid;
+    }
+
+    /// <summary>
+    /// v0.1.12 多角色直切：凭已保存的 accessToken 调 authserver/refresh 绑定新角色，
+    /// 全程无需重新输入密码（PCL 同款）。成功后替换账号条目并设为当前账号。
+    /// </summary>
+    private static async void SwitchRoleAsync(Window win, StoredAccount acc, Action onChanged)
+    {
+        var chosen = RolePickerWindow.Show(win, acc.Profiles, acc.Name);
+        if (chosen == null || chosen.Name == acc.Name) return;
+
+        var auth = new AuthlibService(App.LauncherService.Http);
+        try
+        {
+            var profileJson = System.Text.Json.JsonSerializer.SerializeToElement(
+                new { id = chosen.Id, name = chosen.Name });
+            var r = await auth.RefreshAsync(acc.ServerUrl, acc.RefreshToken, acc.ClientToken, profileJson);
+
+            var oldName = acc.Name;
+            acc.Name = r.Name;
+            acc.Uuid = r.Uuid;
+            acc.RefreshToken = r.AccessToken;
+            if (oldName != acc.Name) AccountStore.Instance.Remove(oldName, acc.Type);
+            AccountStore.Instance.Upsert(acc); // Upsert 会把新角色设为当前账号
+            MessageBox.Show(win,
+                string.Format(App.Current.TryFindResource("S.Acct.RoleSwitchDone") as string
+                    ?? "已切换到角色 {0}。", acc.Name),
+                "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Information);
+            onChanged();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(win,
+                string.Format(App.Current.TryFindResource("S.Acct.RoleSwitchFailed") as string
+                    ?? "切换角色失败：{0}", ex.Message),
+                "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 }

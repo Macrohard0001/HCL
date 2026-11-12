@@ -699,8 +699,9 @@ public partial class ModsPage : Page
         }
     }
 
-    /// <summary>批量安装单个项目：自动挑最新兼容文件（不弹版本对话框），mod 类型自动补依赖。</summary>
-    private async Task BatchInstallOneAsync(
+    /// <summary>批量安装单个项目：自动挑最新兼容文件（不弹版本对话框），mod 类型自动补依赖。
+    /// v0.1.12：返回主文件名（供预设记录 InstalledFiles，一键移除用）；失败/取消照常抛异常。</summary>
+    private async Task<string> BatchInstallOneAsync(
         ModrinthService.SearchHit hit, string type, string? gameVersion, string dir)
     {
         Log($"▶ {hit.Title}");
@@ -720,6 +721,7 @@ public partial class ModsPage : Page
             });
             if (type == "mod" && file.Dependencies.Count > 0)
                 await ResolveCfDependenciesAsync(file, dir, gameVersion, Loader);
+            return file.FileName;
         }
         else
         {
@@ -737,6 +739,7 @@ public partial class ModsPage : Page
             });
             if (type == "mod")
                 await ResolveDependenciesAsync(v, dir, gameVersion);
+            return f.Filename;
         }
     }
 
@@ -870,7 +873,7 @@ public partial class ModsPage : Page
         catch (Exception ex) { Log("预设读取失败: " + ex.Message); return; }
         picked = ModPresetWindow.Show(Window.GetWindow(this), presets);
         if (picked == null) return;
-        await InstallPresetAsync(picked);
+        await InstallPresetAsync(picked, presets);
     }
 
     /// <summary>
@@ -880,9 +883,16 @@ public partial class ModsPage : Page
     /// - 每条按当前目标版本 / 加载器自动匹配最新兼容文件（不弹窗）；
     /// - 已存在同名文件自动跳过（一键补装只装缺失的）；
     /// - mod 类型自动补必需依赖；全程登记任务中心任务（带进度日志，可点开看详情）。
+    /// v0.1.12：预设列表一并传入 —— 安装成功的文件名实时记入条目并落盘（一键移除依据）。
     /// </summary>
-    private async Task InstallPresetAsync(ModPreset preset)
+    private async Task InstallPresetAsync(ModPreset preset, List<ModPreset>? presets = null)
     {
+        async Task SavePresets()
+        {
+            if (presets == null) return;
+            try { ModPresetStore.Save(ModPresetStore.PresetsPath, presets); } catch { }
+        }
+
         if (_busy) return;
         var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
 
@@ -890,10 +900,12 @@ public partial class ModsPage : Page
         BtnBatchDownload.IsEnabled = false;
         BtnSavePreset.IsEnabled = false;
         int okCount = 0, failCount = 0, skipCount = 0;
-        var presetTask = DownloadTaskService.Instance.StartKeyed(
+        // v0.1.12：预设安装改为可取消任务（此前不可取消，长清单只能干等）；逐条目粒度响应取消
+        var presetTask = DownloadTaskService.Instance.StartCancellableKeyed(
             $"preset-install:{preset.Name}",
             string.Format(S("S.Mod.PresetTaskTitle"), preset.Name),
             S("S.Task.CheckingFiles"));
+        var presetCt = DownloadTaskService.Instance.TokenFor(presetTask);
         try
         {
             ClearLog();
@@ -908,6 +920,7 @@ public partial class ModsPage : Page
                 Log(string.Format(S("S.Mod.PresetGroup"), group.Key, group.Count(), dir));
                 foreach (var it in group)
                 {
+                    presetCt.ThrowIfCancellationRequested(); // v0.1.12：逐条目响应取消
                     try
                     {
                         var hit = new ModrinthService.SearchHit(
@@ -925,7 +938,10 @@ public partial class ModsPage : Page
                                 done * 100.0 / preset.Items.Count, $"{done}/{preset.Items.Count} · {it.Title}（已安装）");
                             continue;
                         }
-                        await BatchInstallOneAsync(hit, group.Key, gameVersion, dir);
+                        // v0.1.12：安装成功后把主文件名记入预设条目（开始移除的依据），落盘保存
+                        var installedFile = await BatchInstallOneAsync(hit, group.Key, gameVersion, dir);
+                        ModPresetStore.RecordInstalled(it, installedFile);
+                        await SavePresets();
                         okCount++;
                         done++;
                         DownloadTaskService.Instance.Update(presetTask,
@@ -947,7 +963,14 @@ public partial class ModsPage : Page
             if (failCount == 0)
                 DownloadTaskService.Instance.Complete(presetTask, doneMsg);
             else
-                DownloadTaskService.Instance.Fail(presetTask, doneMsg);        }
+                DownloadTaskService.Instance.Fail(presetTask, doneMsg);
+        }
+        catch (OperationCanceledException) when (presetCt.IsCancellationRequested)
+        {
+            // v0.1.12：用户取消预设安装 —— 已下载完成的文件保留，任务标记「已取消」
+            Log("预设安装已取消（已下载的文件保留）。");
+            DownloadTaskService.Instance.Cancel(presetTask, "已取消");
+        }
         finally
         {
             _busy = false;

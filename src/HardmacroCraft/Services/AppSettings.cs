@@ -137,6 +137,11 @@ public class AppSettings
     public bool HomeLogOpen { get; set; }
     /// <summary>v0.1.11：任务详情日志滚动动画（平滑滚动，可关）。</summary>
     public bool SmoothScrollLogs { get; set; } = true;
+    /// <summary>
+    /// v0.1.12 一键配置 Mods：开始移除前把待删文件备份到 config/mod-backup/&lt;版本&gt;/&lt;时间&gt;/，
+    /// 误删可找回（PCL 同款兜底习惯）。默认开启。
+    /// </summary>
+    public bool ModSetupBackup { get; set; } = true;
 
     // ---- 存取 ----
     public static AppSettings Instance { get; private set; } = new();
@@ -280,12 +285,27 @@ public class StoredAccount
     public string SavedPassword { get; set; } = "";
     /// <summary>自动登录：启动器打开后用记住的密码静默重登该验证站账号（PCL 同款）。</summary>
     public bool AutoLogin { get; set; }
+    /// <summary>v0.1.12 多角色直切：第三方验证站登录时返回的全部可用角色档案。
+    /// 账号管理里可凭 accessToken 直接 refresh 绑定其他角色，无需重新输入密码。</summary>
+    public List<StoredProfile> Profiles { get; set; } = new();
     /// <summary>微软账号：缓存 Minecraft 访问令牌（由 refresh_token 换得）。刷新失败时用
     /// 它兜底启动，避免一次网络抖动 / Azure Client ID 丢失就永远无法进游戏（v0.1.3 修复）。</summary>
     public string AccessToken { get; set; } = "";
     /// <summary>离线账号：自定义皮肤 PNG 的本机路径（PCL 式离线皮肤，复制存于 config/skins/）。
     /// 启动时注入游戏 jar 的默认皮肤贴图，仅本机单机可见（离线模式没有服务端身份，无法同步他人）。</summary>
     public string SkinPath { get; set; } = "";
+}
+
+/// <summary>v0.1.12 多角色直切：Yggdrasil 角色档案（availableProfile 的持久化形态）。</summary>
+public class StoredProfile
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+
+    public StoredProfile() { }
+    public StoredProfile(string id, string name) { Id = id; Name = name; }
+
+    public override string ToString() => Name;
 }
 
 public class AccountStore

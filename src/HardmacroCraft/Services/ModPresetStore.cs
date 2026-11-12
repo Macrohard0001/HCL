@@ -15,6 +15,9 @@ public sealed class ModPresetItem
     public string Title { get; set; } = "";
     /// <summary>保存时的资源类型（mod / resourcepack / shader / datapack）。</summary>
     public string Type { get; set; } = "mod";
+    /// <summary>v0.1.12：本条目已成功安装到各版本的文件名（主文件，不含依赖）。
+    /// 「一键配置 → 开始移除」据此删除对应文件；空列表时回退按最新兼容文件名匹配。</summary>
+    public List<string> InstalledFiles { get; set; } = new();
 }
 
 /// <summary>模组预设（PCL 式一键装机单）：一组 mod 的清单 + 名称，安装时自动匹配版本。</summary>
@@ -70,5 +73,63 @@ public static class ModPresetStore
         presets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
         presets.Insert(0, new ModPreset { Name = name, Items = items, CreatedAt = DateTimeOffset.Now });
         return presets;
+    }
+
+    /// <summary>为条目追加一个已安装文件名（去重；v0.1.12 开始移除的依据）。</summary>
+    public static void RecordInstalled(ModPresetItem item, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return;
+        if (!item.InstalledFiles.Contains(fileName)) item.InstalledFiles.Add(fileName);
+    }
+}
+
+/// <summary>
+/// v0.1.12 一键配置：从已装版本导入预设的纯逻辑（无 UI / 无网络，可无头测试）。
+/// 调用方逐个文件提供 SHA1 → 匹配回调（网络反查），本类只负责目录扫描、哈希计算、
+/// 条目生成与去重；未收录文件（CurseForge 专属 / 本地 jar）不进入预设并单独汇报。
+/// </summary>
+public static class ModPresetImport
+{
+    /// <summary>扫描 mods 目录里可反查的 jar 文件（跳过禁用 .disabled / 旧版 / 来源标记）。</summary>
+    public static List<string> ListModJars(string dir)
+    {
+        var result = new List<string>();
+        if (!Directory.Exists(dir)) return result;
+        foreach (var f in Directory.GetFiles(dir, "*.jar"))
+        {
+            var name = Path.GetFileName(f);
+            if (name.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.EndsWith(".old", StringComparison.OrdinalIgnoreCase)) continue;
+            result.Add(f);
+        }
+        result.Sort((a, b) => string.Compare(a, b, StringComparison.OrdinalIgnoreCase));
+        return result;
+    }
+
+    /// <summary>计算文件 SHA1（小写十六进制）。</summary>
+    public static async Task<string> Sha1OfFileAsync(string file, CancellationToken ct = default)
+        => Convert.ToHexString(await System.Security.Cryptography.SHA1.HashDataAsync(
+            File.OpenRead(file), ct)).ToLowerInvariant();
+
+    /// <summary>
+    /// 单个 jar → 预设条目（match 由调用方注入：SHA1 反查 Modrinth）。未命中返回 null。
+    /// </summary>
+    public static async Task<ModPresetItem?> ImportOneAsync(string jarFile,
+        Func<string, CancellationToken, Task<(string ProjectId, string Slug, string Title, string Type)?>> match,
+        CancellationToken ct = default)
+    {
+        var sha1 = await Sha1OfFileAsync(jarFile, ct);
+        var hit = await match(sha1, ct);
+        if (hit == null) return null;
+        var (projectId, slug, title, type) = hit.Value;
+        if (string.IsNullOrWhiteSpace(projectId)) return null;
+        return new ModPresetItem
+        {
+            Platform = "modrinth",
+            ProjectId = projectId,
+            Slug = slug,
+            Title = string.IsNullOrWhiteSpace(title) ? Path.GetFileNameWithoutExtension(jarFile) : title,
+            Type = string.IsNullOrWhiteSpace(type) ? "mod" : type,
+        };
     }
 }

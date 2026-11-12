@@ -13,6 +13,14 @@ namespace HardmacroCraft.Services;
 /// 3) 设置页可关闭（AppSettings.AutoMemoryOptimize，默认开）。
 /// GC 策略配套：csproj 显式工作站并发 GC（ServerGarbageCollector=false），
 /// 桌面单窗口应用下工作集与暂停时间都优于服务器 GC。
+///
+/// v0.1.12 内存占用口径修复：此前设置页把 WorkingSet64（完整工作集，含大量系统 DLL
+/// 与共享映射）当作“内存占用”展示，数值与任务管理器对不上（任务管理器进程列是
+/// “活动专用工作集”，详细信息列里另有“提交大小”），用户对比后觉得“算得不准”。
+/// 现在统一为双口径：
+///   - 专用内存（PrivateMb）= PROCESS_MEMORY_COUNTERS_EX.PrivateUsage（提交大小），
+///     与进程实际独占的内存一致，是设置页展示口径；
+///   - 工作集（WorkingSetMb）= WorkingSet64，物理内存口径，与“内存清理”收益对应。
 /// </summary>
 public static class MemoryManager
 {
@@ -29,6 +37,62 @@ public static class MemoryManager
             return p.WorkingSet64 / (1024 * 1024);
         }
     }
+
+    /// <summary>
+    /// 当前进程专用内存 / 提交大小（MB）—— 与任务管理器「详细信息 → 提交大小」一致，
+    /// 也是设置页「启动器当前内存占用」的展示口径（v0.1.12 修复口径不一致）。
+    /// 非 Windows 或 P/Invoke 失败时回退 PrivateMemorySize64。
+    /// </summary>
+    public static long PrivateMb
+    {
+        get
+        {
+            if (OperatingSystem.IsWindows() && TryGetPrivateUsage(out var usage) && usage > 0)
+                return usage / (1024 * 1024);
+            using var p = Process.GetCurrentProcess();
+            p.Refresh();
+            return p.PrivateMemorySize64 / (1024 * 1024);
+        }
+    }
+
+    private static bool TryGetPrivateUsage(out long privateUsage)
+    {
+        privateUsage = 0;
+        try
+        {
+            var counters = new PROCESS_MEMORY_COUNTERS_EX
+            {
+                cb = (uint)System.Runtime.InteropServices.Marshal.SizeOf<PROCESS_MEMORY_COUNTERS_EX>(),
+            };
+            if (!GetProcessMemoryInfo(GetCurrentProcess(), ref counters, counters.cb))
+                return false;
+            privateUsage = counters.PrivateUsage.ToInt64();
+            return true;
+        }
+        catch { return false; }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_MEMORY_COUNTERS_EX
+    {
+        public uint cb;
+        public uint PageFaultCount;
+        public UIntPtr PeakWorkingSetSize;
+        public UIntPtr WorkingSetSize;
+        public UIntPtr QuotaPeakPagedPoolUsage;
+        public UIntPtr QuotaPagedPoolUsage;
+        public UIntPtr QuotaPeakNonPagedPoolUsage;
+        public UIntPtr QuotaNonPagedPoolUsage;
+        public UIntPtr PagefileUsage;
+        public UIntPtr PeakPagefileUsage;
+        public IntPtr PrivateUsage;
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("psapi.dll", SetLastError = true)]
+    private static extern bool GetProcessMemoryInfo(IntPtr hProcess, ref PROCESS_MEMORY_COUNTERS_EX counters, uint cb);
 
     /// <summary>
     /// 启动器是否忙碌（游戏启动流程 / 任务中心运行中的任务）。
@@ -60,6 +124,20 @@ public static class MemoryManager
             catch { /* 最低工作集限制 / 权限不足时忽略 —— GC 收益已经拿到 */ }
         }
         return (before, GC.GetTotalMemory(false));
+    }
+
+    /// <summary>
+    /// v0.1.12：带工作集口径的完整优化结果 ——
+    /// （物理工作集优化前/后 MB，托管堆优化前/后 MB，专用内存优化后 MB）。
+    /// 设置页「立即清理」据此展示真实收益：此前只报托管堆（几十 MB 级别），
+    /// 与任务管理器里几百 MB 的变化对不上，看起来像“算错了”。
+    /// </summary>
+    public static (long WsBefore, long WsAfter, long ManagedBefore, long ManagedAfter, long PrivateAfter)
+        OptimizeNowDetailed()
+    {
+        var wsBefore = WorkingSetMb;
+        var (mBefore, mAfter) = OptimizeNow();
+        return (wsBefore, WorkingSetMb, mBefore / (1024 * 1024), mAfter / (1024 * 1024), PrivateMb);
     }
 
     /// <summary>
@@ -110,8 +188,6 @@ public static class MemoryManager
     }
 
     // ---- Windows 物理工作集回收 ----
-    [DllImport("kernel32.dll")]
-    private static extern IntPtr GetCurrentProcess();
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetProcessWorkingSetSize(IntPtr hProcess, IntPtr dwMinimumWorkingSetSize, IntPtr dwMaximumWorkingSetSize);

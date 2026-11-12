@@ -199,6 +199,7 @@
     <sys:String x:Key="S.Dl.BackgroundInfo">Moved to background install — track it in the Task Center: </sys:String>
     <sys:String x:Key="S.Common.Close">Close</sys:String>
     <sys:String x:Key="S.Common.Cancel">Cancel</sys:String>
+    <sys:String x:Key="S.Common.Canceled">Canceled</sys:String>
 
     <!-- Modpacks -->
     <sys:String x:Key="S.Mp.Title">Modpacks</sys:String>
@@ -417,6 +418,11 @@
     <sys:String x:Key="S.Acct.SetCurrent">Switch</sys:String>
     <sys:String x:Key="S.Acct.Delete">Delete</sys:String>
     <sys:String x:Key="S.Acct.DeleteConfirm">Delete account {0}?</sys:String>
+    <sys:String x:Key="S.Acct.SwitchRole">Switch Role</sys:String>
+    <sys:String x:Key="S.Acct.SwitchRoleTip">Switch between characters of the same third-party account without logging in again.</sys:String>
+    <sys:String x:Key="S.Acct.RoleSwitchDone">Switched to character {0}.</sys:String>
+    <sys:String x:Key="S.Acct.RoleSwitchFailed">Failed to switch character: {0}</sys:String>
+    <sys:String x:Key="S.Acct.ClickToSwitch">Click the card to switch to this account</sys:String>
     <sys:String x:Key="S.Acct.NeedAzureId">Please set your Azure Client ID in Settings first (free to register, see README).</sys:String>
     <sys:String x:Key="S.Acct.Skin">Skin</sys:String>
     <sys:String x:Key="S.Acct.SkinSet">Skinned</sys:String>
@@ -457,7 +463,7 @@
     <sys:String x:Key="S.Task.DetailCopy">Copy log</sys:String>
     <sys:String x:Key="S.Task.ClickHint">Click a task card to view its details and progress log.</sys:String>
     <sys:String x:Key="S.Set.MemCleanNow">Clean up memory now</sys:String>
-    <sys:String x:Key="S.Set.MemCleanDone">Memory reclaimed (managed heap {0} MB → {1} MB, physical usage returned to system)</sys:String>
+    <sys:String x:Key="S.Set.MemCleanDone">Memory reclaimed: working set {0} MB → {1} MB · managed heap {2} MB → {3} MB</sys:String>
     <sys:String x:Key="S.Set.WinModeDefault">Default (1280×720)</sys:String>
     <sys:String x:Key="S.Set.WinModeMatch">Match launcher window size</sys:String>
     <sys:String x:Key="S.Set.WinModeCustom">Custom size</sys:String>
@@ -498,7 +504,9 @@
     <!-- v0.1.3 launcher memory optimization -->
     <sys:String x:Key="S.Set.LauncherMemOpt">Launcher memory optimization</sys:String>
     <sys:String x:Key="S.Set.LauncherMemOptHint">Automatically reclaim memory after heavy operations (downloads / installs / launches) and during idle periods, keeping the launcher light in the background. Disabling may increase resident memory.</sys:String>
-    <sys:String x:Key="S.Set.LauncherMemNow">Launcher memory usage: {0} MB</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemNow">Launcher memory usage: {0} MB (private) · working set {1} MB</sys:String>
+    <sys:String x:Key="S.Set.ModSetupBackup">One-Click Setup: back up mods before removal</sys:String>
+    <sys:String x:Key="S.Set.ModSetupBackupHint">Files deleted by "One-Click Mod Setup → Remove" are copied to config/mod-backup/ first so they can be restored.</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->
     <sys:String x:Key="S.Azure.Title">How to get an Azure Client ID</sys:String>
     <sys:String x:Key="S.Azure.Sub">Microsoft paid login requires a free Azure Client ID ("app code") — this is Microsoft policy: every app registers its own ID. It takes about 3 minutes and only once.</sys:String>
@@ -516,6 +524,7 @@
 
     <!-- v0.1.11 -->
     <sys:String x:Key="S.Nav.Instances">Instances</sys:String>
+    <sys:String x:Key="S.Nav.ModSetup">One-Click Mod Setup</sys:String>
     <sys:String x:Key="S.Inst.Title">Instances</sys:String>
     <sys:String x:Key="S.Inst.Subtitle">Running game instances: view details, kill processes (multi-instance supported).</sys:String>
     <sys:String x:Key="S.Inst.Empty">No running game instances right now. They will appear here in real time after you launch the game.</sys:String>
@@ -546,4 +555,37 @@
     <sys:String x:Key="S.Set.NetworkGroupHint">Download source, download threads and service keys.</sys:String>
     <sys:String x:Key="S.Vs.ModsHint2">Double-click an entry to toggle it; Ctrl / Shift for multi-select.</sys:String>
 
+    <!-- v0.1.12 One-Click Mod Setup -->
+    <sys:String x:Key="S.Msu.Title">One-Click Mod Setup</sys:String>
+    <sys:String x:Key="S.Msu.Subtitle">Apply a preset (a list of mods) to any version with one click, or remove it again. Presets can be saved from the Mods page or imported from an installed version (matched via Modrinth automatically).</sys:String>
+    <sys:String x:Key="S.Msu.TargetVersion">Target version</sys:String>
+    <sys:String x:Key="S.Msu.Import">Import from version</sys:String>
+    <sys:String x:Key="S.Msu.NewPreset">New preset</sys:String>
+    <sys:String x:Key="S.Msu.PresetList">Presets</sys:String>
+    <sys:String x:Key="S.Msu.Empty">No presets yet. Save one from the Mods page or import from an installed version.</sys:String>
+    <sys:String x:Key="S.Msu.NoPreset">No preset selected</sys:String>
+    <sys:String x:Key="S.Msu.NoPresetHint">Pick a preset on the left, or import one from an installed version.</sys:String>
+    <sys:String x:Key="S.Msu.PresetNameTitle">New preset</sys:String>
+    <sys:String x:Key="S.Msu.NeedVersion">Select an installed game version above first.</sys:String>
+    <sys:String x:Key="S.Msu.Importing">Scanning the version folder and looking up Modrinth ...</sys:String>
+    <sys:String x:Key="S.Msu.ImportFailed">Import failed: {0}</sys:String>
+    <sys:String x:Key="S.Msu.ImportNoMods">No usable jars in this version's mods folder ({0}).</sys:String>
+    <sys:String x:Key="S.Msu.ImportNoMatch">No file matched a Modrinth project (CurseForge-only or local mods cannot be imported).</sys:String>
+    <sys:String x:Key="S.Msu.ImportDone">Preset "{0}" created with {1} entries; {2} file(s) not found on Modrinth were skipped.</sys:String>
+    <sys:String x:Key="S.Msu.Apply">Apply</sys:String>
+    <sys:String x:Key="S.Msu.Remove">Remove</sys:String>
+    <sys:String x:Key="S.Msu.Rename">Rename</sys:String>
+    <sys:String x:Key="S.Msu.RenameTitle">Rename preset</sys:String>
+    <sys:String x:Key="S.Msu.RemoveConfirm">Files installed by preset "{1}" will be removed from {0} (backed up first). Continue?</sys:String>
+    <sys:String x:Key="S.Msu.RemoveTaskTitle">Remove preset {0} ({1})</sys:String>
+    <sys:String x:Key="S.Msu.RemoveDone">Removal finished: {0} file(s) deleted (backup at {1})</sys:String>
+    <sys:String x:Key="S.Msu.RemoveFailed">Removal failed: {0}</sys:String>
+    <sys:String x:Key="S.Msu.TaskTitle">Apply {0} → {1}</sys:String>
+    <sys:String x:Key="S.Msu.ApplyCanceled">Setup canceled (downloaded files are kept).</sys:String>
+    <sys:String x:Key="S.Msu.ApplyFailed">Setup failed: {0}</sys:String>
+    <sys:String x:Key="S.Msu.TypeMod">Mods</sys:String>
+    <sys:String x:Key="S.Msu.TypeResourcepack">Resource packs</sys:String>
+    <sys:String x:Key="S.Msu.TypeShader">Shaders</sys:String>
+    <sys:String x:Key="S.Msu.TypeDatapack">Data packs</sys:String>
+    <sys:String x:Key="S.Msu.Hint">Tip: the latest compatible file is matched automatically for the selected version/loader. CurseForge-only mods need a CurseForge API key when they cannot be matched on Modrinth.</sys:String>
 </ResourceDictionary>

@@ -199,6 +199,7 @@
     <sys:String x:Key="S.Dl.BackgroundInfo">已转入后台安装，可在任务中心查看进度：</sys:String>
     <sys:String x:Key="S.Common.Close">关闭</sys:String>
     <sys:String x:Key="S.Common.Cancel">取消</sys:String>
+    <sys:String x:Key="S.Common.Canceled">已取消</sys:String>
 
     <!-- 整合包 -->
     <sys:String x:Key="S.Mp.Title">整合包</sys:String>
@@ -417,6 +418,11 @@
     <sys:String x:Key="S.Acct.SetCurrent">切换</sys:String>
     <sys:String x:Key="S.Acct.Delete">删除</sys:String>
     <sys:String x:Key="S.Acct.DeleteConfirm">确定删除账号 {0} 吗？</sys:String>
+    <sys:String x:Key="S.Acct.SwitchRole">切换角色</sys:String>
+    <sys:String x:Key="S.Acct.SwitchRoleTip">同一验证站账号下的多个角色可直接切换，无需重新登录。</sys:String>
+    <sys:String x:Key="S.Acct.RoleSwitchDone">已切换到角色 {0}。</sys:String>
+    <sys:String x:Key="S.Acct.RoleSwitchFailed">切换角色失败：{0}</sys:String>
+    <sys:String x:Key="S.Acct.ClickToSwitch">点击卡片切换到此账号</sys:String>
     <sys:String x:Key="S.Acct.NeedAzureId">请先在 设置 → Azure Client ID 中填写（免费注册，见 README 教程）。</sys:String>
     <sys:String x:Key="S.Acct.Skin">皮肤</sys:String>
     <sys:String x:Key="S.Acct.SkinSet">已设皮肤</sys:String>
@@ -457,7 +463,7 @@
     <sys:String x:Key="S.Task.DetailCopy">复制日志</sys:String>
     <sys:String x:Key="S.Task.ClickHint">点击任务卡片可查看任务详情与进度日志。</sys:String>
     <sys:String x:Key="S.Set.MemCleanNow">立即清理内存</sys:String>
-    <sys:String x:Key="S.Set.MemCleanDone">已回收内存（托管堆 {0} MB → {1} MB，物理内存占用已归还系统）</sys:String>
+    <sys:String x:Key="S.Set.MemCleanDone">已回收内存：物理工作集 {0} MB → {1} MB · 托管堆 {2} MB → {3} MB</sys:String>
     <sys:String x:Key="S.Set.WinModeDefault">默认（1280×720）</sys:String>
     <sys:String x:Key="S.Set.WinModeMatch">与启动器窗口大小一致</sys:String>
     <sys:String x:Key="S.Set.WinModeCustom">自定义宽高</sys:String>
@@ -498,7 +504,9 @@
     <!-- v0.1.3 启动器内存优化 -->
     <sys:String x:Key="S.Set.LauncherMemOpt">启动器内存优化</sys:String>
     <sys:String x:Key="S.Set.LauncherMemOptHint">重大操作（下载 / 安装 / 启动）结束后与空闲时段自动回收内存并压缩物理内存占用，启动器长挂后台更省。关闭后常驻内存可能更高。</sys:String>
-    <sys:String x:Key="S.Set.LauncherMemNow">启动器当前内存占用：{0} MB</sys:String>
+    <sys:String x:Key="S.Set.LauncherMemNow">启动器当前内存占用：{0} MB（专用内存）· 工作集 {1} MB</sys:String>
+    <sys:String x:Key="S.Set.ModSetupBackup">一键配置：移除 Mod 前先备份</sys:String>
+    <sys:String x:Key="S.Set.ModSetupBackupHint">「一键配置 Mods → 开始移除」删除文件前先复制到 config/mod-backup/，误删可找回。</sys:String>
     <!-- ===== Azure Client ID 获取引导（v0.1.3） ===== -->
     <sys:String x:Key="S.Azure.Title">如何获取 Azure Client ID</sys:String>
     <sys:String x:Key="S.Azure.Sub">微软正版登录需要一个免费的 Azure Client ID（即"微软应用代码"），这是微软的开放政策：每个应用须注册自己的 ID。全程约 3 分钟，只需做一次。</sys:String>
@@ -516,6 +524,7 @@
 
     <!-- v0.1.11 -->
     <sys:String x:Key="S.Nav.Instances">实例管理</sys:String>
+    <sys:String x:Key="S.Nav.ModSetup">一键配置 Mods</sys:String>
     <sys:String x:Key="S.Inst.Title">实例管理</sys:String>
     <sys:String x:Key="S.Inst.Subtitle">运行中的游戏实例：查看详情、结束进程（支持多开）。</sys:String>
     <sys:String x:Key="S.Inst.Empty">当前没有正在运行的游戏实例。启动游戏后，这里会显示实时状态。</sys:String>
@@ -546,4 +555,37 @@
     <sys:String x:Key="S.Set.NetworkGroupHint">下载源、下载线程数与各类服务 Key。</sys:String>
     <sys:String x:Key="S.Vs.ModsHint2">双击条目直接切换启用状态；Ctrl / Shift 可多选。</sys:String>
 
+    <!-- v0.1.12 一键配置 Mods -->
+    <sys:String x:Key="S.Msu.Title">一键配置 Mods</sys:String>
+    <sys:String x:Key="S.Msu.Subtitle">用预设（一组 Mod 清单）一键把 Mod 配置到任意版本，或一键移除。预设来自「Mod」页勾选保存，也可从已装版本一键导入（自动反查 Modrinth 项目）。</sys:String>
+    <sys:String x:Key="S.Msu.TargetVersion">目标版本</sys:String>
+    <sys:String x:Key="S.Msu.Import">从版本导入</sys:String>
+    <sys:String x:Key="S.Msu.NewPreset">新建预设</sys:String>
+    <sys:String x:Key="S.Msu.PresetList">预设</sys:String>
+    <sys:String x:Key="S.Msu.Empty">还没有预设。先在「Mod」页勾选保存，或从已装版本导入。</sys:String>
+    <sys:String x:Key="S.Msu.NoPreset">未选择预设</sys:String>
+    <sys:String x:Key="S.Msu.NoPresetHint">在左侧选择一个预设，或从已装版本导入新预设。</sys:String>
+    <sys:String x:Key="S.Msu.PresetNameTitle">新建预设</sys:String>
+    <sys:String x:Key="S.Msu.NeedVersion">请先在上方选择一个已安装的游戏版本。</sys:String>
+    <sys:String x:Key="S.Msu.Importing">正在扫描版本目录并反查 Modrinth ...</sys:String>
+    <sys:String x:Key="S.Msu.ImportFailed">导入失败：{0}</sys:String>
+    <sys:String x:Key="S.Msu.ImportNoMods">该版本的 mods 目录没有可用 jar（{0}）。</sys:String>
+    <sys:String x:Key="S.Msu.ImportNoMatch">没有任何文件能反查到 Modrinth 项目（CurseForge 专属 / 本地 Mod 无法导入预设）。</sys:String>
+    <sys:String x:Key="S.Msu.ImportDone">已生成预设「{0}」：{1} 个条目；另有 {2} 个文件未被 Modrinth 收录，已跳过。</sys:String>
+    <sys:String x:Key="S.Msu.Apply">开始配置</sys:String>
+    <sys:String x:Key="S.Msu.Remove">开始移除</sys:String>
+    <sys:String x:Key="S.Msu.Rename">重命名</sys:String>
+    <sys:String x:Key="S.Msu.RenameTitle">重命名预设</sys:String>
+    <sys:String x:Key="S.Msu.RemoveConfirm">将从 {0} 移除预设「{1}」安装的文件（先备份再删除）。继续吗？</sys:String>
+    <sys:String x:Key="S.Msu.RemoveTaskTitle">移除预设 {0}（{1}）</sys:String>
+    <sys:String x:Key="S.Msu.RemoveDone">移除完成：删除 {0} 个文件（备份在 {1}）</sys:String>
+    <sys:String x:Key="S.Msu.RemoveFailed">移除失败：{0}</sys:String>
+    <sys:String x:Key="S.Msu.TaskTitle">一键配置 {0} → {1}</sys:String>
+    <sys:String x:Key="S.Msu.ApplyCanceled">一键配置已取消（已下载的文件保留）。</sys:String>
+    <sys:String x:Key="S.Msu.ApplyFailed">一键配置失败：{0}</sys:String>
+    <sys:String x:Key="S.Msu.TypeMod">Mod</sys:String>
+    <sys:String x:Key="S.Msu.TypeResourcepack">资源包</sys:String>
+    <sys:String x:Key="S.Msu.TypeShader">光影</sys:String>
+    <sys:String x:Key="S.Msu.TypeDatapack">数据包</sys:String>
+    <sys:String x:Key="S.Msu.Hint">提示：安装时按所选版本 / 加载器自动匹配最新兼容文件；CurseForge 专属 Mod 反查不到时需要配置 CurseForge API Key。</sys:String>
 </ResourceDictionary>

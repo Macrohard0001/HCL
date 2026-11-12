@@ -23,7 +23,9 @@ public class AuthlibService
     /// <summary>对外暴露 HttpClient（下载 agent jar 复用同一管道）。</summary>
     public HttpClient Http => _http;
 
-    public record AuthlibLogin(string Name, string Uuid, string AccessToken, string ClientToken, string ApiRoot);
+    /// <summary>登录结果。AllProfiles 为该账号下全部可用角色（v0.1.12 多角色直切）。</summary>
+    public record AuthlibLogin(string Name, string Uuid, string AccessToken, string ClientToken, string ApiRoot,
+        IReadOnlyList<StoredProfile>? AllProfiles = null);
 
     // ---------------- API Root 自动发现 ----------------
 
@@ -157,10 +159,13 @@ public class AuthlibService
         }, ct);
         var json = await ReadYggdrasilAsync(resp, "登录", ct);
         var accessToken = json.GetProperty("accessToken").GetString()!;
+        // v0.1.12 多角色直切：登录响应里的全部可用角色随结果一并返回，
+        // 账号管理可凭同一 accessToken 直接 refresh 绑定其他角色（无需重新输密码）
+        var allProfiles = ParseProfiles(json);
 
         if (json.TryGetProperty("selectedProfile", out var sp) && sp.ValueKind == JsonValueKind.Object)
         {
-            return FromProfile(sp, accessToken, clientToken, apiRoot);
+            return FromProfile(sp, accessToken, clientToken, apiRoot) with { AllProfiles = allProfiles };
         }
 
         if (json.TryGetProperty("availableProfiles", out var ap) && ap.ValueKind == JsonValueKind.Array
@@ -181,9 +186,27 @@ public class AuthlibService
                 : selectProfile != null ? await selectProfile(profiles) : profiles[0];
             var profileJson = JsonSerializer.SerializeToElement(new { id = chosen.Id, name = chosen.Name });
             var refreshed = await RefreshAsync(apiRoot, accessToken, clientToken, profileJson);
-            return refreshed;
+            return refreshed with { AllProfiles = allProfiles };
         }
         throw new Exception("该账号下没有可用角色，请先在验证站创建角色。");
+    }
+
+    /// <summary>v0.1.12：从 Yggdrasil 响应解析 availableProfiles（角色档案列表）。</summary>
+    private static List<StoredProfile> ParseProfiles(JsonElement json)
+    {
+        var list = new List<StoredProfile>();
+        if (json.TryGetProperty("availableProfiles", out var ap) && ap.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var p in ap.EnumerateArray())
+            {
+                if (p.ValueKind != JsonValueKind.Object) continue;
+                var id = p.TryGetProperty("id", out var pi) ? pi.GetString() : null;
+                var nm = p.TryGetProperty("name", out var pn) ? pn.GetString() : null;
+                if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(nm))
+                    list.Add(new StoredProfile(id, nm));
+            }
+        }
+        return list;
     }
 
     // ---------------- 站点 meta（注册链接等） ----------------
@@ -203,14 +226,16 @@ public class AuthlibService
         catch { return ("", ""); }
     }
 
-    /// <summary>刷新令牌（启动前保活）。传 profile 则同时绑定角色。</summary>
+    /// <summary>刷新令牌（启动前保活）。传 profile 则同时绑定角色。
+    /// 带 20 秒超时（v0.1.12 启动卡住修复：此前无超时，验证站不可达时启动流程干等）。</summary>
     public async Task<AuthlibLogin> RefreshAsync(string apiRoot, string accessToken,
         string clientToken, JsonElement? profile)
     {
         object body = profile is { ValueKind: JsonValueKind.Object } p
             ? new { accessToken, clientToken, requestUser = true, selectedProfile = p }
             : new { accessToken, clientToken, requestUser = true };
-        using var resp = await PostJsonAsync($"{apiRoot}/authserver/refresh", body, default);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var resp = await PostJsonAsync($"{apiRoot}/authserver/refresh", body, timeout.Token);
         var json = await ReadYggdrasilAsync(resp, "令牌续期");
         var newToken = json.GetProperty("accessToken").GetString()!;
         if (json.TryGetProperty("selectedProfile", out var sp) && sp.ValueKind == JsonValueKind.Object)
@@ -221,13 +246,15 @@ public class AuthlibService
         throw new Exception("令牌已续期，但服务端未返回角色信息，请重新登录。");
     }
 
-    /// <summary>校验令牌是否仍有效（不改变状态）。</summary>
+    /// <summary>校验令牌是否仍有效（不改变状态）。带 15 秒超时 —— 此前无超时，
+    /// 启动阶段碰上验证站不可达时会长时间停在“正在检查第三方令牌”（v0.1.12 启动卡住修复）。</summary>
     public async Task<bool> ValidateAsync(string apiRoot, string accessToken, string clientToken)
     {
         try
         {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             using var resp = await _http.PostAsJsonAsync($"{apiRoot}/authserver/validate",
-                new { accessToken, clientToken });
+                new { accessToken, clientToken }, timeout.Token);
             return resp.IsSuccessStatusCode;
         }
         catch { return false; }

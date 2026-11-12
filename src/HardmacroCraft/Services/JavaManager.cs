@@ -145,30 +145,38 @@ public static class JavaManager
     /// <summary>
     /// 探测指定 javaw.exe 的 Java 大版本（运行 javaw -version 解析输出；失败返回 0）。
     /// 用于手选 Java 时校验版本是否达标（fix5：26.3 手选 Java 25 仍被提示装 Java 的防护）。
+    /// v0.1.12：按路径缓存结果（同一 javaw.exe 版本不会变）—— 此前每次启动都要起子进程
+    /// 并同步等待（最长 15 秒），Java 路径校验是启动链路里最容易被感知的固定延迟之一。
     /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _javaMajorCache = new(StringComparer.OrdinalIgnoreCase);
+
     public static int GetJavaMajor(string javawPath)
     {
-        try
+        if (string.IsNullOrWhiteSpace(javawPath)) return 0;
+        return _javaMajorCache.GetOrAdd(javawPath, path =>
         {
-            using var p = System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(javawPath, "-version")
-                {
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                });
-            if (p == null) return 0;
-            var output = p.StandardError.ReadToEnd() + p.StandardOutput.ReadToEnd();
-            p.WaitForExit(15000);
-            // 输出形如 openjdk version "25.0.1" / "1.8.0_412"
-            var m = System.Text.RegularExpressions.Regex.Match(output, @"version ""(\d+)(?:\.(\d+))?");
-            if (!m.Success) return 0;
-            var a = int.Parse(m.Groups[1].Value);
-            if (a != 1) return a;
-            return m.Groups[2].Success ? int.Parse(m.Groups[2].Value) : 8;
-        }
-        catch { return 0; }
+            try
+            {
+                using var p = System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(path, "-version")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                    });
+                if (p == null) return 0;
+                var output = p.StandardError.ReadToEnd() + p.StandardOutput.ReadToEnd();
+                p.WaitForExit(15000);
+                // 输出形如 openjdk version "25.0.1" / "1.8.0_412"
+                var m = System.Text.RegularExpressions.Regex.Match(output, @"version ""(\d+)(?:\.(\d+))?");
+                if (!m.Success) return 0;
+                var a = int.Parse(m.Groups[1].Value);
+                if (a != 1) return a;
+                return m.Groups[2].Success ? int.Parse(m.Groups[2].Value) : 8;
+            }
+            catch { return 0; }
+        });
     }
 
     /// <summary>

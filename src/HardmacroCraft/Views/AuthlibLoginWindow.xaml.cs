@@ -136,6 +136,8 @@ public partial class AuthlibLoginWindow
                 RememberPassword = ChkRemember.IsChecked == true,
                 SavedPassword = ChkRemember.IsChecked == true ? pass : "",
                 AutoLogin = ChkRemember.IsChecked == true && ChkAutoLogin.IsChecked == true,
+                // v0.1.12 多角色直切：保存登录返回的全部角色，账号管理里凭 accessToken 免密切换
+                Profiles = login.AllProfiles?.ToList() ?? new List<StoredProfile>(),
             };
             // v1.7.2 关键修复：登录成功立即保存账号（此前只放在 Result 里没人消费，
             // 账号列表始终"未登录"，启动被"请先登录账号"拦截）
