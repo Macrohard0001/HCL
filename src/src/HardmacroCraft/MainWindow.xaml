@@ -1,0 +1,64 @@
+<ui:FluentWindow x:Class="HardmacroCraft.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:views="clr-namespace:HardmacroCraft.Views"
+                 Title="Hardmacro Craft Launcher"
+                 Width="960" Height="540"
+                 MinWidth="900" MinHeight="520"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 Icon="pack://application:,,,/Assets/icon.ico">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="Hardmacro Craft Launcher" Padding="8,4">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/icon.png" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <ui:NavigationView Grid.Row="1" x:Name="RootNavigation"
+                           PaneDisplayMode="Left"
+                           IsBackButtonVisible="Collapsed"
+                           OpenPaneLength="224"
+                           CompactPaneLength="48">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Home}"
+                                       Icon="{ui:SymbolIcon Play24}"
+                                       TargetPageType="{x:Type views:HomePage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.DownloadGame}"
+                                       Icon="{ui:SymbolIcon ArrowDownload24}"
+                                       TargetPageType="{x:Type views:DownloadGamePage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Modpacks}"
+                                       Icon="{ui:SymbolIcon BoxMultiple24}"
+                                       TargetPageType="{x:Type views:ModpacksPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Mods}"
+                                       Icon="{ui:SymbolIcon PuzzlePiece24}"
+                                       TargetPageType="{x:Type views:ModsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Versions}"
+                                       Icon="{ui:SymbolIcon LayerDiagonal24}"
+                                       TargetPageType="{x:Type views:VersionsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Tasks}"
+                                       Icon="{ui:SymbolIcon TaskListLtr24}"
+                                       TargetPageType="{x:Type views:TaskCenterPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Instances}"
+                                       Icon="{ui:SymbolIcon Games24}"
+                                       TargetPageType="{x:Type views:InstancesPage}" />
+            </ui:NavigationView.MenuItems>
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Settings}"
+                                       Icon="{ui:SymbolIcon Settings24}"
+                                       TargetPageType="{x:Type views:SettingsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.About}"
+                                       Icon="{ui:SymbolIcon Info24}"
+                                       TargetPageType="{x:Type views:AboutPage}" />
+            </ui:NavigationView.FooterMenuItems>
+        </ui:NavigationView>
+    </Grid>
+</ui:FluentWindow>

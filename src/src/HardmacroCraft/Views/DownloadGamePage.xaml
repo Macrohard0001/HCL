@@ -1,0 +1,154 @@
+<Page x:Class="HardmacroCraft.Views.DownloadGamePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <!-- v0.1.8：主容器不再滚动（响应式）—— 标题固定，版本列表撑满剩余空间（仅列表内滚），进度卡钉底 -->
+    <Grid Margin="32,24,32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Dl.Title}" Margin="0,0,0,2" />
+            <Grid Margin="0,0,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Dl.Subtitle}" />
+                <ui:Button Grid.Column="1" x:Name="BtnRefreshVersions" MinHeight="34" Margin="12,0,0,0"
+                           Content="{DynamicResource S.Dl.Reload}" Icon="{ui:SymbolIcon ArrowClockwise24}"
+                           Click="BtnRefreshVersions_Click" />
+            </Grid>
+        </StackPanel>
+
+        <!-- ============ 原版：PCL 式版本浏览器（v0.1.8：列表撑满剩余空间，仅列表内滚） ============ -->
+        <Border Grid.Row="1" Style="{StaticResource HmCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                    <!-- 草方块图标（原版 Minecraft 标志性意象），微软式小图标直接内联 -->
+                    <Image Source="/Assets/grass.png" Width="20" Height="20" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Dl.Vanilla}" />
+                        <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Dl.VanillaHint}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 过滤行：分类 chips + 搜索框（PCL 式） -->
+                <Grid Grid.Row="1" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button x:Name="BtnFAll" MinHeight="32" Padding="12,0" Margin="0,0,6,0"
+                                   Content="{DynamicResource S.Dl.FilterAll}" Click="BtnFilter_Click" />
+                        <ui:Button x:Name="BtnFRelease" MinHeight="32" Padding="12,0" Margin="0,0,6,0"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Dl.Release}" Click="BtnFilter_Click" />
+                        <ui:Button x:Name="BtnFSnapshot" MinHeight="32" Padding="12,0" Margin="0,0,6,0"
+                                   Content="{DynamicResource S.Dl.Snapshot}" Click="BtnFilter_Click" />
+                        <!-- fix9：愚人节版独立分类（PCL 同款五分类） -->
+                        <ui:Button x:Name="BtnFApril" MinHeight="32" Padding="12,0" Margin="0,0,6,0"
+                                   Content="{DynamicResource S.Dl.FilterApril}" Click="BtnFilter_Click" />
+                        <ui:Button x:Name="BtnFOld" MinHeight="32" Padding="12,0"
+                                   Content="{DynamicResource S.Dl.Old}" Click="BtnFilter_Click" />
+                    </StackPanel>
+                    <ui:TextBox Grid.Column="1" x:Name="TxtVanillaSearch" MinHeight="32" MaxWidth="260"
+                                Margin="12,0,0,0" HorizontalAlignment="Right"
+                                PlaceholderText="{DynamicResource S.Dl.SearchHint}"
+                                TextChanged="TxtVanillaSearch_TextChanged" />
+                </Grid>
+
+                <!-- 版本列表（撑满剩余空间，仅列表内滚；v0.1.8 列表虚拟化回收） -->
+                <ListBox Grid.Row="2" x:Name="LstVanilla" MinHeight="180"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         Style="{StaticResource HmListBox}"
+                         BorderThickness="0" Background="{DynamicResource ControlFillColorDefaultBrush}"
+                         SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="12,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="34" Height="34" CornerRadius="8" Grid.Column="0"
+                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}">
+                                    <!-- PCL 式草方块图标 -->
+                                    <Image Source="/Assets/grass.png" Width="26" Height="26"
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <!-- 类型徽章（正式 / 快照 / 远古） -->
+                                        <Border CornerRadius="4" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                Background="{Binding TypeBadgeBg}" BorderBrush="{Binding TypeBadgeFg}"
+                                                BorderThickness="1">
+                                            <TextBlock Text="{Binding TypeText}" FontSize="10.5"
+                                                       Foreground="{Binding TypeBadgeFg}" />
+                                        </Border>
+                                        <Border CornerRadius="4" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                Background="#3327C93F" BorderBrush="#27C93F" BorderThickness="1"
+                                                Visibility="{Binding LatestVisibility}">
+                                            <TextBlock Text="{DynamicResource S.Dl.BadgeLatest}" FontSize="10.5"
+                                                       Foreground="#2FD155" />
+                                        </Border>
+                                        <Border CornerRadius="4" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                                BorderThickness="1" Visibility="{Binding InstalledVisibility}">
+                                            <TextBlock Text="{DynamicResource S.Dl.InstalledBadge}" FontSize="10.5"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                        <TextBlock Text="{Binding TimeText}" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <TextBlock FontSize="12" Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" Text="{Binding Desc}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <ui:Button Grid.Column="2" MinHeight="32" Padding="14,0" VerticalAlignment="Center"
+                                           Content="{DynamicResource S.Dl.Install}"
+                                           Icon="{ui:SymbolIcon ArrowDownload24}"
+                                           Appearance="Primary" Click="BtnVanillaRowInstall_Click" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock Grid.Row="3" x:Name="TxtVanillaEmpty" Margin="0,10,0,0"
+                           Style="{StaticResource HmHint}" Visibility="Collapsed" />
+            </Grid>
+        </Border>
+
+        <!-- 进度条卡片（钉底，空闲时不抢版面） -->
+        <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,12,0,0">
+            <StackPanel>
+                <ProgressBar x:Name="PbProgress" Height="6" Maximum="100" IsIndeterminate="False" />
+                <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                           MaxHeight="48" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>
