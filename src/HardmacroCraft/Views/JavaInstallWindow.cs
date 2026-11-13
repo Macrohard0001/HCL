@@ -88,7 +88,7 @@ public static class JavaInstallWindow
             "TextFillColorPrimaryBrush");
         sp.Children.Add(verLabel);
 
-        var cmbMajor = new System.Windows.Controls.ComboBox { MinHeight = 36, Margin = new Thickness(0, 0, 0, 12) };
+        var cmbMajor = new System.Windows.Controls.ComboBox { MinHeight = 32, Margin = new Thickness(0, 0, 0, 12) };
         var majors = new[] { 8, 11, 17, 21, 25 }.Union(new[] { requiredMajor, major }).OrderBy(m => m).Distinct().ToArray();
         var selectedMajor = major;
         foreach (var m in majors)
@@ -137,7 +137,7 @@ public static class JavaInstallWindow
         var txtDir = new Wpf.Ui.Controls.TextBox
         {
             Text = defaultDir,
-            MinHeight = 36,
+            MinHeight = 32,
             FontSize = 12.5,
             TextWrapping = TextWrapping.Wrap,
         };
@@ -164,14 +164,14 @@ public static class JavaInstallWindow
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Common.Cancel") as string ?? "取消",
-            MinHeight = 36,
+            MinHeight = 32,
             MinWidth = 100,
             Margin = new Thickness(0, 0, 10, 0),
         };
         var btnOk = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Home.JavaAskInstall") as string ?? "安装并启动",
-            MinHeight = 36,
+            MinHeight = 32,
             MinWidth = 130,
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
         };

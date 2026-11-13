@@ -114,16 +114,17 @@ public partial class SettingsPage : Page
         TxtMemDetected.Text = string.Format(tpl, total, rec);
     }
 
-    /// <summary>v0.1.3：显示启动器当前内存占用。v0.1.12 改为双口径（专用内存 + 工作集，
-    /// 与任务管理器列对齐）并每 2 秒实时刷新 —— 此前一次性读数与任务管理器对不上且不更新，
-    /// 被误认为“内存占用计算不正确”。</summary>
+    /// <summary>v0.1.3：显示启动器当前内存占用。v0.1.13 改为「专用工作集」口径（与
+    /// 任务管理器默认「内存」列完全同口径：只统计本进程独占且驻留物理内存的页），
+    /// 每 2 秒实时刷新 —— 此前的「专用内存（提交）」包含大量已提交但未驻留 / 共享映射的页，
+    /// 用户对比任务管理器（如 31 MB）与启动器读数（500+ MB）觉得算错。</summary>
     private void RefreshLauncherMem()
     {
         if (TxtLauncherMem == null) return;
         var tpl = (string)TryFindResource("S.Set.LauncherMemNow") ??
-                  "启动器当前内存占用：{0} MB（专用内存）· 工作集 {1} MB";
+                  "启动器当前内存占用：{0} MB（与任务管理器同口径）· 提交 {1} MB";
         TxtLauncherMem.Text = string.Format(tpl,
-            Services.MemoryManager.PrivateMb, Services.MemoryManager.WorkingSetMb);
+            Services.MemoryManager.PrivateWorkingSetMb, Services.MemoryManager.PrivateMb);
     }
 
     /// <summary>v0.1.12：页面可见期间每 2 秒刷新一次内存读数（Unloaded 停止，不空耗）。</summary>

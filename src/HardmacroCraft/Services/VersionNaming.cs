@@ -33,15 +33,17 @@ public static class VersionNaming
         };
     }
 
-    /// <summary>去掉 Fabric 系版本号里的 +build 后缀（主流启动器同款显示习惯）。</summary>
-    public static string TrimLoader(string v) => (v ?? "").Trim();
+    /// <summary>去掉 Fabric 系版本号里的 +build 后缀（PCL 同款 GetSelectName：
+    /// "0.16.9+build.1" → "0.16.9.1"，v0.1.13 修复此前只 Trim 没剥 +build 的偏差）。</summary>
+    public static string TrimLoader(string v) => (v ?? "").Trim().Replace("+build", "");
 
-    /// <summary>OptiFine 显示名：剥掉 "1.20.1 " 前缀与空格（如 "1.20.1 HD U I7" → "HD_U_I7"）。</summary>
+    /// <summary>OptiFine 显示名（PCL GetSelectName 同款）：剥掉 "1.20.1 " 版本号前缀再压缩空格，
+    /// 如 "1.20.1 HD U I7" → "HD_U_I7"（v0.1.13 修复此前前缀没剥掉的问题）。</summary>
     public static string OptiFineDisplay(string display)
     {
         var s = (display ?? "").Trim();
-        if (s.StartsWith("HD", StringComparison.OrdinalIgnoreCase))
-            return s.Replace(' ', '_');
+        var idx = s.IndexOf("HD", StringComparison.OrdinalIgnoreCase);
+        if (idx > 0) s = s[idx..];
         return s.Replace(' ', '_');
     }
 

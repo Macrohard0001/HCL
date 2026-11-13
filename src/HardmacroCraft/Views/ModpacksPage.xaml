@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,2">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Mp.Title}" />
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Mp.Subtitle}" />
         </StackPanel>
 
@@ -26,10 +26,10 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <ui:TextBox x:Name="TxtQuery" Grid.Column="0" MinHeight="38" Margin="0,0,8,0"
+                <ui:TextBox x:Name="TxtQuery" Grid.Column="0" MinHeight="30" Margin="0,0,8,0"
                             PlaceholderText="{DynamicResource S.Mp.SearchHint}"
                             KeyDown="TxtQuery_KeyDown" />
-                <ComboBox x:Name="CmbSort" Grid.Column="1" MinHeight="38" MinWidth="118" Margin="0,0,8,0"
+                <ComboBox x:Name="CmbSort" Grid.Column="1" MinHeight="30" MinWidth="118" Margin="0,0,8,0"
                           SelectionChanged="CmbSort_SelectionChanged">
                     <ComboBoxItem Content="{DynamicResource S.Mod.SortRelevance}" IsSelected="True" Tag="relevance" />
                     <ComboBoxItem Content="{DynamicResource S.Mod.SortDownloads}" Tag="downloads" />
@@ -37,10 +37,10 @@
                     <ComboBoxItem Content="{DynamicResource S.Mod.SortNewest}" Tag="newest" />
                     <ComboBoxItem Content="{DynamicResource S.Mod.SortUpdated}" Tag="updated" />
                 </ComboBox>
-                <ui:Button Grid.Column="2" MinHeight="38" Content="{DynamicResource S.Mp.Search}"
+                <ui:Button Grid.Column="2" MinHeight="30" Content="{DynamicResource S.Mp.Search}"
                            Appearance="Primary" Icon="{ui:SymbolIcon Search24}" Margin="0,0,8,0"
                            Click="BtnSearch_Click" />
-                <ui:Button Grid.Column="3" MinHeight="38" Content="{DynamicResource S.Mp.LocalInstall}"
+                <ui:Button Grid.Column="3" MinHeight="30" Content="{DynamicResource S.Mp.LocalInstall}"
                            Icon="{ui:SymbolIcon FolderOpen24}" Click="BtnLocalInstall_Click" />
             </Grid>
         </Border>
@@ -91,7 +91,7 @@
                             </ItemsControl>
                         </StackPanel>
                         <ui:Button Grid.Column="2" Content="{DynamicResource S.Mp.Install}"
-                                   Appearance="Primary" MinHeight="36" VerticalAlignment="Center"
+                                   Appearance="Primary" MinHeight="32" VerticalAlignment="Center"
                                    Click="BtnInstallPack_Click" Tag="{Binding}" />
                     </Grid>
                 </DataTemplate>
@@ -102,19 +102,17 @@
         <!-- 加载更多（Modrinth 分页） -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
             <ui:Button x:Name="BtnMore" Content="{DynamicResource S.Mod.LoadMore}"
-                       Icon="{ui:SymbolIcon ChevronDown24}" MinHeight="34" MinWidth="160"
+                       Icon="{ui:SymbolIcon ChevronDown24}" MinHeight="30" MinWidth="160"
                        Click="BtnMore_Click" Visibility="Collapsed" />
         </StackPanel>
 
-        <!-- fix8：进度 / 输出卡（默认折叠，有输出时展开 —— 空闲时不占版面） -->
-        <Border Grid.Row="4" x:Name="CardProgress" Style="{StaticResource HmCard}" Margin="0,12,0,0"
+        <!-- v0.1.13：底部进度卡 → 容器内旋转加载指示器 + 状态文本（默认收起，有输出时展开） -->
+        <Border Grid.Row="4" x:Name="CardProgress" Style="{StaticResource HmCard}" Margin="0,10,0,0"
                 Visibility="Collapsed">
-            <StackPanel>
-                <TextBlock Text="{DynamicResource S.Mp.Output}" FontWeight="Medium" Margin="0,0,0,8"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <ProgressBar x:Name="PbProgress" Height="6" IsIndeterminate="False" Maximum="100" />
-                <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                           TextWrapping="Wrap" MaxHeight="90" />
+            <StackPanel Orientation="Horizontal">
+                <ui:ProgressRing x:Name="RingProgress" Width="18" Height="18" IsIndeterminate="True" />
+                <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" VerticalAlignment="Center"
+                           Margin="10,0,0,0" TextWrapping="Wrap" MaxHeight="90" />
             </StackPanel>
         </Border>
     </Grid>

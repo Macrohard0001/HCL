@@ -59,22 +59,48 @@ public static class UiRefreshPolicy
 
 /// <summary>
 /// 事件驱动限频节流器（纯逻辑，进测试）：事件到达 → 是否应该立刻刷新。
+/// v0.1.13：被节流的事件会挂起（Pending）—— 超过最小间隔后由 UI 侧低频定时器冲掉，
+/// 保证「最后一次状态变化」必达（此前被节流的收尾事件被丢弃，任务卡片停在旧状态，
+/// 看起来像刷新频率设置没有正确应用）。
 /// </summary>
 public sealed class RefreshThrottle
 {
     private DateTime _last = DateTime.MinValue;
     private readonly int _minIntervalMs;
+    private bool _pending;
 
     public RefreshThrottle(int minIntervalMs) => _minIntervalMs = Math.Max(0, minIntervalMs);
 
-    /// <summary>事件到达：距上次刷新已超过最小间隔 → 立刻刷新（返回 true 并记账）。</summary>
+    /// <summary>最小刷新间隔（毫秒）。0 = 不限频。</summary>
+    public int MinIntervalMs => _minIntervalMs;
+
+    /// <summary>是否有被节流挂起、待冲掉的刷新。</summary>
+    public bool HasPending => _pending;
+
+    /// <summary>事件到达：距上次刷新已超过最小间隔 → 立刻刷新（返回 true 并记账）；
+    /// 否则挂起（返回 false，稍后经 ConsumePending 冲掉）。</summary>
     public bool TryRefresh(DateTime now)
     {
         if (_minIntervalMs <= 0 || (now - _last).TotalMilliseconds >= _minIntervalMs)
         {
             _last = now;
+            _pending = false;
             return true;
         }
+        _pending = true;
         return false;
     }
+
+    /// <summary>冲掉挂起的刷新：有挂起且距上次刷新已超过最小间隔 → 返回 true 并清除挂起。</summary>
+    public bool ConsumePending(DateTime now)
+    {
+        if (!_pending) return false;
+        if ((now - _last).TotalMilliseconds < _minIntervalMs) return false;
+        _pending = false;
+        _last = now;
+        return true;
+    }
+
+    /// <summary>清除挂起状态（页面手动 Refresh 后调用）。</summary>
+    public void ClearPending() => _pending = false;
 }

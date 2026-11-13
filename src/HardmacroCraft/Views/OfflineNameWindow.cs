@@ -44,7 +44,7 @@ public static class OfflineNameWindow
 
         var tb = new Wpf.Ui.Controls.TextBox
         {
-            MinHeight = 36,
+            MinHeight = 32,
             Margin = new Thickness(0, 12, 0, 6),
             MaxLength = 64, // 允许粘贴超长名字以便给出"过长"提示，而不是被输入框截断
             Text = initialName ?? "",
@@ -72,13 +72,13 @@ public static class OfflineNameWindow
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Login.Cancel") as string ?? "取消",
-            MinHeight = 36, MinWidth = 96, Margin = new Thickness(0, 0, 8, 0),
+            MinHeight = 32, MinWidth = 96, Margin = new Thickness(0, 0, 8, 0),
         };
         var btnOk = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Login.Ok") as string ?? "确定",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 36, MinWidth = 96,
+            MinHeight = 32, MinWidth = 96,
         };
         buttons.Children.Add(btnCancel);
         buttons.Children.Add(btnOk);

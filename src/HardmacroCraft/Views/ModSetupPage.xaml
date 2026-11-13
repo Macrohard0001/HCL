@@ -13,24 +13,24 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Msu.Title}" Margin="0,0,0,2" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Msu.Subtitle}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <!-- 目标版本 + 新建预设 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+        <!-- 目标版本 + 新建预设（v0.1.13：WrapPanel 换行防溢出） -->
+        <WrapPanel Grid.Row="1" Margin="0,0,0,12">
             <TextBlock Text="{DynamicResource S.Msu.TargetVersion}" VerticalAlignment="Center"
                        Margin="0,0,8,0" FontSize="13" />
-            <ComboBox x:Name="CmbVersion" MinWidth="180" MinHeight="34"
+            <ComboBox x:Name="CmbVersion" MinWidth="180" MinHeight="30"
                       SelectionChanged="CmbVersion_SelectionChanged" />
             <ui:Button x:Name="BtnImport" Content="{DynamicResource S.Msu.Import}"
-                       Icon="{ui:SymbolIcon FolderOpen24}" MinHeight="34" Margin="10,0,0,0"
+                       Icon="{ui:SymbolIcon FolderOpen24}" MinHeight="32" Margin="10,0,0,0"
                        Click="BtnImport_Click" />
             <ui:Button x:Name="BtnNewPreset" Content="{DynamicResource S.Msu.NewPreset}"
-                       Icon="{ui:SymbolIcon Add24}" MinHeight="34" Margin="8,0,0,0"
+                       Icon="{ui:SymbolIcon Add24}" MinHeight="32" Margin="8,0,0,0"
                        Click="BtnNewPreset_Click" />
-        </StackPanel>
+        </WrapPanel>
 
         <!-- 左：预设列表 / 右：预设详情 -->
         <Grid Grid.Row="2">
@@ -75,16 +75,16 @@
 
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                         <ui:Button x:Name="BtnApply" Content="{DynamicResource S.Msu.Apply}"
-                                   Icon="{ui:SymbolIcon Checkmark24}" MinHeight="34" MinWidth="120"
+                                   Icon="{ui:SymbolIcon Checkmark24}" MinHeight="30" MinWidth="120"
                                    Appearance="Primary" Click="BtnApply_Click" />
                         <ui:Button x:Name="BtnRemove" Content="{DynamicResource S.Msu.Remove}"
-                                   Icon="{ui:SymbolIcon Delete24}" MinHeight="34" MinWidth="120"
+                                   Icon="{ui:SymbolIcon Delete24}" MinHeight="30" MinWidth="120"
                                    Margin="8,0,0,0" Click="BtnRemove_Click" />
                         <ui:Button x:Name="BtnRename" Content="{DynamicResource S.Msu.Rename}"
-                                   Icon="{ui:SymbolIcon Edit24}" MinHeight="34" Margin="8,0,0,0"
+                                   Icon="{ui:SymbolIcon Edit24}" MinHeight="30" Margin="8,0,0,0"
                                    Click="BtnRename_Click" />
                         <ui:Button x:Name="BtnDelete" Content="{DynamicResource S.Acct.Delete}"
-                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="34" Margin="8,0,0,0"
+                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="30" Margin="8,0,0,0"
                                    Appearance="Danger" Click="BtnDelete_Click" />
                     </StackPanel>
 

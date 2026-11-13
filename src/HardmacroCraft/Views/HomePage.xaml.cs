@@ -120,7 +120,8 @@ public partial class HomePage : Page
     /// v0.1.11：启动进度统一出口 —— 平滑显示值（PCL 式逼近，永不回跳到真实值之下后横跳）、
     /// 写进度中枢（跨页面回放）与任务中心任务。所有进度回调（文件尺 / 字节尺）都走这里。
     /// </summary>
-    private static void ShowLaunchProgress(double actual, string line, DownloadTaskService.TaskItem? task)
+    private static void ShowLaunchProgress(double actual, string line, DownloadTaskService.TaskItem? task,
+        double? speedBps = null, string? currentFile = null)
     {
         _shownPct = LaunchProgressCalc.Smooth(_shownPct, actual);
         LaunchProgressHub.Update(s =>
@@ -131,7 +132,11 @@ public partial class HomePage : Page
             s.ButtonText = $"下载中 {actual:0}%";
         });
         if (task != null)
-            DownloadTaskService.Instance.Update(task, _shownPct, line);
+        {
+            // v0.1.13：速度与当前文件独立写入任务条目（任务中心 / 详情页分两行展示）
+            DownloadTaskService.Instance.Update(task, _shownPct);
+            task.SetProgress(_shownPct, currentFile, speedBps);
+        }
     }
 
     /// <summary>v0.1.1：把启动进度中枢的快照回放到本实例的控件上。</summary>
@@ -651,7 +656,7 @@ public partial class HomePage : Page
                         : "";
                     var line = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}" +
                                (eta.Length > 0 ? " · " + eta : "");
-                    ShowLaunchProgress(pct.Value, line, centerTask);
+                    ShowLaunchProgress(pct.Value, line, centerTask, currentFile: p.Name);
                 }));
             var meter = new SpeedMeter();
             var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
@@ -667,7 +672,7 @@ public partial class HomePage : Page
                     var eta = SpeedMeter.FormatEta(p.TotalBytes - p.ProgressedBytes, speed);
                     var line = $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}" +
                                (eta.Length > 0 ? " · " + eta : "");
-                    ShowLaunchProgress(pct.Value, line, centerTask);
+                    ShowLaunchProgress(pct.Value, line, centerTask, speedBps: speed);
                 }));
 
             SetStage(1, 4, "S.Home.Stage.CheckJava", "正在检查 Java 环境");
@@ -1073,12 +1078,12 @@ public static class Prompt
         };
         caption1.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty,
             "TextFillColorPrimaryBrush");
-        var tb = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Margin = new Thickness(0, 12, 0, 14) };
+        var tb = new Wpf.Ui.Controls.TextBox { MinHeight = 32, Margin = new Thickness(0, 12, 0, 14) };
         var btn = new Wpf.Ui.Controls.Button
         {
             Content = "OK",
             Appearance = ControlAppearance.Primary,
-            MinHeight = 36,
+            MinHeight = 32,
             MinWidth = 120,
             HorizontalAlignment = HorizontalAlignment.Right,
         };
@@ -1100,7 +1105,7 @@ public static class Prompt
 /// <summary>离线输入对话框内部（保留备用）。</summary>
 public class OfflineInputDialog : System.Windows.Controls.UserControl
 {
-    public Wpf.Ui.Controls.TextBox NameBox { get; } = new() { MinHeight = 34 };
+    public Wpf.Ui.Controls.TextBox NameBox { get; } = new() { MinHeight = 30 };
     public OfflineInputDialog()
     {
         Content = NameBox;
@@ -1154,7 +1159,7 @@ public static class HmMsg
         {
             Content = infoOnly ? "确定" : "启动",
             Appearance = ControlAppearance.Primary,
-            MinHeight = 34,
+            MinHeight = 30,
             MinWidth = 110,
         };
         btnRow.Children.Add(btnOk);
@@ -1163,7 +1168,7 @@ public static class HmMsg
             var btnCancel = new Wpf.Ui.Controls.Button
             {
                 Content = "取消",
-                MinHeight = 34,
+                MinHeight = 30,
                 MinWidth = 90,
                 Margin = new Thickness(8, 0, 0, 0),
             };

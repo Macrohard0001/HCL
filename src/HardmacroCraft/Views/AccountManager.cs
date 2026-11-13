@@ -70,17 +70,17 @@ public static class AccountManager
         {
             Content = App.Current.TryFindResource("S.Home.MsLogin") as string ?? "微软登录",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 36, Margin = new Thickness(0, 0, 8, 0),
+            MinHeight = 32, Margin = new Thickness(0, 0, 8, 0),
         };
         var btnAuthlib = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Home.ThirdLogin") as string ?? "第三方登录",
-            MinHeight = 36, Margin = new Thickness(0, 0, 8, 0),
+            MinHeight = 32, Margin = new Thickness(0, 0, 8, 0),
         };
         var btnOffline = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Home.OfflineLogin") as string ?? "离线登录",
-            MinHeight = 36,
+            MinHeight = 32,
         };
         addPanel.Children.Add(btnMs);
         addPanel.Children.Add(btnAuthlib);
@@ -305,8 +305,9 @@ public static class AccountManager
     /// </summary>
     private static UIElement BuildRow(Window win, StoredAccount acc, Action onChanged)
     {
-        var isCurrent = AccountStore.Instance.Current?.Name == acc.Name
-            && AccountStore.Instance.Current?.Type == acc.Type;
+        // v0.1.13：键级（类型|验证站|名字）精确判定当前账号，不再经过带兑底的 Current 解析；
+        // 历史重复条目已由 AccountStore.Normalize 清理，修复「所有账号都高亮显示当前」
+        var isCurrent = AccountStore.Instance.IsCurrent(acc);
         var (badge, badgeBrush) = TypeBadge(acc);
 
         var isOffline = acc.Type == "offline";
@@ -322,25 +323,27 @@ public static class AccountManager
         while (grid.ColumnDefinitions.Count <= delCol)
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        // 卡片本体：整体可点击切换账号；当前账号左侧 3.5px 强调色竖指示条（Fluent 风格）
+        // 卡片本体（v0.1.13 侧栏式）：整体可点击切换账号；当前账号左侧 3.5px 强调色竖指示条
+        // + 微强调背景；非当前账号透明背景（悬停才出现 subtle 灰），不再全员高亮
         var card = new Border
         {
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(10, 8, 10, 8),
-            Background = new SolidColorBrush(isCurrent
-                ? Color.FromArgb(0x22, 0x00, 0x77, 0xCC)
-                : Color.FromArgb(0x0D, 0x88, 0x88, 0x88)),
+            Background = isCurrent
+                ? new SolidColorBrush(Color.FromArgb(0x18, 0x00, 0x77, 0xCC))
+                : Brushes.Transparent,
             Cursor = System.Windows.Input.Cursors.Hand,
         };
         Grid.SetColumnSpan(card, grid.ColumnDefinitions.Count);
         if (!isCurrent)
         {
             card.ToolTip = App.Current.TryFindResource("S.Acct.ClickToSwitch") as string ?? "点击切换到此账号";
+            card.MouseEnter += (_, _) => card.Background = new SolidColorBrush(Color.FromArgb(0x14, 0x88, 0x88, 0x88));
+            card.MouseLeave += (_, _) => card.Background = Brushes.Transparent;
             card.MouseLeftButtonUp += (_, _) =>
             {
-                AccountStore.Instance.CurrentName = acc.Name;
-                AccountStore.Instance.CurrentType = acc.Type; // 同名不同类型账号需要类型定位
-                AccountStore.Instance.Save();
+                // v0.1.13：键级切换（名字+类型+验证站三字段一并写准，同名跨验证站不误切）
+                AccountStore.Instance.SetCurrent(acc);
                 onChanged();
             };
         }
@@ -458,7 +461,7 @@ public static class AccountManager
                         ?? "确定删除账号 {0} 吗？", acc.Name),
                     "Hardmacro Craft Launcher", MessageBoxButton.YesNo, MessageBoxImage.Question)
                 != MessageBoxResult.Yes) return;
-            AccountStore.Instance.Remove(acc.Name, acc.Type); // 只删对应类型，同名其他类型账号保留
+            AccountStore.Instance.RemoveAccount(acc); // v0.1.13：按键删除，同名其他账号不受影响
             onChanged();
         };
         Grid.SetColumn(btnDel, delCol);

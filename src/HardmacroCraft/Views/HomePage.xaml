@@ -14,8 +14,8 @@
         </Grid.RowDefinitions>
 
         <!-- 标题（强调条） -->
-        <StackPanel Grid.Row="0" Margin="4,0,4,8">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Home.Title}" Margin="0,0,0,2" />
+        <StackPanel Grid.Row="0" Margin="4,0,4,2">
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Home.Subtitle}" />
         </StackPanel>
 
@@ -127,7 +127,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="CmbVersions" MinHeight="36" FontSize="14"
+                    <ComboBox x:Name="CmbVersions" MinHeight="32" FontSize="14"
                               SelectedValuePath="Name" Margin="0,0,8,0" MaxDropDownHeight="420">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
@@ -153,11 +153,11 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <ui:Button Grid.Column="1" x:Name="BtnVersionSettings" MinHeight="36" MinWidth="38"
+                    <ui:Button Grid.Column="1" x:Name="BtnVersionSettings" MinHeight="32" MinWidth="38"
                                Icon="{ui:SymbolIcon Settings24}" Margin="0,0,8,0"
                                ToolTip="{DynamicResource S.Home.VersionSettingsTip}"
                                Click="BtnVersionSettings_Click" />
-                    <ui:Button Grid.Column="2" x:Name="BtnRefreshVersions" MinHeight="36" MinWidth="38"
+                    <ui:Button Grid.Column="2" x:Name="BtnRefreshVersions" MinHeight="32" MinWidth="38"
                                Icon="{ui:SymbolIcon ArrowClockwise24}"
                                ToolTip="{DynamicResource S.Ver.Refresh}"
                                Click="BtnRefreshVersions_Click" />
@@ -178,7 +178,7 @@
                                        Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
                         <ui:Button x:Name="BtnCancelLaunch" Grid.Column="1" Content="{DynamicResource S.Common.Cancel}"
-                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="34" VerticalAlignment="Top"
+                                   Icon="{ui:SymbolIcon Dismiss24}" MinHeight="30" VerticalAlignment="Top"
                                    Click="BtnCancelLaunch_Click"
                                    ToolTip="{DynamicResource S.Home.CancelLaunchTip}" />
                     </Grid>
@@ -191,14 +191,14 @@
                         <ColumnDefinition Width="12" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <ui:Button x:Name="BtnQuickServer" Grid.Column="0" MinHeight="44" MinWidth="118"
+                    <ui:Button x:Name="BtnQuickServer" Grid.Column="0" MinHeight="40" MinWidth="118"
                                Icon="{ui:SymbolIcon PlugConnected24}" FontSize="12"
                                Content="{DynamicResource S.Home.QuickServerBtn}"
                                ToolTip="{DynamicResource S.Home.QuickServer}"
                                VerticalAlignment="Stretch" Click="BtnQuickServer_Click" />
                     <ui:Button x:Name="BtnLaunch" Grid.Column="2" Appearance="Primary"
                                Content="{DynamicResource S.Home.Launch}"
-                               Icon="{ui:SymbolIcon Play24}" MinHeight="44" FontSize="15" FontWeight="SemiBold"
+                               Icon="{ui:SymbolIcon Play24}" MinHeight="40" FontSize="15" FontWeight="SemiBold"
                                HorizontalAlignment="Stretch" Click="BtnLaunch_Click" />
                 </Grid>
 

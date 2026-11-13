@@ -33,7 +33,7 @@ public static class PromptWindow
         var caption = new TextBlock { Text = placeholder, FontSize = 13.5, TextWrapping = TextWrapping.Wrap };
         caption.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
 
-        var tb = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Margin = new Thickness(0, 12, 0, 0), MaxLength = 48 };
+        var tb = new Wpf.Ui.Controls.TextBox { MinHeight = 32, Margin = new Thickness(0, 12, 0, 0), MaxLength = 48 };
         if (!string.IsNullOrEmpty(initial)) tb.Text = initial;
 
         var err = new TextBlock
@@ -54,12 +54,12 @@ public static class PromptWindow
         {
             Content = confirmText ?? (App.Current.TryFindResource("S.Common.Confirm") as string ?? "确定"),
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 34, MinWidth = 88, Margin = new Thickness(0, 0, 8, 0),
+            MinHeight = 30, MinWidth = 88, Margin = new Thickness(0, 0, 8, 0),
         };
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.Common.Cancel") as string ?? "取消",
-            MinHeight = 34, MinWidth = 88,
+            MinHeight = 30, MinWidth = 88,
         };
         buttons.Children.Add(btnOk);
         buttons.Children.Add(btnCancel);
