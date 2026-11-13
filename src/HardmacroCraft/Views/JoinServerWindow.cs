@@ -45,7 +45,7 @@ public static class JoinServerWindow
             top: 12, bottom: 6));
         var txtAddress = new Wpf.Ui.Controls.TextBox
         {
-            MinHeight = 38,
+            MinHeight = 30,
             PlaceholderText = Find("S.Join.AddressPh") ?? "mc.example.com 或 mc.example.com:25565",
             Text = presetAddress ?? "",
         };
@@ -64,7 +64,7 @@ public static class JoinServerWindow
         var pnlName = new StackPanel { Visibility = Visibility.Collapsed };
         pnlName.Children.Add(MakeText(Find("S.Join.SaveName") ?? "列表中的名称", 13, BrushesPrimary(),
             top: 10, bottom: 6));
-        var txtName = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Text = Find("S.Join.DefaultName") ?? "Minecraft服务器" };
+        var txtName = new Wpf.Ui.Controls.TextBox { MinHeight = 32, Text = Find("S.Join.DefaultName") ?? "Minecraft服务器" };
         pnlName.Children.Add(txtName);
         sp.Children.Add(pnlName);
         chkSave.Checked += (_, _) => pnlName.Visibility = Visibility.Visible;
@@ -80,13 +80,13 @@ public static class JoinServerWindow
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = Find("S.Common.Cancel") ?? "取消",
-            MinHeight = 36, MinWidth = 96, Margin = new Thickness(0, 0, 10, 0),
+            MinHeight = 32, MinWidth = 96, Margin = new Thickness(0, 0, 10, 0),
         };
         var btnOk = new Wpf.Ui.Controls.Button
         {
             Content = Find("S.Join.Ok") ?? "启动并进服",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 36, MinWidth = 120,
+            MinHeight = 32, MinWidth = 120,
         };
         btnRow.Children.Add(btnCancel);
         btnRow.Children.Add(btnOk);

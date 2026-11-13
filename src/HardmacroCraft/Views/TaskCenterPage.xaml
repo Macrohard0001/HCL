@@ -11,7 +11,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Task.Title}" Margin="0,0,0,2" />
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Task.Subtitle}"
                        Margin="0,0,0,2" />
             <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Task.ClickHint}" Margin="0,0,0,12" />
@@ -19,7 +19,7 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
             <ui:Button Content="{DynamicResource S.Task.Clear}" Icon="{ui:SymbolIcon Delete24}"
-                       MinHeight="34" Click="BtnClear_Click" />
+                       MinHeight="30" Click="BtnClear_Click" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="2" Style="{StaticResource HmScrollViewer}">

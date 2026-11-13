@@ -94,20 +94,20 @@ public class AzureGuideWindow : Wpf.Ui.Controls.FluentWindow
         {
             Content = R("S.Azure.OpenPortal", "打开 Azure 门户"),
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 36, Margin = new Thickness(0, 0, 10, 0),
+            MinHeight = 32, Margin = new Thickness(0, 0, 10, 0),
         };
         btnPortal.Click += (_, _) => OpenUrl("https://portal.azure.com");
         var btnReg = new Wpf.Ui.Controls.Button
         {
             Content = R("S.Azure.OpenRegister", "打开\"应用注册\"页"),
-            MinHeight = 36,
+            MinHeight = 32,
         };
         btnReg.Click += (_, _) => OpenUrl(
             "https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade");
         var btnClose = new Wpf.Ui.Controls.Button
         {
             Content = R("S.Azure.Close", "我知道了"),
-            MinHeight = 36, Margin = new Thickness(10, 0, 0, 0),
+            MinHeight = 32, Margin = new Thickness(10, 0, 0, 0),
         };
         btnClose.Click += (_, _) => Close();
         btns.Children.Add(btnPortal);

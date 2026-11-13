@@ -127,7 +127,7 @@ public static class InstanceDetailWindow
             Content = App.Current.TryFindResource("S.Home.InstanceKill") as string ?? "结束进程",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Danger,
             Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Dismiss24 },
-            MinHeight = 34, MinWidth = 110, Margin = new Thickness(0, 0, 10, 0),
+            MinHeight = 30, MinWidth = 110, Margin = new Thickness(0, 0, 10, 0),
             ToolTip = App.Current.TryFindResource("S.Home.InstanceKillTip") as string ?? "结束整个游戏进程树",
         };
         btnKill.Click += (_, _) =>
@@ -139,7 +139,7 @@ public static class InstanceDetailWindow
         {
             Content = App.Current.TryFindResource("S.Common.Close") as string ?? "关闭",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 34, MinWidth = 96,
+            MinHeight = 30, MinWidth = 96,
         };
         btnClose.Click += (_, _) => win.Close();
         btnRow.Children.Add(btnKill);
@@ -187,8 +187,15 @@ public static class InstanceDetailWindow
             timer.Start();
         }
         timer.Tick += (_, _) => Tick();
+        // v0.1.13：设置保存后立即应用新刷新频率（含手动 FPS 档）
+        void OnSettingsSaved()
+        {
+            win.Dispatcher.BeginInvoke(() => { StartTimer(); Tick(); });
+        }
+        AppSettings.Saved -= OnSettingsSaved;
+        AppSettings.Saved += OnSettingsSaved;
         win.Loaded += (_, _) => { Tick(); StartTimer(); };
-        win.Closed += (_, _) => { timer.Stop(); OpenWindows.Remove(inst.Pid); };
+        win.Closed += (_, _) => { timer.Stop(); AppSettings.Saved -= OnSettingsSaved; OpenWindows.Remove(inst.Pid); };
         OpenWindows[inst.Pid] = win;
         win.ShowDialog();
     }

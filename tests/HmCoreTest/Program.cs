@@ -2572,6 +2572,83 @@ try
 }
 catch (Exception ex) { Check("第 33 节 v0.1.12（预设记录 / 导入 / 内存口径 / 取消反馈）", false, ex.Message); }
 
+// ==================== 第 34 节 v0.1.13：账号键级共存 / 命名 +build / 专用工作集 / 节流尾沿 ====================
+try
+{
+    // 34.1 AccountKeys：同名跨类型 / 跨验证站互不顶替（和平共存）
+    var off = new StoredAccount { Type = "offline", Name = "Steve" };
+    var ms = new StoredAccount { Type = "microsoft", Name = "Steve" };
+    var a1 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://littleskin.cn/api/yggdrasil" };
+    var a2 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://littleskin.cn/api/yggdrasil/" }; // 尾斜杠同站
+    var a3 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://auth.vlace.cn/api/yggdrasil" };
+    Check("同名跨类型键不同", AccountKeys.KeyOf(off) != AccountKeys.KeyOf(ms)
+        && AccountKeys.KeyOf(off) != AccountKeys.KeyOf(a1));
+    Check("同验证站键相同（尾斜杠归一）", AccountKeys.KeyOf(a1) == AccountKeys.KeyOf(a2));
+    Check("不同验证站键不同", AccountKeys.KeyOf(a1) != AccountKeys.KeyOf(a3));
+
+    // 34.2 Dedupe：历史重复条目按键去重，保留最后一次出现
+    var dup1 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://littleskin.cn/api/yggdrasil", RefreshToken = "old" };
+    var dup2 = new StoredAccount { Type = "authlib", Name = "Steve", ServerUrl = "https://littleskin.cn/api/yggdrasil", RefreshToken = "new" };
+    var deduped = AccountKeys.Dedupe(new List<StoredAccount> { off, dup1, ms, dup2 });
+    Check("Dedupe 去重且保留最后", deduped.Count == 3
+        && deduped.Count(a => AccountKeys.KeyOf(a) == AccountKeys.KeyOf(a1)) == 1
+        && deduped.First(a => a.Type == "authlib").RefreshToken == "new");
+
+    // 34.3 VersionNaming：Fabric +build 剥离（PCL GetSelectName 同款）
+    Check("Fabric +build 剥离", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1")
+        == "1.20.1-Fabric 0.16.9.1",
+        VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1"));
+    Check("Forge 命名不变", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
+    Check("NeoForge 命名不变", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "1.21.0-NeoForge_21.0.67");
+    Check("OptiFine 命名不变", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
+    Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
+
+    // 34.4 内存口径：专用工作集纯函数（Valid=1 且 Shared=0 计私有页）
+    var flags = new ulong[]
+    {
+        (1UL << 0) | (0UL << 15),              // 私有页
+        (1UL << 0) | (1UL << 15),              // 共享页（不计）
+        (1UL << 0) | (2UL << 15),              // 可共享页（不计）
+        0UL,                                   // 无效页（不计）
+        (1UL << 0) | (0UL << 15) | (1UL << 23) // 私有且锁定（计）
+    };
+    Check("ComputePrivateBytes 只计私有页", MemoryManager.ComputePrivateBytes(flags) == 2 * 4096,
+        MemoryManager.ComputePrivateBytes(flags).ToString());
+    Check("ComputePrivateBytes 自定义页大小", MemoryManager.ComputePrivateBytes(flags, 8192) == 2 * 8192);
+    Check("PrivateWorkingSetMb 非负且 ≤ WorkingSetMb",
+        MemoryManager.PrivateWorkingSetMb >= 0
+        && MemoryManager.PrivateWorkingSetMb <= MemoryManager.WorkingSetMb,
+        $"{MemoryManager.PrivateWorkingSetMb} vs ws {MemoryManager.WorkingSetMb}");
+
+    // 34.5 RefreshThrottle：挂起尾沿刷新（收尾事件必达）
+    var th = new RefreshThrottle(1000);
+    var t0 = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    Check("节流首次立即刷新", th.TryRefresh(t0));
+    Check("间隔内节流并挂起", !th.TryRefresh(t0.AddMilliseconds(300)) && th.HasPending);
+    Check("未到间隔 ConsumePending 不冲", !th.ConsumePending(t0.AddMilliseconds(800)) && th.HasPending);
+    Check("到间隔后冲掉挂起", th.ConsumePending(t0.AddMilliseconds(1100)) && !th.HasPending);
+    Check("冲掉后窗口重新计时", !th.TryRefresh(t0.AddMilliseconds(1500)) && th.HasPending);
+    var th0 = new RefreshThrottle(0);
+    Check("零间隔不限频", th0.TryRefresh(t0) && th0.TryRefresh(t0.AddMilliseconds(1)));
+
+    // 34.6 TaskItem.SetProgress：速度 / 当前文件 / 字节独立字段，终态清零速度
+    var t34 = DownloadTaskService.Instance.Start("测试速度字段", "");
+    t34.TotalBytes = 1000;
+    t34.SetProgress(50, "assets/objects/ab/cd.json", 12345, 500, 1000);
+    Check("SetProgress 写入速度与文件", t34.SpeedBps == 12345 && t34.CurrentFile == "assets/objects/ab/cd.json"
+        && t34.DoneBytes == 500 && t34.TotalBytes == 1000);
+    DownloadTaskService.Instance.Complete(t34, "done");
+    Check("终态清零速度", t34.SpeedBps == 0 && !t34.IsActive);
+
+    // 34.7 RefreshThrottle 记账窗口：TryRefresh 拒绝后不覆盖 _last
+    var th2 = new RefreshThrottle(1000);
+    th2.TryRefresh(t0);
+    th2.TryRefresh(t0.AddMilliseconds(200)); // 拒绝
+    Check("拒绝事件不推进窗口", th2.ConsumePending(t0.AddMilliseconds(999)) == false
+        && th2.ConsumePending(t0.AddMilliseconds(1001)) == true);
+}
+catch (Exception ex) { Check("第 34 节 v0.1.13（账号键 / 命名 / 内存 / 节流尾沿）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

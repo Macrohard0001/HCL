@@ -67,12 +67,12 @@ public static class ModVersionWindow
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.ModPicker.Cancel") as string ?? "取消",
-            MinHeight = 36, MinWidth = 90, Margin = new Thickness(0, 0, 10, 0),
+            MinHeight = 32, MinWidth = 90, Margin = new Thickness(0, 0, 10, 0),
         };
         var btnOk = new Wpf.Ui.Controls.Button
         {
             Content = App.Current.TryFindResource("S.ModPicker.Download") as string ?? "下载",
-            MinHeight = 36, MinWidth = 120,
+            MinHeight = 32, MinWidth = 120,
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
         };
         btnPanel.Children.Add(btnCancel);

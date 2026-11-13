@@ -58,7 +58,7 @@ public static class VersionSettingsWindow
 
         // ---------- 分组：游戏 ----------
         root.Children.Add(GroupTitle("S.Vs.GroupGame", "游戏"));
-        var isoCombo = new ComboBox { MinHeight = 36, Margin = new Thickness(0, 4, 0, 0), MinWidth = 320, HorizontalAlignment = HorizontalAlignment.Left };
+        var isoCombo = new ComboBox { MinHeight = 32, Margin = new Thickness(0, 4, 0, 0), MinWidth = 320, HorizontalAlignment = HorizontalAlignment.Left };
         var isoItems = new List<(string Label, bool? Value)>
         {
             (Find("S.Vs.IsoFollow") ?? "跟随全局设置", null),
@@ -85,7 +85,7 @@ public static class VersionSettingsWindow
         javaRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var txtJava = new Wpf.Ui.Controls.TextBox
         {
-            MinHeight = 36,
+            MinHeight = 32,
             Text = vs.JavaPath,
             PlaceholderText = Find("S.Vs.JavaPh") ?? "留空使用全局设置（支持填 javaw.exe 或其所在文件夹）",
         };
@@ -93,7 +93,7 @@ public static class VersionSettingsWindow
         var btnJavaBrowse = new Wpf.Ui.Controls.Button
         {
             Content = Find("S.Vs.JavaBrowse") ?? "浏览",
-            MinHeight = 36, MinWidth = 74, Margin = new Thickness(8, 0, 0, 0),
+            MinHeight = 32, MinWidth = 74, Margin = new Thickness(8, 0, 0, 0),
             Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.FolderOpen24 },
             ToolTip = Find("S.Vs.JavaBrowseTip") ?? "选择 javaw.exe（选文件夹会自动搜索）",
         };
@@ -157,7 +157,7 @@ public static class VersionSettingsWindow
 
         // ---------- 分组：窗口大小（v0.1.10，对齐主流启动器） ----------
         root.Children.Add(GroupTitle("S.Vs.GroupWindow", "窗口大小"));
-        var winModeCombo = new ComboBox { MinHeight = 36, MinWidth = 240, Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+        var winModeCombo = new ComboBox { MinHeight = 32, MinWidth = 240, Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
         var winModes = new List<(string Label, string Value)>
         {
             (Find("S.Vs.WinFollow") ?? "跟随全局设置", ""),
@@ -173,8 +173,8 @@ public static class VersionSettingsWindow
             Orientation = Orientation.Horizontal,
             Visibility = vs.WindowMode == "custom" ? Visibility.Visible : Visibility.Collapsed,
         };
-        var txtWinW = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Width = 110, Text = vs.WindowWidth > 0 ? vs.WindowWidth.ToString() : "", TextAlignment = TextAlignment.Center };
-        var txtWinH = new Wpf.Ui.Controls.TextBox { MinHeight = 36, Width = 110, Text = vs.WindowHeight > 0 ? vs.WindowHeight.ToString() : "", TextAlignment = TextAlignment.Center };
+        var txtWinW = new Wpf.Ui.Controls.TextBox { MinHeight = 32, Width = 110, Text = vs.WindowWidth > 0 ? vs.WindowWidth.ToString() : "", TextAlignment = TextAlignment.Center };
+        var txtWinH = new Wpf.Ui.Controls.TextBox { MinHeight = 32, Width = 110, Text = vs.WindowHeight > 0 ? vs.WindowHeight.ToString() : "", TextAlignment = TextAlignment.Center };
         winSizeRow.Children.Add(txtWinW);
         winSizeRow.Children.Add(new TextBlock { Text = "×", FontSize = 16, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) });
         winSizeRow.Children.Add(txtWinH);
@@ -201,7 +201,7 @@ public static class VersionSettingsWindow
         root.Children.Add(GroupTitle("S.Vs.GroupServer", "一键进服"));
         var txtServer = new Wpf.Ui.Controls.TextBox
         {
-            MinHeight = 36, Margin = new Thickness(0, 4, 0, 0),
+            MinHeight = 32, Margin = new Thickness(0, 4, 0, 0),
             Text = vs.QuickServer,
             PlaceholderText = Find("S.Vs.ServerPh") ?? "该版本默认进服地址（一键进服弹窗自动填充），留空不预填",
         };
@@ -221,7 +221,7 @@ public static class VersionSettingsWindow
             var b = new Wpf.Ui.Controls.Button
             {
                 Content = Find(key) ?? fallback,
-                MinHeight = 34, MinWidth = 96, Margin = new Thickness(0, 4, 8, 4),
+                MinHeight = 30, MinWidth = 96, Margin = new Thickness(0, 4, 8, 4),
             };
             b.Click += (_, _) => { try { action(); } catch { } };
             dirsRow.Children.Add(b);
@@ -251,18 +251,18 @@ public static class VersionSettingsWindow
         {
             Content = Find("S.Vs.Reset") ?? "恢复默认",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Danger,
-            MinHeight = 36, MinWidth = 104, Margin = new Thickness(0, 4, 10, 4),
+            MinHeight = 32, MinWidth = 104, Margin = new Thickness(0, 4, 10, 4),
         };
         var btnCancel = new Wpf.Ui.Controls.Button
         {
             Content = Find("S.Common.Cancel") ?? "取消",
-            MinHeight = 36, MinWidth = 96, Margin = new Thickness(0, 4, 10, 4),
+            MinHeight = 32, MinWidth = 96, Margin = new Thickness(0, 4, 10, 4),
         };
         var btnSave = new Wpf.Ui.Controls.Button
         {
             Content = Find("S.Vs.Save") ?? "保存",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 36, MinWidth = 120, Margin = new Thickness(0, 4, 0, 4),
+            MinHeight = 32, MinWidth = 120, Margin = new Thickness(0, 4, 0, 4),
         };
         btnRow.Children.Add(btnReset);
         btnRow.Children.Add(btnCancel);

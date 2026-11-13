@@ -67,7 +67,8 @@ public static class TaskDetailWindow
         Grid.SetRow(head, 0);
         root.Children.Add(head);
 
-        // 进度区（PCL 式）：大进度条 + 百分比大字 + 当前详情（速度 / 字节 / 剩余时间）
+        // 进度区（PCL 式）：大进度条 + 百分比大字；下方分两行分别显示
+        // 速度与正在下载的文件（v0.1.13，此前混在 Detail 一行里）
         var progressPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
         var barRow = new Grid();
         barRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -88,6 +89,25 @@ public static class TaskDetailWindow
         Grid.SetColumn(pctText, 1);
         barRow.Children.Add(pctText);
         progressPanel.Children.Add(barRow);
+
+        // 行 1：下载速度（PCL 文案「下载速度」，大字强调色；无速度时隐藏）
+        var speedLine = new TextBlock
+        {
+            FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0),
+            Visibility = Visibility.Collapsed,
+        };
+        speedLine.SetResourceReference(TextBlock.ForegroundProperty, "SystemAccentColorPrimaryBrush");
+        progressPanel.Children.Add(speedLine);
+
+        // 行 2：正在下载的文件（等宽字体，长路径可换行）
+        var fileLine = new TextBlock
+        {
+            FontSize = 12.5, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap,
+            FontFamily = new FontFamily("Consolas"), Visibility = Visibility.Collapsed,
+        };
+        fileLine.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
+        progressPanel.Children.Add(fileLine);
+
         var detail = new TextBlock
         {
             Text = string.IsNullOrWhiteSpace(task.Detail) ? "-" : task.Detail,
@@ -140,7 +160,7 @@ public static class TaskDetailWindow
             {
                 Content = L("S.Common.Cancel", "取消"),
                 Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Dismiss24 },
-                MinHeight = 34, MinWidth = 92, Margin = new Thickness(0, 0, 10, 0),
+                MinHeight = 30, MinWidth = 92, Margin = new Thickness(0, 0, 10, 0),
             };
             btnCancel.Click += (_, _) =>
             {
@@ -153,7 +173,7 @@ public static class TaskDetailWindow
         {
             Content = L("S.Task.DetailCopy", "复制日志"),
             Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Copy20 },
-            MinHeight = 34, MinWidth = 100, Margin = new Thickness(0, 0, 10, 0),
+            MinHeight = 30, MinWidth = 100, Margin = new Thickness(0, 0, 10, 0),
         };
         btnCopy.Click += (_, _) =>
         {
@@ -163,7 +183,7 @@ public static class TaskDetailWindow
         {
             Content = L("S.Common.Close", "关闭"),
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 34, MinWidth = 96,
+            MinHeight = 30, MinWidth = 96,
         };
         btnClose.Click += (_, _) => win.Close();
         btnRow.Children.Add(btnCopy);
@@ -226,6 +246,25 @@ public static class TaskDetailWindow
                 bar.Value = Math.Max(0, task.Percent);
                 pctText.Text = $"{Math.Max(0, task.Percent):0.#} %";
             }
+            // v0.1.13：行 1 速度 / 行 2 正在下载的文件（分两行，对齐 PCL 下载详情设计）
+            if (task.IsActive && task.SpeedBps > 0)
+            {
+                speedLine.Visibility = Visibility.Visible;
+                speedLine.Text = L("S.Task.SpeedLabel", "下载速度") + "  " + SpeedMeter.FormatSpeed(task.SpeedBps);
+            }
+            else
+            {
+                speedLine.Visibility = Visibility.Collapsed;
+            }
+            if (task.IsActive && !string.IsNullOrWhiteSpace(task.CurrentFile))
+            {
+                fileLine.Visibility = Visibility.Visible;
+                fileLine.Text = L("S.Task.CurrentFile", "正在下载") + "  " + task.CurrentFile;
+            }
+            else
+            {
+                fileLine.Visibility = Visibility.Collapsed;
+            }
             // 当前详情
             detail.Text = string.IsNullOrWhiteSpace(task.Detail) ? "-" : task.Detail;
             // 元信息（含实时耗时）
@@ -239,12 +278,24 @@ public static class TaskDetailWindow
 
         var timer = new DispatcherTimer();
         timer.Tick += (_, _) => RefreshUi();
-        var s = AppSettings.Instance;
-        timer.Interval = TimeSpan.FromMilliseconds(
-            UiRefreshPolicy.IsEventDriven(s.UiRefreshMode) ? 500
-                : Math.Max(200, UiRefreshPolicy.PollIntervalMs(s.UiRefreshMode, s.UiRefreshFps)));
+        void ApplyTimerInterval()
+        {
+            var s = AppSettings.Instance;
+            // 事件驱动模式下保持 500ms 轮询兜底（事件已驱动页面刷新，详情窗保底节奏）
+            timer.Interval = TimeSpan.FromMilliseconds(
+                UiRefreshPolicy.IsEventDriven(s.UiRefreshMode) ? 500
+                    : Math.Max(200, UiRefreshPolicy.PollIntervalMs(s.UiRefreshMode, s.UiRefreshFps)));
+        }
+        ApplyTimerInterval();
+        // v0.1.13：设置保存后立即应用新刷新频率（含手动 FPS 档）
+        void OnSettingsSaved()
+        {
+            win.Dispatcher.BeginInvoke(() => { ApplyTimerInterval(); RefreshUi(); });
+        }
+        AppSettings.Saved -= OnSettingsSaved;
+        AppSettings.Saved += OnSettingsSaved;
         win.Loaded += (_, _) => { RefreshUi(); timer.Start(); };
-        win.Closed += (_, _) => timer.Stop();
+        win.Closed += (_, _) => { timer.Stop(); AppSettings.Saved -= OnSettingsSaved; };
 
         // ---------- 滚轮滚动修复（接管 TextBox 内部滚动条，支持可选平滑动画） ----------
         logBox.PreviewMouseWheel += (_, e) =>

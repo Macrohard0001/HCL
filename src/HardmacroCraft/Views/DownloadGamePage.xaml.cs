@@ -27,6 +27,7 @@ public partial class DownloadGamePage : Page
         if (_loading) return;
         _loading = true;
         BtnRefreshVersions.IsEnabled = false;
+        RingProgress.Visibility = Visibility.Visible; // v0.1.13：容器内旋转指示器（替代进度条）
         TxtProgress.Text = (string)FindResource("S.Dl.Loading");
         try
         {
@@ -47,6 +48,7 @@ public partial class DownloadGamePage : Page
         {
             _loading = false;
             BtnRefreshVersions.IsEnabled = true;
+            RingProgress.Visibility = Visibility.Collapsed;
         }
     }
 

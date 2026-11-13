@@ -11,7 +11,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Inst.Title}" Margin="0,0,0,2" />
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Inst.Subtitle}" />
         </StackPanel>
 

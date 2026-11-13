@@ -39,13 +39,24 @@ public partial class ModsPage : Page
     /// <summary>分页勾选保持：已勾选项目的 ProjectId（加载更多时恢复，新搜索时清空）。</summary>
     private readonly HashSet<string> _selectedIds = new();
 
+    private bool _recommendLoaded; // v0.1.13：推荐内容只在首次进入时拉取一次
+
     public ModsPage()
     {
         InitializeComponent();
         Current = this;
         Unloaded += (_, _) => { if (Current == this) Current = null; };
         RestoreFilters();
-        Loaded += (_, _) => RefreshTargets();
+        Loaded += (_, _) =>
+        {
+            RefreshTargets();
+            // v0.1.13：默认显示推荐内容（空关键词 + 下载量排序的热门列表，PCL 同款）
+            if (!_recommendLoaded && _allHits.Count == 0 && string.IsNullOrWhiteSpace(TxtQuery.Text))
+            {
+                _recommendLoaded = true;
+                _ = SearchCoreAsync(reset: true, indexOverride: "downloads", recommend: true);
+            }
+        };
     }
 
     /// <summary>v0.1.5：恢复上次使用的平台 / 类型 / 加载器（PCL 式记住筛选）。</summary>
@@ -218,7 +229,7 @@ public partial class ModsPage : Page
 
     private async void BtnMore_Click(object sender, RoutedEventArgs e) => await SearchCoreAsync(reset: false);
 
-    private async Task SearchCoreAsync(bool reset)
+    private async Task SearchCoreAsync(bool reset, string? indexOverride = null, bool recommend = false)
     {
         if (_busy) return;
         var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
@@ -235,11 +246,12 @@ public partial class ModsPage : Page
             _busy = true;
             SetSearching(true, !reset);
             ClearLog();
-            Log(reset ? $"搜索 {PlatformName}..." : "加载更多...");
+            var index = indexOverride ?? SortIndex;
+            Log(recommend ? S("S.Mod.LoadingRecommend") : reset ? $"搜索 {PlatformName}..." : "加载更多...");
             var (hits, total) = Platform == "curseforge"
-                ? await App.CurseForge.SearchAsync(TxtQuery.Text ?? "", type, SortIndex, _allHits.Count,
+                ? await App.CurseForge.SearchAsync(TxtQuery.Text ?? "", type, index, _allHits.Count,
                     gameVersion, Loader)
-                : await App.Modrinth.SearchAsync(TxtQuery.Text ?? "", type, SortIndex, _allHits.Count,
+                : await App.Modrinth.SearchAsync(TxtQuery.Text ?? "", type, index, _allHits.Count,
                     gameVersion, Loader);
             _totalHits = total;
             _allHits.AddRange(hits.Where(h => !_allHits.Any(x => x.ProjectId == h.ProjectId)));
@@ -386,7 +398,7 @@ public partial class ModsPage : Page
         finally
         {
             _busy = false;
-            Dispatcher.Invoke(() => PbProgress.Value = 0);
+            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 
@@ -483,13 +495,17 @@ public partial class ModsPage : Page
         long total = 1, done = 0;
         if (row.Cf != null) total = Math.Max(1, row.Cf.Size);
         else if (row.MrFile != null) total = Math.Max(1, row.MrFile.Size);
+        task.TotalBytes = total;
 
+        // v0.1.13：任务中心 / 详情页展示速度与当前文件（此前只更新百分比）
+        var meter = new SpeedMeter();
         var progress = new Progress<long>(delta => Dispatcher.Invoke(() =>
         {
             done += delta;
-            PbProgress.IsIndeterminate = false;
-            PbProgress.Value = Math.Min(100, done * 100.0 / total);
-            DownloadTaskService.Instance.Update(task, done * 100.0 / total);
+            var speed = meter.Observe(done);
+            var pct = Math.Min(100, done * 100.0 / total);
+            RingProgress.Visibility = Visibility.Visible; // v0.1.13：容器内旋转指示器（替代进度条）
+            task.SetProgress(pct, filename, speed, done, total);
         }));
 
         Log($"下载 {filename} → {dir}");
@@ -695,7 +711,7 @@ public partial class ModsPage : Page
         {
             _busy = false;
             UpdateBatchUi();
-            Dispatcher.Invoke(() => PbProgress.Value = 0);
+            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 
@@ -975,7 +991,7 @@ public partial class ModsPage : Page
         {
             _busy = false;
             UpdateBatchUi();
-            Dispatcher.Invoke(() => PbProgress.Value = 0);
+            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 

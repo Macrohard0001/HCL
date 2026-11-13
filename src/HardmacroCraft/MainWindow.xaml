@@ -32,18 +32,29 @@
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Home}"
                                        Icon="{ui:SymbolIcon Play24}"
                                        TargetPageType="{x:Type views:HomePage}" />
-                <ui:NavigationViewItem Content="{DynamicResource S.Nav.DownloadGame}"
+                <!-- v0.1.13：全部下载入口整合进默认折叠的「下载」分组（侧栏更清爽，PCL 式左侧栏） -->
+                <ui:NavigationViewItem x:Name="NavDownloadGroup"
+                                       Content="{DynamicResource S.Nav.DownloadMenu}"
                                        Icon="{ui:SymbolIcon ArrowDownload24}"
-                                       TargetPageType="{x:Type views:DownloadGamePage}" />
-                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Modpacks}"
-                                       Icon="{ui:SymbolIcon BoxMultiple24}"
-                                       TargetPageType="{x:Type views:ModpacksPage}" />
-                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Mods}"
-                                       Icon="{ui:SymbolIcon PuzzlePiece24}"
-                                       TargetPageType="{x:Type views:ModsPage}" />
-                <ui:NavigationViewItem Content="{DynamicResource S.Nav.ModSetup}"
-                                       Icon="{ui:SymbolIcon GridDots24}"
-                                       TargetPageType="{x:Type views:ModSetupPage}" />
+                                       IsExpanded="False">
+                    <ui:NavigationViewItem.MenuItems>
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.DownloadGame}"
+                                               Icon="{ui:SymbolIcon ArrowDownload24}"
+                                               TargetPageType="{x:Type views:DownloadGamePage}" />
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.Mods}"
+                                               Icon="{ui:SymbolIcon PuzzlePiece24}"
+                                               TargetPageType="{x:Type views:ModsPage}" />
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.Modpacks}"
+                                               Icon="{ui:SymbolIcon BoxMultiple24}"
+                                               TargetPageType="{x:Type views:ModpacksPage}" />
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.Shaders}"
+                                               Icon="{ui:SymbolIcon WeatherSunny24}"
+                                               TargetPageType="{x:Type views:ShadersPage}" />
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.ModSetup}"
+                                               Icon="{ui:SymbolIcon GridDots24}"
+                                               TargetPageType="{x:Type views:ModSetupPage}" />
+                    </ui:NavigationViewItem.MenuItems>
+                </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Versions}"
                                        Icon="{ui:SymbolIcon LayerDiagonal24}"
                                        TargetPageType="{x:Type views:VersionsPage}" />

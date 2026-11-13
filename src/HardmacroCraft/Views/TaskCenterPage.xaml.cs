@@ -14,22 +14,43 @@ public partial class TaskCenterPage : Page
 {
     private readonly DispatcherTimer _timer;
     private RefreshThrottle? _throttle;
+    /// <summary>v0.1.13：事件限频模式下的挂起刷新冲刷定时器（收尾事件必达）。</summary>
+    private readonly DispatcherTimer _flushTimer;
 
     public TaskCenterPage()
     {
         InitializeComponent();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Refresh();
+        _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _flushTimer.Tick += (_, _) =>
+        {
+            if (_throttle != null && _throttle.ConsumePending(DateTime.Now))
+                Refresh();
+        };
         Loaded += (_, _) =>
         {
             Refresh();
             ApplyRefreshPolicy();
+            // v0.1.13：设置保存后立即重新应用刷新策略（此前只在本页重新 Loaded 时生效，
+            // 被反馈「刷新频率设置了但不能正确应用」）
+            AppSettings.Saved -= OnSettingsSaved;
+            AppSettings.Saved += OnSettingsSaved;
         };
         Unloaded += (_, _) =>
         {
             _timer.Stop();
+            _flushTimer.Stop();
             DownloadTaskService.Instance.Changed -= OnTasksChanged;
+            AppSettings.Saved -= OnSettingsSaved;
         };
+    }
+
+    private void OnSettingsSaved()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(OnSettingsSaved); return; }
+        ApplyRefreshPolicy();
+        Refresh();
     }
 
     /// <summary>v0.1.11：刷新频率跟随「设置 → 界面刷新频率」（轮询 / 事件驱动 / 事件驱动限频）。</summary>
@@ -44,10 +65,16 @@ public partial class TaskCenterPage : Page
             _timer.Stop();
             _throttle = new RefreshThrottle(UiRefreshPolicy.EventMinIntervalMs(mode, s.UiRefreshMaxFps));
             DownloadTaskService.Instance.Changed += OnTasksChanged;
+            // 限频模式：挂起的收尾刷新经低频定时器冲掉（300ms 粒度，事件模式无此需要）
+            if (UiRefreshPolicy.EventMinIntervalMs(mode, s.UiRefreshMaxFps) > 0)
+                _flushTimer.Start();
+            else
+                _flushTimer.Stop();
         }
         else
         {
             _throttle = null;
+            _flushTimer.Stop();
             var interval = UiRefreshPolicy.PollIntervalMs(mode, s.UiRefreshFps);
             if (interval <= 0) interval = 500;
             _timer.Interval = TimeSpan.FromMilliseconds(interval);
@@ -64,6 +91,7 @@ public partial class TaskCenterPage : Page
 
     private void Refresh()
     {
+        _throttle?.ClearPending();
         var tasks = DownloadTaskService.Instance.Snapshot();
         PnlTasks.Children.Clear();
         if (tasks.Count == 0)
@@ -146,6 +174,21 @@ public partial class TaskCenterPage : Page
             };
             detail.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
             sp.Children.Add(detail);
+        }
+
+        // v0.1.13：下载速度 + 正在下载的文件独立成行（PCL 式「12.3 MB/s · 文件名」，
+        // 此前速度混在 Detail 一行里，任务卡片上看不到）
+        if (t.IsActive && (t.SpeedBps > 0 || !string.IsNullOrWhiteSpace(t.CurrentFile)))
+        {
+            var live = new TextBlock { FontSize = 12, Margin = new Thickness(0, 3, 0, 0) };
+            live.SetResourceReference(TextBlock.ForegroundProperty, "SystemAccentColorSecondaryBrush");
+            var parts = new List<string>();
+            if (t.SpeedBps > 0) parts.Add(SpeedMeter.FormatSpeed(t.SpeedBps));
+            if (!string.IsNullOrWhiteSpace(t.CurrentFile))
+                parts.Add((App.Current.TryFindResource("S.Task.CurrentFile") as string ?? "正在下载")
+                    + " " + t.CurrentFile);
+            live.Text = string.Join(" · ", parts);
+            sp.Children.Add(live);
         }
 
         var bar = new ProgressBar

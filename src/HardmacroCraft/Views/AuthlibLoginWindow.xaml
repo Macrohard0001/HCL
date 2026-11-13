@@ -34,18 +34,18 @@
         <!-- 服务器地址（预设下拉 + 可输入，PCL 同款） -->
         <TextBlock Text="{DynamicResource S.Authlib.Server}" FontSize="13" FontWeight="Medium" Margin="0,0,0,6"
                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-        <ComboBox x:Name="CmbServer" IsEditable="True" MinHeight="38" Margin="0,0,0,12" />
+        <ComboBox x:Name="CmbServer" IsEditable="True" MinHeight="30" Margin="0,0,0,12" />
 
         <!-- 邮箱 -->
         <TextBlock Text="{DynamicResource S.Authlib.User}" FontSize="13" FontWeight="Medium" Margin="0,0,0,6"
                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-        <ui:TextBox x:Name="TxtUser" MinHeight="38" Margin="0,0,0,12"
+        <ui:TextBox x:Name="TxtUser" MinHeight="30" Margin="0,0,0,12"
                     PlaceholderText="{DynamicResource S.Authlib.UserHint}" />
 
         <!-- 密码 -->
         <TextBlock Text="{DynamicResource S.Authlib.Password}" FontSize="13" FontWeight="Medium" Margin="0,0,0,6"
                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-        <ui:PasswordBox x:Name="TxtPassword" MinHeight="38" Margin="0,0,0,10" />
+        <ui:PasswordBox x:Name="TxtPassword" MinHeight="30" Margin="0,0,0,10" />
 
         <!-- 记住密码 + 自动登录 + 注册链接（PCL 同款） -->
         <Grid Margin="0,0,0,14">
@@ -81,8 +81,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ui:Button x:Name="BtnCancel" Content="{DynamicResource S.Login.Cancel}"
-                       HorizontalAlignment="Left" MinHeight="36" Click="BtnCancel_Click" />
-            <ui:Button Grid.Column="1" x:Name="BtnLogin" Appearance="Primary" MinHeight="38" MinWidth="140"
+                       HorizontalAlignment="Left" MinHeight="32" Click="BtnCancel_Click" />
+            <ui:Button Grid.Column="1" x:Name="BtnLogin" Appearance="Primary" MinHeight="30" MinWidth="140"
                        Content="{DynamicResource S.Authlib.Login}" Icon="{ui:SymbolIcon PersonKey24}"
                        Click="BtnLogin_Click" />
         </Grid>

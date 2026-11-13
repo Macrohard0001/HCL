@@ -21,6 +21,15 @@ public class DownloadTaskService
         public DateTime StartedAt { get; internal set; } = DateTime.Now;
         public DateTime EndedAt { get; internal set; }
 
+        /// <summary>v0.1.13：当前下载速度（字节/秒，≤0 = 不可用）。任务中心 / 详情页直接展示，
+        /// 不再与文件名 / 字节数混在 Detail 一行里。</summary>
+        public double SpeedBps { get; internal set; }
+        /// <summary>v0.1.13：正在下载的文件（DisplayName，如 assets/objects/…）。</summary>
+        public string CurrentFile { get; internal set; } = "";
+        /// <summary>v0.1.13：已下载 / 总字节（批量下载时可展示，单文件下载也写入）。</summary>
+        public long DoneBytes { get; internal set; }
+        public long TotalBytes { get; internal set; }
+
         /// <summary>v0.1.10：去重 Key（同一逻辑任务的登记标识，如 "launch:1.20.1"）。
         /// StartKeyed 用它复用运行中的同一任务实例；null = 不参与去重。</summary>
         public string? Key { get; internal set; }
@@ -74,6 +83,24 @@ public class DownloadTaskService
                 if (_logs.Count > 300)
                     _logs.RemoveRange(0, _logs.Count - 300);
             }
+        }
+
+        /// <summary>
+        /// v0.1.13：更新速度 / 当前文件 / 字节进度（任务中心卡片与详情页分两行展示）。
+        /// 高频调用（字节回调）只改字段 + 广播事件，不写日志避免刷屏。
+        /// </summary>
+        public void SetProgress(double percent, string? currentFile = null,
+            double? speedBps = null, long? doneBytes = null, long? totalBytes = null)
+        {
+            lock (_logLock)
+            {
+                Percent = Math.Clamp(percent, -1, 100);
+                if (currentFile != null) CurrentFile = currentFile;
+                if (speedBps.HasValue) SpeedBps = Math.Max(0, speedBps.Value);
+                if (doneBytes.HasValue) DoneBytes = Math.Max(0, doneBytes.Value);
+                if (totalBytes.HasValue) TotalBytes = Math.Max(0, totalBytes.Value);
+            }
+            DownloadTaskService.Instance.NotifyChanged();
         }
 
         /// <summary>日志快照（详情弹窗 / 测试用）。</summary>
@@ -193,6 +220,7 @@ public class DownloadTaskService
             item.EndedAt = DateTime.Now;
             item.Percent = status == "done" ? 100 : item.Percent;
             if (detail != null) item.Detail = detail;
+            item.SpeedBps = 0; // v0.1.13：终态不再显示速度
             item.Cts?.Dispose();
             item.Cts = null;
         }

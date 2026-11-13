@@ -60,7 +60,7 @@ public static class RolePickerWindow
         {
             Content = App.Current.TryFindResource("S.Authlib.Confirm") as string ?? "确定",
             Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-            MinHeight = 34, MinWidth = 120, Margin = new Thickness(0, 12, 0, 0),
+            MinHeight = 30, MinWidth = 120, Margin = new Thickness(0, 12, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
             IsEnabled = list.SelectedItem != null,
         };

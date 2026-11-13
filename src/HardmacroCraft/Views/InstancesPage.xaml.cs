@@ -15,25 +15,42 @@ public partial class InstancesPage : Page
 {
     private readonly DispatcherTimer _timer;
     private RefreshThrottle? _throttle;
+    private readonly DispatcherTimer _flushTimer;
 
     public InstancesPage()
     {
         InitializeComponent();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _timer.Tick += (_, _) => Refresh();
+        _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _flushTimer.Tick += (_, _) =>
+        {
+            if (_throttle != null && _throttle.ConsumePending(DateTime.Now))
+                Refresh();
+        };
         Loaded += (_, _) =>
         {
             Refresh();
             ApplyRefreshPolicy(); // 轮询定时器 / 事件订阅的启停统一在策略里处理
+            AppSettings.Saved -= OnSettingsSaved;
+            AppSettings.Saved += OnSettingsSaved; // v0.1.13：设置保存后立即重新应用
         };
         Unloaded += (_, _) =>
         {
             GameInstanceManager.Changed -= OnInstancesChanged;
+            AppSettings.Saved -= OnSettingsSaved;
             _timer.Stop();
+            _flushTimer.Stop();
         };
     }
 
-    /// <summary>按「设置 → 界面刷新频率」选择轮询 / 事件驱动刷新。</summary>
+    private void OnSettingsSaved()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(OnSettingsSaved); return; }
+        ApplyRefreshPolicy();
+        Refresh();
+    }
+
     private void ApplyRefreshPolicy()
     {
         var s = AppSettings.Instance;
@@ -45,10 +62,15 @@ public partial class InstancesPage : Page
             _timer.Stop();
             _throttle = new RefreshThrottle(UiRefreshPolicy.EventMinIntervalMs(mode, s.UiRefreshMaxFps));
             GameInstanceManager.Changed += OnInstancesChanged;
+            if (UiRefreshPolicy.EventMinIntervalMs(mode, s.UiRefreshMaxFps) > 0)
+                _flushTimer.Start();
+            else
+                _flushTimer.Stop();
         }
         else
         {
             _throttle = null;
+            _flushTimer.Stop();
             var interval = UiRefreshPolicy.PollIntervalMs(mode, s.UiRefreshFps);
             if (interval <= 0) interval = 500;
             _timer.Interval = TimeSpan.FromMilliseconds(interval);

@@ -251,7 +251,13 @@ public class AppSettings
             File.Copy(tmp, SettingsFile, overwrite: true);
             File.Delete(tmp);
         }
+        // v0.1.13：保存后广播 —— 任务中心 / 实例管理 / 详情弹窗等立即重新应用
+        // 界面刷新频率等设置（此前只在页面重新 Loaded 时才生效，被用户反馈「不能正确应用」）
+        Saved?.Invoke();
     }
+
+    /// <summary>v0.1.13：任意设置保存成功后触发（UI 端自行封送到线程）。用于设置实时应用。</summary>
+    public static event Action? Saved;
 
     /// <summary>记录一次启动（最新在前、去重、最多 6 个）。</summary>
     public void RecordLaunch(string version)
@@ -308,6 +314,32 @@ public class StoredProfile
     public override string ToString() => Name;
 }
 
+/// <summary>
+/// v0.1.13 账号唯一键（纯逻辑，进测试）—— 同名账号跨登录方式 / 跨验证站和平共存：
+///   离线   → offline||名字
+///   微软   → microsoft||名字
+///   第三方 → authlib|验证站Root|名字（不同验证站的同名角色是不同账号，互不顶替）
+/// 此前按（名字+类型）匹配：两个验证站登录同一角色名会互相覆盖 / 误标当前，
+/// 历史重复条目还会导致账号管理里「所有账号都显示当前」。
+/// </summary>
+public static class AccountKeys
+{
+    /// <summary>账号唯一键：类型 | 验证站(去尾斜杠) | 名字。null / 空对象安全。</summary>
+    public static string KeyOf(StoredAccount? a)
+        => string.Join("|", a?.Type ?? "", (a?.ServerUrl ?? "").Trim().TrimEnd('/'), a?.Name ?? "");
+
+    /// <summary>是否为同一账号（键相等）。</summary>
+    public static bool IsSame(StoredAccount? a, StoredAccount? b) => KeyOf(a) == KeyOf(b);
+
+    /// <summary>按键去重：保留每个键的最后一次出现（最近 Upsert 的），返回去重后的新列表（顺序稳定）。</summary>
+    public static List<StoredAccount> Dedupe(IEnumerable<StoredAccount> accounts)
+    {
+        var byKey = new Dictionary<string, StoredAccount>();
+        foreach (var a in accounts) byKey[KeyOf(a)] = a;
+        return byKey.Values.ToList();
+    }
+}
+
 public class AccountStore
 {
     private static string AccountsFile => Path.Combine(AppSettings.ConfigDir, "accounts.json");
@@ -319,11 +351,26 @@ public class AccountStore
     public string CurrentName { get; set; } = "";
     /// <summary>当前账号类型：离线 / 微软 / 第三方可能同名，单靠名字会指错（v0.1.3 修复）。</summary>
     public string CurrentType { get; set; } = "";
+    /// <summary>v0.1.13：当前账号的验证站 Root（第三方账号键的一部分；旧配置缺省为空，
+    /// 归一化时自动补全）。离线 / 微软账号恒为空串。</summary>
+    public string CurrentServerUrl { get; set; } = "";
 
+    /// <summary>当前账号唯一键（纯查询，无兜底误指 —— v0.1.13 修复「所有账号都显示当前」）。</summary>
+    public string CurrentKey => string.Join("|", CurrentType, CurrentServerUrl.Trim().TrimEnd('/'), CurrentName);
+
+    /// <summary>
+    /// 当前账号（v0.1.13）：优先键级精确匹配；键失配时退回（名字+类型）→ 同名
+    /// 兼容外部直接改 CurrentName/CurrentType 的旧调用与旧配置。UI 的当前判定
+    /// 用 IsCurrent（严格键级），不受这里兜底的影响。
+    /// </summary>
     public StoredAccount? Current =>
-        Accounts.FirstOrDefault(a => a.Name == CurrentName && a.Type == CurrentType)
-        ?? Accounts.FirstOrDefault(a => a.Name == CurrentName)
-        ?? Accounts.FirstOrDefault();
+        Accounts.FirstOrDefault(a => AccountKeys.KeyOf(a) == CurrentKey)
+        ?? Accounts.FirstOrDefault(a => a.Name == CurrentName && a.Type == CurrentType)
+        ?? Accounts.FirstOrDefault(a => a.Name == CurrentName);
+
+    /// <summary>指定账号是否为当前账号（键级比较，UI 判定用）。</summary>
+    public bool IsCurrent(StoredAccount? acc) => AccountKeys.KeyOf(acc) == CurrentKey
+        && AccountKeys.KeyOf(acc) != "|";
 
     public static AccountStore Instance { get; private set; } = new();
 
@@ -339,8 +386,35 @@ public class AccountStore
             Services.BootLogger.Error("accounts.json 解析失败，使用空账号列表: " + ex.Message);
             Instance = new();
         }
+        Instance.Normalize();
         try { Directory.CreateDirectory(AppSettings.ConfigDir); }
         catch (Exception ex) { Services.BootLogger.Error("config/ 目录创建失败: " + ex.Message); }
+    }
+
+    /// <summary>
+    /// v0.1.13 归一化（Load 后与每次增删改后调用）：
+    /// 1) 历史重复条目按键去重（修复旧版本遗留的同键多行 → 账号管理全员显示「当前」）；
+    /// 2) 当前指认校准：优先精确键 → 退回（名字+类型）→ 退回同名 → 退回第一个账号；
+    ///    空列表清空当前指认。归一化发生变化时落盘。
+    /// </summary>
+    public void Normalize()
+    {
+        var before = Accounts.Count;
+        var prevName = CurrentName; var prevType = CurrentType; var prevServer = CurrentServerUrl;
+        Accounts = AccountKeys.Dedupe(Accounts);
+
+        var target = Accounts.FirstOrDefault(a => AccountKeys.KeyOf(a) == CurrentKey)
+            ?? Accounts.FirstOrDefault(a => a.Name == prevName && a.Type == prevType)
+            ?? Accounts.FirstOrDefault(a => a.Name == prevName)
+            ?? Accounts.FirstOrDefault();
+        CurrentName = target?.Name ?? "";
+        CurrentType = target?.Type ?? "";
+        CurrentServerUrl = target?.ServerUrl?.Trim().TrimEnd('/') ?? "";
+
+        if (Accounts.Count != before || AccountKeys.KeyOf(target) != string.Join("|", prevType, prevServer.Trim().TrimEnd('/'), prevName))
+        {
+            try { Save(); } catch { /* 首次 Load 时 config/ 可能尚未就绪，忽略 */ }
+        }
     }
 
     public void Save()
@@ -350,12 +424,12 @@ public class AccountStore
             System.Text.Json.JsonSerializer.Serialize(this, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
     }
 
-    /// <summary>按（名字 + 类型）入列：同名离线 / 第三方账号互不顶替（v0.1.3 修复）。
-    /// 重登同名账号时保留旧账号的自定义皮肤路径（登录系统全面检查：
-    /// 此前 Upsert 新建对象会静默清掉 SkinPath，离线账号换个姿势重登皮肤就没了）。</summary>
+    /// <summary>按唯一键入列（v0.1.13）：同名跨类型 / 同名跨验证站互不顶替。
+    /// 重登同一账号时保留旧账号的自定义皮肤路径。入列后该账号成为当前账号。</summary>
     public void Upsert(StoredAccount acc)
     {
-        var old = Accounts.FirstOrDefault(a => a.Name == acc.Name && a.Type == acc.Type);
+        var key = AccountKeys.KeyOf(acc);
+        var old = Accounts.FirstOrDefault(a => AccountKeys.KeyOf(a) == key);
         if (old != null)
         {
             if (string.IsNullOrWhiteSpace(acc.SkinPath) && !string.IsNullOrWhiteSpace(old.SkinPath))
@@ -363,18 +437,38 @@ public class AccountStore
             Accounts.Remove(old);
         }
         Accounts.Add(acc);
+        SetCurrent(acc);
+    }
+
+    /// <summary>v0.1.13：把指定账号设为当前账号（键级三字段一并写准）。</summary>
+    public void SetCurrent(StoredAccount acc)
+    {
         CurrentName = acc.Name;
         CurrentType = acc.Type;
+        CurrentServerUrl = (acc.ServerUrl ?? "").Trim().TrimEnd('/');
         Save();
     }
 
-    /// <summary>type 为 null 时按名字删除任意类型（兼容旧调用），否则只删对应类型。</summary>
+    /// <summary>v0.1.13：按唯一键删除指定账号。当前账号被删时按
+    /// 「精确键 → 同名 → 第一个」顺位重新指认。</summary>
+    public void RemoveAccount(StoredAccount acc)
+    {
+        var key = AccountKeys.KeyOf(acc);
+        Accounts.RemoveAll(a => AccountKeys.KeyOf(a) == key);
+        var cur = Accounts.FirstOrDefault(a => AccountKeys.KeyOf(a) == CurrentKey)
+            ?? Accounts.FirstOrDefault(a => a.Name == CurrentName)
+            ?? Accounts.FirstOrDefault();
+        CurrentName = cur?.Name ?? "";
+        CurrentType = cur?.Type ?? "";
+        CurrentServerUrl = cur?.ServerUrl?.Trim().TrimEnd('/') ?? "";
+        Save();
+    }
+
+    /// <summary>兼容旧调用：type 为 null 时按名字删除任意类型，否则删（名字+类型）。
+    /// 删除后归一化（重建当前指认并清理可能因此产生的重复）。</summary>
     public void Remove(string name, string? type = null)
     {
         Accounts.RemoveAll(a => a.Name == name && (type == null || a.Type == type));
-        var cur = Accounts.FirstOrDefault(a => a.Name == CurrentName) ?? Accounts.FirstOrDefault();
-        CurrentName = cur?.Name ?? "";
-        CurrentType = cur?.Type ?? "";
-        Save();
+        Normalize();
     }
 }

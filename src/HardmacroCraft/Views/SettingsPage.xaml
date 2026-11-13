@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Set.Title}" Margin="0,0,0,2" />
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Set.Subtitle}" />
         </StackPanel>
 
@@ -32,7 +32,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{DynamicResource S.Set.Theme}" FontWeight="Medium"
                                    VerticalAlignment="Center" Margin="0,0,12,0" />
-                        <ComboBox x:Name="CmbTheme" MinHeight="38" MinWidth="200"
+                        <ComboBox x:Name="CmbTheme" MinHeight="30" MinWidth="200"
                                   SelectionChanged="CmbTheme_SelectionChanged">
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeDark}" Tag="dark" />
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeLight}" Tag="light" />
@@ -40,7 +40,7 @@
                         </ComboBox>
                         <TextBlock Text="{DynamicResource S.Set.Language}" FontWeight="Medium"
                                    VerticalAlignment="Center" Margin="24,0,12,0" />
-                        <ComboBox x:Name="CmbLanguage" MinHeight="38" MinWidth="140">
+                        <ComboBox x:Name="CmbLanguage" MinHeight="30" MinWidth="140">
                             <ComboBoxItem Content="简体中文" Tag="zh-CN" IsSelected="True" />
                             <ComboBoxItem Content="English" Tag="en" />
                         </ComboBox>
@@ -51,7 +51,7 @@
                     <TextBlock Text="{DynamicResource S.Set.UiRefreshHint}" Style="{StaticResource HmHint}"
                                Margin="0,0,0,8" TextWrapping="Wrap" />
                     <WrapPanel Orientation="Horizontal">
-                        <ComboBox x:Name="CmbUiRefresh" MinHeight="38" MinWidth="230" SelectionChanged="CmbUiRefresh_Changed">
+                        <ComboBox x:Name="CmbUiRefresh" MinHeight="30" MinWidth="230" SelectionChanged="CmbUiRefresh_Changed">
                             <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshAuto}" Tag="auto" IsSelected="True" />
                             <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshManual}" Tag="manual" />
                             <ComboBoxItem Content="{DynamicResource S.Set.UiRefreshEvent}" Tag="event" />
@@ -59,12 +59,12 @@
                         </ComboBox>
                         <StackPanel x:Name="PnlUiRefreshFps" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
                             <TextBlock Text="{DynamicResource S.Set.UiRefreshFps}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ui:NumberBox x:Name="NumUiFps" MinWidth="96" MinHeight="36" Minimum="1" Maximum="240"
+                            <ui:NumberBox x:Name="NumUiFps" MinWidth="96" MinHeight="32" Minimum="1" Maximum="240"
                                           Value="30" SmallChange="1" LargeChange="10" />
                         </StackPanel>
                         <StackPanel x:Name="PnlUiRefreshMaxFps" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
                             <TextBlock Text="{DynamicResource S.Set.UiRefreshMaxFps}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <ui:NumberBox x:Name="NumUiMaxFps" MinWidth="96" MinHeight="36" Minimum="1" Maximum="240"
+                            <ui:NumberBox x:Name="NumUiMaxFps" MinWidth="96" MinHeight="32" Minimum="1" Maximum="240"
                                           Value="30" SmallChange="1" LargeChange="10" />
                         </StackPanel>
                     </WrapPanel>
@@ -85,8 +85,8 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ui:TextBox x:Name="TxtGameRoot" MinHeight="38" Margin="0,0,8,0" />
-                        <ui:Button Grid.Column="1" MinHeight="38" Content="{DynamicResource S.Set.Browse}"
+                        <ui:TextBox x:Name="TxtGameRoot" MinHeight="30" Margin="0,0,8,0" />
+                        <ui:Button Grid.Column="1" MinHeight="30" Content="{DynamicResource S.Set.Browse}"
                                    Click="BtnBrowseRoot_Click" />
                     </Grid>
 
@@ -142,7 +142,7 @@
                                TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal">
                         <ui:Button x:Name="BtnMemClean" Content="{DynamicResource S.Set.MemCleanNow}"
-                                   Icon="{ui:SymbolIcon Broom24}" MinHeight="34" MinWidth="110"
+                                   Icon="{ui:SymbolIcon Broom24}" MinHeight="30" MinWidth="110"
                                    Click="BtnMemClean_Click" />
                         <TextBlock x:Name="TxtLauncherMem" Style="{StaticResource HmHint}"
                                    VerticalAlignment="Center" Margin="12,0,0,0"
@@ -180,12 +180,12 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ui:TextBox x:Name="TxtJava" MinHeight="38" Margin="0,0,8,0"
+                        <ui:TextBox x:Name="TxtJava" MinHeight="30" Margin="0,0,8,0"
                                     PlaceholderText="C:\\path\\to\\javaw.exe 或其所在文件夹（fix5 支持文件夹自动搜索）" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <ui:Button MinHeight="38" Content="exe" MinWidth="54" Margin="0,0,6,0"
+                            <ui:Button MinHeight="30" Content="exe" MinWidth="54" Margin="0,0,6,0"
                                        ToolTip="选择 javaw.exe / java.exe 文件" Click="BtnBrowseJava_Click" />
-                            <ui:Button MinHeight="38" Content="{DynamicResource S.Set.BrowseFolder}" MinWidth="54"
+                            <ui:Button MinHeight="30" Content="{DynamicResource S.Set.BrowseFolder}" MinWidth="54"
                                        ToolTip="选择 Java 所在文件夹（自动搜索 javaw.exe）" Click="BtnBrowseJavaFolder_Click" />
                         </StackPanel>
                     </Grid>
@@ -198,9 +198,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ui:TextBox x:Name="TxtJavaDir" MinHeight="38" Margin="0,0,8,0"
+                        <ui:TextBox x:Name="TxtJavaDir" MinHeight="30" Margin="0,0,8,0"
                                     PlaceholderText="{DynamicResource S.Set.JavaDirHint}" />
-                        <ui:Button Grid.Column="1" MinHeight="38" Content="{DynamicResource S.Set.BrowseFolder}"
+                        <ui:Button Grid.Column="1" MinHeight="30" Content="{DynamicResource S.Set.BrowseFolder}"
                                    Click="BtnBrowseJavaDir_Click" />
                     </Grid>
                     <TextBlock Text="{DynamicResource S.Set.JavaDirHint2}" Style="{StaticResource HmHint}" Margin="0,6,0,12" />
@@ -208,14 +208,14 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{DynamicResource S.Set.JavaDownload}" VerticalAlignment="Center"
                                    FontWeight="Medium" Margin="0,0,12,0" />
-                        <ComboBox x:Name="CmbJavaMajor" MinHeight="38" MinWidth="130">
+                        <ComboBox x:Name="CmbJavaMajor" MinHeight="30" MinWidth="130">
                             <ComboBoxItem Content="Java 8" Tag="8" />
                             <ComboBoxItem Content="Java 17" Tag="17" />
                             <ComboBoxItem Content="Java 21" Tag="21" IsSelected="True" />
                             <ComboBoxItem Content="Java 25" Tag="25" />
                         </ComboBox>
                         <ui:Button x:Name="BtnDownloadJava" Content="{DynamicResource S.Set.JavaDownloadBtn}"
-                                   Icon="{ui:SymbolIcon ArrowDownload24}" MinHeight="38" Margin="8,0,0,0"
+                                   Icon="{ui:SymbolIcon ArrowDownload24}" MinHeight="30" Margin="8,0,0,0"
                                    Click="BtnDownloadJava_Click" />
                     </StackPanel>
                     <ProgressBar x:Name="PbJava" Height="6" Margin="0,10,0,0" Visibility="Collapsed" />
@@ -244,29 +244,29 @@
 
                     <TextBlock Text="{DynamicResource S.Set.JvmArgs}" FontWeight="Medium" Margin="0,0,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.JvmArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <ui:TextBox x:Name="TxtJvmArgs" MinHeight="38" FontFamily="Consolas"
+                    <ui:TextBox x:Name="TxtJvmArgs" MinHeight="30" FontFamily="Consolas"
                                 PlaceholderText="-XX:+UseG1GC -Dfile.encoding=UTF-8" />
 
                     <TextBlock Text="{DynamicResource S.Set.GameArgs}" FontWeight="Medium" Margin="0,16,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.GameArgsHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <ui:TextBox x:Name="TxtGameArgs" MinHeight="38" FontFamily="Consolas"
+                    <ui:TextBox x:Name="TxtGameArgs" MinHeight="30" FontFamily="Consolas"
                                 PlaceholderText="--fullscreen --demo" />
 
                     <!-- 窗口大小（v0.1.10：默认 / 与启动器一致 / 自定义） -->
                     <TextBlock Text="{DynamicResource S.Set.Resolution}" FontWeight="Medium" Margin="0,16,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.ResolutionHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
                     <WrapPanel Orientation="Horizontal">
-                        <ComboBox x:Name="CmbWindowMode" MinHeight="38" MinWidth="200"
+                        <ComboBox x:Name="CmbWindowMode" MinHeight="30" MinWidth="200"
                                   SelectionChanged="CmbWindowMode_Changed">
                             <ComboBoxItem Content="{DynamicResource S.Set.WinModeDefault}" Tag="default" IsSelected="True" />
                             <ComboBoxItem Content="{DynamicResource S.Set.WinModeMatch}" Tag="match-launcher" />
                             <ComboBoxItem Content="{DynamicResource S.Set.WinModeCustom}" Tag="custom" />
                         </ComboBox>
                         <StackPanel x:Name="PnlWindowSize" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
-                            <ui:TextBox x:Name="TxtGameWidth" MinHeight="38" Width="110"
+                            <ui:TextBox x:Name="TxtGameWidth" MinHeight="30" Width="110"
                                         PlaceholderText="1280" TextAlignment="Center" />
                             <TextBlock Text="×" FontSize="16" VerticalAlignment="Center" Margin="8,0" />
-                            <ui:TextBox x:Name="TxtGameHeight" MinHeight="38" Width="110"
+                            <ui:TextBox x:Name="TxtGameHeight" MinHeight="30" Width="110"
                                         PlaceholderText="720" TextAlignment="Center" />
                         </StackPanel>
                     </WrapPanel>
@@ -280,7 +280,7 @@
                                TextWrapping="Wrap" />
 
                     <TextBlock Text="{DynamicResource S.Set.GameLang}" FontWeight="Medium" Margin="0,0,0,6" />
-                    <ComboBox x:Name="CmbGameLang" MinHeight="38" Width="240" HorizontalAlignment="Left" Margin="0,0,0,12">
+                    <ComboBox x:Name="CmbGameLang" MinHeight="30" Width="240" HorizontalAlignment="Left" Margin="0,0,0,12">
                         <ComboBoxItem Content="{DynamicResource S.Set.GameLangKeep}" Tag="" IsSelected="True" />
                         <ComboBoxItem Content="简体中文（zh_CN）" Tag="zh_CN" />
                         <ComboBoxItem Content="English (en_US)" Tag="en_US" />
@@ -319,7 +319,7 @@
                             <TextBlock Text="{DynamicResource S.Set.DownloadThreadsHint}" Style="{StaticResource HmHint}"
                                        Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
-                        <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="36"
+                        <ui:NumberBox x:Name="NumDownloadThreads" Grid.Column="1" MinWidth="110" MinHeight="32"
                                       VerticalAlignment="Center" Minimum="1" Maximum="256" Value="64"
                                       SmallChange="1" LargeChange="16" />
                     </Grid>
@@ -330,7 +330,7 @@
 
                     <TextBlock Text="{DynamicResource S.Set.AzureId}" FontWeight="Medium" Margin="0,0,0,6" />
                     <TextBlock Text="{DynamicResource S.Set.AzureIdHint}" Style="{StaticResource HmHint}" Margin="0,0,0,8" />
-                    <ui:TextBox x:Name="TxtAzureId" MinHeight="38" />
+                    <ui:TextBox x:Name="TxtAzureId" MinHeight="30" />
                     <ui:Button Content="{DynamicResource S.Azure.OpenGuide}" Appearance="Transparent" Padding="8,2,8,2"
                                Margin="0,6,0,0" HorizontalAlignment="Left" Click="BtnAzureGuide_Click" />
 
@@ -341,15 +341,15 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <ui:TextBox x:Name="TxtCfKey" MinHeight="38" Margin="0,0,8,0" />
-                        <ui:Button Grid.Column="1" Content="{DynamicResource S.Set.CfKeyGet}" MinHeight="38"
+                        <ui:TextBox x:Name="TxtCfKey" MinHeight="30" Margin="0,0,8,0" />
+                        <ui:Button Grid.Column="1" Content="{DynamicResource S.Set.CfKeyGet}" MinHeight="30"
                                    Icon="{ui:SymbolIcon Link24}" Click="BtnCfKey_Click" />
                     </Grid>
                 </StackPanel>
             </Border>
 
             <ui:Button Content="{DynamicResource S.Set.Save}" Appearance="Primary" Icon="{ui:SymbolIcon Save24}"
-                       Click="BtnSave_Click" MinWidth="160" MinHeight="42" FontSize="14" FontWeight="SemiBold" />
+                       Click="BtnSave_Click" MinWidth="160" MinHeight="30" FontSize="14" FontWeight="SemiBold" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -39,8 +39,7 @@ public static class MemoryManager
     }
 
     /// <summary>
-    /// 当前进程专用内存 / 提交大小（MB）—— 与任务管理器「详细信息 → 提交大小」一致，
-    /// 也是设置页「启动器当前内存占用」的展示口径（v0.1.12 修复口径不一致）。
+    /// 当前进程专用内存 / 提交大小（MB）—— 与任务管理器「详细信息 → 提交大小」一致。
     /// 非 Windows 或 P/Invoke 失败时回退 PrivateMemorySize64。
     /// </summary>
     public static long PrivateMb
@@ -53,6 +52,85 @@ public static class MemoryManager
             p.Refresh();
             return p.PrivateMemorySize64 / (1024 * 1024);
         }
+    }
+
+    /// <summary>
+    /// v0.1.13：专用工作集（MB）—— 与任务管理器默认「内存」列完全同口径（只统计
+    /// 本进程独占、且驻留在物理内存的页）。此前展示的“专用内存(提交)”包含大量已提交
+    /// 但未驻留 / 共享映射的页，用户对比任务管理器（31 MB）与启动器（500+ MB）觉得算错。
+    /// 非 Windows 或统计失败时回退 WorkingSet64 的负偏差口径（永不高于真实工作集）。
+    /// </summary>
+    public static long PrivateWorkingSetMb
+    {
+        get
+        {
+            if (OperatingSystem.IsWindows() && TryGetPrivateWorkingSet(out var bytes) && bytes > 0)
+                return bytes / (1024 * 1024);
+            using var p = Process.GetCurrentProcess();
+            p.Refresh();
+            return p.WorkingSet64 / (1024 * 1024);
+        }
+    }
+
+    /// <summary>
+    /// 纯逻辑（进测试）：按 PSAPI_WORKING_SET_EX_BLOCK 标志位统计专用物理内存字节数。
+    /// 私有页判定：Valid(bit0)=1 且 Shared(bit15-16)=0（0=私有，1=共享，2=可共享）。
+    /// 与任务管理器「内存（活动专用工作集）」同口径。
+    /// </summary>
+    public static long ComputePrivateBytes(IEnumerable<ulong> blockFlags, int pageSize = 4096)
+    {
+        long total = 0;
+        foreach (var f in blockFlags)
+        {
+            if ((f & 1UL) == 0) continue;                    // Valid:1 = bit0
+            var shared = (f >> 15) & 0x3UL;                  // Shared:2 = bit15-16
+            if (shared != 0) continue;                       // 0 = 私有
+            total += pageSize;
+        }
+        return total;
+    }
+
+    /// <summary>QueryWorkingSetEx 遍历工作集页表，统计专用工作集字节（仅 Windows）。</summary>
+    private static bool TryGetPrivateWorkingSet(out long bytes)
+    {
+        bytes = 0;
+        try
+        {
+            var counters = new PROCESS_MEMORY_COUNTERS_EX
+            {
+                cb = (uint)System.Runtime.InteropServices.Marshal.SizeOf<PROCESS_MEMORY_COUNTERS_EX>(),
+            };
+            if (!GetProcessMemoryInfo(GetCurrentProcess(), ref counters, counters.cb))
+                return false;
+            var wsPages = (ulong)counters.WorkingSetSize / 4096UL;
+            if (wsPages == 0) return false;
+
+            // 缓冲区：头（NumberOfEntries，IntPtr）+ 每页一个 IntPtr 大小的块。
+            // 工作集随时在变，逐轮放大缓冲重试（第一轮 +20%，之后每轮 ×1.5）
+            var capacity = (ulong)((wsPages * 1.2) + 4096);
+            for (var round = 0; round < 3; round++, capacity = (ulong)(capacity * 1.5) + 4096)
+            {
+                var size = (uint)(IntPtr.Size + (long)capacity * IntPtr.Size);
+                var buf = System.Runtime.InteropServices.Marshal.AllocHGlobal((IntPtr)size);
+                try
+                {
+                    if (!QueryWorkingSetEx(GetCurrentProcess(), buf, size))
+                        continue;
+                    var count = (ulong)System.Runtime.InteropServices.Marshal.ReadIntPtr(buf);
+                    if (count == 0) return false;
+                    var basePtr = IntPtr.Add(buf, IntPtr.Size);
+                    var flags = new ulong[count];
+                    for (ulong i = 0; i < count; i++)
+                        flags[i] = (ulong)System.Runtime.InteropServices.Marshal.ReadIntPtr(
+                            basePtr, (int)(i * (ulong)IntPtr.Size));
+                    bytes = ComputePrivateBytes(flags);
+                    return true;
+                }
+                finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(buf); }
+            }
+            return false;
+        }
+        catch { return false; }
     }
 
     private static bool TryGetPrivateUsage(out long privateUsage)
@@ -93,6 +171,9 @@ public static class MemoryManager
 
     [DllImport("psapi.dll", SetLastError = true)]
     private static extern bool GetProcessMemoryInfo(IntPtr hProcess, ref PROCESS_MEMORY_COUNTERS_EX counters, uint cb);
+
+    [DllImport("psapi.dll", SetLastError = true)]
+    private static extern bool QueryWorkingSetEx(IntPtr hProcess, IntPtr pv, uint cb);
 
     /// <summary>
     /// 启动器是否忙碌（游戏启动流程 / 任务中心运行中的任务）。

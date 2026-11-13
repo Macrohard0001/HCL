@@ -43,8 +43,8 @@
                            FontFamily="Consolas" VerticalAlignment="Center"
                            Foreground="{DynamicResource SystemAccentColorPrimaryBrush}" />
                 <ui:Button Grid.Column="1" x:Name="BtnCopy" Content="{DynamicResource S.Login.Copy}"
-                           Icon="{ui:SymbolIcon Copy24}" MinHeight="36" Margin="8,0,4,0" Click="BtnCopy_Click" />
-                <ui:Button Grid.Column="2" x:Name="BtnOpen" Appearance="Primary" MinHeight="36"
+                           Icon="{ui:SymbolIcon Copy24}" MinHeight="32" Margin="8,0,4,0" Click="BtnCopy_Click" />
+                <ui:Button Grid.Column="2" x:Name="BtnOpen" Appearance="Primary" MinHeight="32"
                            Content="{DynamicResource S.Login.OpenBrowser}"
                            Icon="{ui:SymbolIcon Open24}" Click="BtnOpen_Click" />
             </Grid>
@@ -57,7 +57,7 @@
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,14" />
 
         <ui:Button x:Name="BtnCancel" Content="{DynamicResource S.Login.Cancel}"
-                   HorizontalAlignment="Left" MinHeight="36" Click="BtnCancel_Click" />
+                   HorizontalAlignment="Left" MinHeight="32" Click="BtnCancel_Click" />
     </StackPanel>
     </Grid>
 </ui:FluentWindow>

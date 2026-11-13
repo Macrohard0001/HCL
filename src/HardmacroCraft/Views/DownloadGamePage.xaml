@@ -12,14 +12,14 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Dl.Title}" Margin="0,0,0,2" />
             <Grid Margin="0,0,0,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
                 <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Dl.Subtitle}" />
-                <ui:Button Grid.Column="1" x:Name="BtnRefreshVersions" MinHeight="34" Margin="12,0,0,0"
+                <ui:Button Grid.Column="1" x:Name="BtnRefreshVersions" MinHeight="30" Margin="12,0,0,0"
                            Content="{DynamicResource S.Dl.Reload}" Icon="{ui:SymbolIcon ArrowClockwise24}"
                            Click="BtnRefreshVersions_Click" />
             </Grid>
@@ -142,13 +142,12 @@
             </Grid>
         </Border>
 
-        <!-- 进度条卡片（钉底，空闲时不抢版面） -->
-        <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,12,0,0">
-            <StackPanel>
-                <ProgressBar x:Name="PbProgress" Height="6" Maximum="100" IsIndeterminate="False" />
-                <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                           MaxHeight="48" />
-            </StackPanel>
-        </Border>
+        <!-- v0.1.13：底部进度条 → 容器内旋转加载指示器 + 状态文本（空闲时不抢版面） -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+            <ui:ProgressRing x:Name="RingProgress" Width="18" Height="18" IsIndeterminate="True"
+                             Visibility="Collapsed" />
+            <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" VerticalAlignment="Center"
+                       Margin="8,0,0,0" MaxHeight="48" />
+        </StackPanel>
     </Grid>
 </Page>

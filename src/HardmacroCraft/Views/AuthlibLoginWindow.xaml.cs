@@ -205,7 +205,7 @@ public partial class AuthlibLoginWindow
             {
                 Content = (string)FindResource("S.Authlib.Confirm"),
                 Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
-                MinHeight = 34,
+                MinHeight = 30,
                 MinWidth = 120,
                 Margin = new Thickness(0, 12, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,

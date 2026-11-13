@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,2">
-            <TextBlock Style="{StaticResource HmPageTitle}" Text="{DynamicResource S.Ver.Title}" />
+            <!-- v0.1.13：去除页内主标题（侧栏已标明页面），仅保留副标题 -->
             <TextBlock Style="{StaticResource HmPageSubtitle}" Text="{DynamicResource S.Ver.Subtitle}" />
         </StackPanel>
 
@@ -23,7 +23,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <ui:TextBox x:Name="TxtSearch" MinHeight="38"
+            <ui:TextBox x:Name="TxtSearch" MinHeight="30"
                         PlaceholderText="{DynamicResource S.Ver.SearchPh}"
                         Icon="{ui:SymbolIcon Search24}"
                         TextChanged="TxtSearch_TextChanged" />
@@ -34,25 +34,25 @@
         <!-- 工具按钮（WrapPanel：小窗口下自动换行） -->
         <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,0,0,12" Padding="12">
             <WrapPanel>
-                <ui:Button Content="{DynamicResource S.Ver.Launch}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.Launch}" MinHeight="32" Margin="0,0,8,8"
                            Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Click="BtnLaunch_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Settings}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.Settings}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Settings24}" Click="BtnSettings_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon ArrowClockwise24}" Click="BtnRefresh_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenFolder}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.OpenFolder}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Folder24}" Click="BtnOpenFolder_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenSaves}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.OpenSaves}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Save24}" Click="BtnOpenSaves_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenMods}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.OpenMods}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon PuzzlePiece24}" Click="BtnOpenMods_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenPacks}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.OpenPacks}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Image24}" Click="BtnOpenPacks_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Rename}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.Rename}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Edit24}" Click="BtnRename_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Copy}" MinHeight="36" Margin="0,0,8,8"
+                <ui:Button Content="{DynamicResource S.Ver.Copy}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon Copy24}" Click="BtnCopy_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Delete}" MinHeight="36" Margin="0,0,0,8"
+                <ui:Button Content="{DynamicResource S.Ver.Delete}" MinHeight="32" Margin="0,0,0,8"
                            Appearance="Danger" Icon="{ui:SymbolIcon Delete24}" Click="BtnDelete_Click" />
             </WrapPanel>
         </Border>
