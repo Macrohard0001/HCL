@@ -2684,6 +2684,68 @@ try
 }
 catch (Exception ex) { Check("第 35 节 v0.1.14（下载源 / 镜像 / 命名）", false, ex.Message); }
 
+// ==================== 第 36 节 v0.15.0：PCL 式翻页条 / 数据包·资源包目录 ====================
+try
+{
+    // 36.1 TotalPages / ClampPage / OffsetOf
+    Check("总页数：空列表至少 1 页", PclPager.TotalPages(0, 25) == 1);
+    Check("总页数：1..25 一页", PclPager.TotalPages(1, 25) == 1 && PclPager.TotalPages(25, 25) == 1);
+    Check("总页数：26 → 2 页", PclPager.TotalPages(26, 25) == 2);
+    Check("总页数：600 / 50 = 12 页", PclPager.TotalPages(600, PclPager.LocalPageSize) == 12);
+    Check("页码钳制：0 → 1，超出 → 末页", PclPager.ClampPage(0, 5) == 1 && PclPager.ClampPage(99, 5) == 5);
+    Check("偏移：第 1 页 0，第 3 页 50", PclPager.OffsetOf(1, 25) == 0 && PclPager.OffsetOf(3, 25) == 50);
+    Check("偏移：页码最小为 1", PclPager.OffsetOf(-2, 25) == 0);
+
+    // 36.2 NumberWindow（最多 7 个数字页，当前页附近优先，两端钳制）
+    var w1 = PclPager.NumberWindow(1, 100);
+    Check("窗口：首页从头开始", w1[0] == 1 && w1.Count == 7);
+    var w2 = PclPager.NumberWindow(50, 100);
+    Check("窗口：中部包含当前页", w2.Contains(50));
+    var w3 = PclPager.NumberWindow(100, 100);
+    Check("窗口：末页向末尾钳制", w3[^1] == 100 && w3.Count == 7);
+    var w4 = PclPager.NumberWindow(2, 5);
+    Check("窗口：总页数不足 7 时全部展示", w4.Count == 5 && w4[0] == 1 && w4[^1] == 5);
+
+    // 36.3 BuildButtons（« ‹ 数字 … › »）
+    var b1 = PclPager.BuildButtons(1, 1);
+    Check("单页：无数字页，导航全部禁用",
+        b1.All(b => b.IsNav && !b.IsEnabled) && b1.Count == 4);
+    var b2 = PclPager.BuildButtons(1, 3);
+    Check("3 页：数字页全展示、无省略号、首页按钮禁用",
+        b2.Count(b => !b.IsNav && !b.IsEllipsis) == 3
+        && !b2.Any(b => b.IsEllipsis)
+        && b2.First(b => b.Label == "«").IsEnabled == false
+        && b2.First(b => b.Label == "›").IsEnabled);
+    var b3 = PclPager.BuildButtons(50, 100);
+    Check("长列表：两端折叠为省略号，当前页高亮",
+        b3.Count(b => b.IsEllipsis) == 2
+        && b3.Any(b => b.IsCurrent && b.Label == "50")
+        && b3.First(b => b.Label == "«").TargetPage == 1
+        && b3.First(b => b.Label == "»").TargetPage == 100);
+    var b4 = PclPager.BuildButtons(100, 100);
+    Check("末页：› » 禁用，« ‹ 可用",
+        !b4.First(b => b.Label == "›").IsEnabled && !b4.First(b => b.Label == "»").IsEnabled
+        && b4.First(b => b.Label == "«").IsEnabled);
+    var b5 = PclPager.BuildButtons(4, 20);
+    Check("第 4 / 20 页：仅左侧省略号", b5.Count(b => b.IsEllipsis) == 1);
+
+    // 36.4 数据包 / 光影 / 资源包目录决策（新下载页沿用 ModTargetDir）
+    var gameRootT36 = "/tmp/hcl-test-root";
+    Check("数据包隔离 → versions/<版本>/datapacks",
+        ModTargetDir.Resolve(gameRootT36, "1.20.4", "datapack", true)
+            == System.IO.Path.Combine(gameRootT36, "versions", "1.20.4", "datapacks"));
+    Check("数据包非隔离 → 根 datapacks",
+        ModTargetDir.Resolve(gameRootT36, "1.20.4", "datapack", false)
+            == System.IO.Path.Combine(gameRootT36, "datapacks"));
+    Check("光影隔离 → versions/<版本>/shaderpacks",
+        ModTargetDir.Resolve(gameRootT36, "1.20.4", "shader", true)
+            == System.IO.Path.Combine(gameRootT36, "versions", "1.20.4", "shaderpacks"));
+    Check("资源包非隔离 → 根 resourcepacks",
+        ModTargetDir.Resolve(gameRootT36, "1.20.4", "resourcepack", false)
+            == System.IO.Path.Combine(gameRootT36, "resourcepacks"));
+}
+catch (Exception ex) { Check("第 36 节 v0.15.0（翻页条 / 目录决策）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

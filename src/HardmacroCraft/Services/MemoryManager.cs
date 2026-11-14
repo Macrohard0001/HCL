@@ -58,19 +58,28 @@ public static class MemoryManager
     /// v0.1.13：专用工作集（MB）—— 与任务管理器默认「内存」列完全同口径（只统计
     /// 本进程独占、且驻留在物理内存的页）。此前展示的“专用内存(提交)”包含大量已提交
     /// 但未驻留 / 共享映射的页，用户对比任务管理器（31 MB）与启动器（500+ MB）觉得算错。
-    /// 非 Windows 或统计失败时回退 WorkingSet64 的负偏差口径（永不高于真实工作集）。
+    /// v0.15.0 修复「首次显示不正确」：QueryWorkingSetEx 缓冲区加宽 + 重试加多，
+    /// 统计瞬时失败时沿用上一次成功值，不再直接以完整工作集口径显示首读数。
     /// </summary>
     public static long PrivateWorkingSetMb
     {
         get
         {
             if (OperatingSystem.IsWindows() && TryGetPrivateWorkingSet(out var bytes) && bytes > 0)
+            {
+                _lastGoodPrivateWsBytes = bytes;
                 return bytes / (1024 * 1024);
-            using var p = Process.GetCurrentProcess();
-            p.Refresh();
-            return p.WorkingSet64 / (1024 * 1024);
+            }
+            // v0.15.0：统计瞬时失败 → 沿用上一次成功值；尚无成功值 → 工作集兜底
+            //（正常不再发生：缓冲余量已加宽 + 5 轮重试；工作集口径保证 ≤ 真实工作集）
+            if (_lastGoodPrivateWsBytes > 0)
+                return _lastGoodPrivateWsBytes / (1024 * 1024);
+            return WorkingSetMb;
         }
     }
+
+    /// <summary>v0.15.0：最近一次成功的专用工作集字节数（瞬时失败时沿用，0 = 尚无成功值）。</summary>
+    private static long _lastGoodPrivateWsBytes;
 
     /// <summary>
     /// 纯逻辑（进测试）：按 PSAPI_WORKING_SET_EX_BLOCK 标志位统计专用物理内存字节数。
@@ -106,9 +115,12 @@ public static class MemoryManager
             if (wsPages == 0) return false;
 
             // 缓冲区：头（NumberOfEntries，IntPtr）+ 每页一个 IntPtr 大小的块。
-            // 工作集随时在变，逐轮放大缓冲重试（第一轮 +20%，之后每轮 ×1.5）
-            var capacity = (ulong)((wsPages * 1.2) + 4096);
-            for (var round = 0; round < 3; round++, capacity = (ulong)(capacity * 1.5) + 4096)
+            // 工作集随时在变，逐轮放大缓冲重试：
+            // v0.15.0 首读修复 —— 首轮余量从 +20% 提到 +100%（工作集在两次调用间
+            // 快速增长时旧余量不够，QueryWorkingSetEx 连续失败会静默回落到错误口径，
+            // 造成设置页首次显示的内存占用明显偏高），重试 3 → 5 轮。
+            var capacity = (ulong)((wsPages * 2) + 8192);
+            for (var round = 0; round < 5; round++, capacity = (ulong)(capacity * 2) + 8192)
             {
                 var size = (uint)(IntPtr.Size + (long)capacity * IntPtr.Size);
                 var buf = System.Runtime.InteropServices.Marshal.AllocHGlobal((IntPtr)size);

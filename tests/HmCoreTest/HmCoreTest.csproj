@@ -39,6 +39,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameInstanceManager.cs" Link="Services/GameInstanceManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LocalMods.cs" Link="Services/LocalMods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/PclPager.cs" Link="Services/PclPager.cs" />
     <!-- v0.1.11 -->
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LaunchProgressCalc.cs" Link="Services/LaunchProgressCalc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionNaming.cs" Link="Services/VersionNaming.cs" />

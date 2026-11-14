@@ -42,12 +42,66 @@ public partial class MainWindow : FluentWindow
         }
         catch { currentPage = null; }
         Loaded += (_, _) => DisableNavigationViewOuterScrollWithRetry(); // 首次加载同样处理
+        // v0.15.0：侧栏超长时滚动（下载分组展开后条目超出窗口高度也可滚动查看，PCL 式）
+        Loaded += (_, _) => EnsurePaneScrollableWithRetry();
+        RootNavigation.Navigated += (_, _) => EnsurePaneScrollableWithRetry();
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key != System.Windows.Input.Key.Escape) return;
             if (currentPage is Views.HomePage) return; // 已在主页，无操作
             try { RootNavigation.Navigate(typeof(Views.HomePage)); e.Handled = true; } catch { }
         };
+    }
+
+    /// <summary>
+    /// v0.15.0：确保导航窗格（侧栏）内容超长时可滚动。
+    /// Wpf.Ui 的 NavigationView 模板里窗格条目宿主自带 ScrollViewer / ListView，
+    /// 但个别状态（分组展开 + 小窗高）滚动条不出现 —— 找到窗格内的滚动宿主，
+    /// 强制 VerticalScrollBarVisibility=Auto（内容区 presenter 的动态滚动不受影响，
+    /// 那是另一个控件，且已被 DisableNavigationViewOuterScrollWithRetry 单独处理）。
+    /// </summary>
+    private void EnsurePaneScrollableWithRetry()
+    {
+        for (var i = 0; i < 6; i++)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    var presenter = FindDescendant<Wpf.Ui.Controls.NavigationViewContentPresenter>(RootNavigation);
+                    // 窗格内的 ScrollViewer（跳过内容区的动态 ScrollViewer）
+                    EnsureScrollable(FindPaneDescendants<System.Windows.Controls.ScrollViewer>(RootNavigation, presenter));
+                    // 窗格内的 ListView（自带模板 ScrollViewer，Auto 即可滚动）
+                    foreach (var lv in FindPaneDescendants<System.Windows.Controls.ListView>(RootNavigation, presenter))
+                        System.Windows.Controls.ScrollViewer.SetVerticalScrollBarVisibility(lv,
+                            System.Windows.Controls.ScrollBarVisibility.Auto);
+                }
+                catch { /* 模板未实例化时静默跳过（下轮重试） */ }
+            }), i == 0 ? System.Windows.Threading.DispatcherPriority.Loaded
+                       : System.Windows.Threading.DispatcherPriority.Background);
+        }
+    }
+
+    private static void EnsureScrollable(IEnumerable<System.Windows.Controls.ScrollViewer> viewers)
+    {
+        foreach (var sv in viewers)
+        {
+            if (sv.VerticalScrollBarVisibility == System.Windows.Controls.ScrollBarVisibility.Auto) continue;
+            sv.VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto;
+        }
+    }
+
+    /// <summary>收集 target 之外（= 窗格侧）的指定类型后代。</summary>
+    private static IEnumerable<T> FindPaneDescendants<T>(System.Windows.DependencyObject? root,
+        System.Windows.DependencyObject? excludeSubtree) where T : System.Windows.DependencyObject
+    {
+        if (root == null) yield break;
+        if (ReferenceEquals(root, excludeSubtree)) yield break;
+        if (root is T hit) yield return hit;
+        var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+            foreach (var r in FindPaneDescendants<T>(System.Windows.Media.VisualTreeHelper.GetChild(root, i), excludeSubtree))
+                yield return r;
     }
 
     /// <summary>

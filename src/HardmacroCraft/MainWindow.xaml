@@ -50,6 +50,13 @@
                         <ui:NavigationViewItem Content="{DynamicResource S.Nav.Shaders}"
                                                Icon="{ui:SymbolIcon WeatherSunny24}"
                                                TargetPageType="{x:Type views:ShadersPage}" />
+                        <!-- v0.15.0：资源包 / 数据包独立下载页（PCL 同款下载中心分区） -->
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.Resources}"
+                                               Icon="{ui:SymbolIcon PaintBrush24}"
+                                               TargetPageType="{x:Type views:ResourcePacksPage}" />
+                        <ui:NavigationViewItem Content="{DynamicResource S.Nav.Datapacks}"
+                                               Icon="{ui:SymbolIcon DataUsage24}"
+                                               TargetPageType="{x:Type views:DatapacksPage}" />
                         <ui:NavigationViewItem Content="{DynamicResource S.Nav.ModSetup}"
                                                Icon="{ui:SymbolIcon GridDots24}"
                                                TargetPageType="{x:Type views:ModSetupPage}" />

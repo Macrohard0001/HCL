@@ -34,9 +34,11 @@ public partial class ModsPage : Page
     public static ModsPage? Current { get; private set; }
 
     private bool _busy;
-    private readonly List<ModrinthService.SearchHit> _allHits = new();
+    /// <summary>v0.15.0：当前页结果（PCL 式翻页 —— 不再累积全部命中，只展示当前页）。</summary>
+    private List<ModrinthService.SearchHit> _pageHits = new();
+    private int _page = 1;
     private int _totalHits;
-    /// <summary>分页勾选保持：已勾选项目的 ProjectId（加载更多时恢复，新搜索时清空）。</summary>
+    /// <summary>翻页勾选保持：已勾选项目的 ProjectId（翻页后恢复，新搜索时清空）。</summary>
     private readonly HashSet<string> _selectedIds = new();
 
     private bool _recommendLoaded; // v0.1.13：推荐内容只在首次进入时拉取一次
@@ -51,7 +53,7 @@ public partial class ModsPage : Page
         {
             RefreshTargets();
             // v0.1.13：默认显示推荐内容（空关键词 + 下载量排序的热门列表，PCL 同款）
-            if (!_recommendLoaded && _allHits.Count == 0 && string.IsNullOrWhiteSpace(TxtQuery.Text))
+            if (!_recommendLoaded && _pageHits.Count == 0 && string.IsNullOrWhiteSpace(TxtQuery.Text))
             {
                 _recommendLoaded = true;
                 _ = SearchCoreAsync(reset: true, indexOverride: "downloads", recommend: true);
@@ -171,8 +173,19 @@ public partial class ModsPage : Page
         return ModTargetDir.Resolve(AppSettings.Instance.GameRoot, version, projectType, isolation);
     }
 
-    private void Log(string s) => Dispatcher.Invoke(() => TxtProgress.Text += s + Environment.NewLine);
-    private void ClearLog() => Dispatcher.Invoke(() => TxtProgress.Text = "");
+    /// <summary>v0.15.0：底部常驻提示行移除（PCL 式）—— 状态文本只在有话要说时短暂出现
+    /// （错误 / 安装反馈），新搜索开始时清空；下载进度由任务中心承载。</summary>
+    private void Log(string s) => Dispatcher.Invoke(() =>
+    {
+        TxtStatus.Text = s;
+        TxtStatus.Visibility = string.IsNullOrEmpty(s) ? Visibility.Collapsed : Visibility.Visible;
+    });
+
+    private void ClearLog() => Dispatcher.Invoke(() =>
+    {
+        TxtStatus.Text = "";
+        TxtStatus.Visibility = Visibility.Collapsed;
+    });
 
     // ---------- 本机 Mod 管理（v0.1.11 已迁移至「版本设置 → Mod 管理」） ----------
     // 旧的本机列表 / 启停 / 删除 UI 已从本页移除：版本内 Mod 管理现在直接在
@@ -222,41 +235,39 @@ public partial class ModsPage : Page
     private async void CmbSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // 初始化时也会触发一次；列表为空则忽略，有结果则按新排序重查
-        if (_allHits.Count > 0) await SearchAsync();
+        if (_totalHits > 0) await SearchAsync();
     }
 
     private async Task SearchAsync() => await SearchCoreAsync(reset: true);
 
-    private async void BtnMore_Click(object sender, RoutedEventArgs e) => await SearchCoreAsync(reset: false);
+    /// <summary>翻页条跳页（PCL 式：翻页不重建筛选，勾选跨页保持）。</summary>
+    private void Pager_Go(int page) => _ = SearchCoreAsync(gotoPage: page);
 
-    private async Task SearchCoreAsync(bool reset, string? indexOverride = null, bool recommend = false)
+    private async Task SearchCoreAsync(bool reset = false, int? gotoPage = null, string? indexOverride = null, bool recommend = false)
     {
         if (_busy) return;
         var type = (CmbType.SelectedItem as ComboBoxItem)?.Tag as string ?? "mod";
         var gameVersion = ExtractGameVersion(CmbTargetVersion.SelectedItem as string);
         try
         {
-            if (reset)
-            {
-                _allHits.Clear();
-                _totalHits = 0;
-            }
             if (reset) _selectedIds.Clear();
-
             _busy = true;
-            SetSearching(true, !reset);
+            SetSearching(true, gotoPage is not null && gotoPage != 1);
             ClearLog();
+            var page = Math.Max(1, gotoPage ?? 1);
             var index = indexOverride ?? SortIndex;
-            Log(recommend ? S("S.Mod.LoadingRecommend") : reset ? $"搜索 {PlatformName}..." : "加载更多...");
+            Log(recommend ? S("S.Mod.LoadingRecommend") : reset ? $"搜索 {PlatformName}..." : "翻页...");
+            var offset = PclPager.OffsetOf(page, PclPager.SearchPageSize);
             var (hits, total) = Platform == "curseforge"
-                ? await App.CurseForge.SearchAsync(TxtQuery.Text ?? "", type, index, _allHits.Count,
+                ? await App.CurseForge.SearchAsync(TxtQuery.Text ?? "", type, index, offset,
                     gameVersion, Loader)
-                : await App.Modrinth.SearchAsync(TxtQuery.Text ?? "", type, index, _allHits.Count,
+                : await App.Modrinth.SearchAsync(TxtQuery.Text ?? "", type, index, offset,
                     gameVersion, Loader);
+            _page = page;
             _totalHits = total;
-            _allHits.AddRange(hits.Where(h => !_allHits.Any(x => x.ProjectId == h.ProjectId)));
+            _pageHits = hits.ToList();
 
-            LstResults.ItemsSource = _allHits.Select(h =>
+            LstResults.ItemsSource = _pageHits.Select(h =>
             {
                 var item = new ModRowItem
                 {
@@ -267,26 +278,19 @@ public partial class ModsPage : Page
                     Hit = h,
                     Badges = BuildBadges(h),
                 };
-                // 分页勾选保持：加载更多后恢复之前勾选的行
+                // 翻页勾选保持：翻页后恢复之前勾选的行
                 item.IsSelected = _selectedIds.Contains(h.ProjectId);
                 return item;
             }).ToList();
-            PnlBatch.Visibility = _allHits.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            PnlBatch.Visibility = _pageHits.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateBatchUi();
 
             // v0.1.5：空结果给 PCL 式提示（图标 + 文案），有结果则隐藏
-            PnlEmpty.Visibility = _allHits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (_allHits.Count == 0)
+            PnlEmpty.Visibility = _pageHits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (_pageHits.Count == 0)
                 TxtEmpty.Text = string.Format(S("S.Mod.NoResults"), TxtQuery.Text ?? "");
 
-            var moreText = App.Current?.TryFindResource("S.Mod.LoadMore") as string ?? "加载更多";
-            var noMoreText = App.Current?.TryFindResource("S.Mod.NoMore") as string ?? "没有更多结果了";
-            BtnMore.Visibility = _allHits.Count < _totalHits ? Visibility.Visible : Visibility.Collapsed;
-            BtnMore.IsEnabled = _allHits.Count < _totalHits;
-            BtnMore.Content = _allHits.Count < _totalHits
-                ? $"{moreText}（{_allHits.Count}/{_totalHits}）"
-                : noMoreText;
-            Log($"已显示 {_allHits.Count} / {_totalHits} 个结果。");
+            UpdatePager();
         }
         catch (Exception ex)
         {
@@ -297,6 +301,21 @@ public partial class ModsPage : Page
             _busy = false;
             SetSearching(false);
         }
+    }
+
+    /// <summary>v0.15.0：PCL 式翻页条（总页数 > 1 时显示）。</summary>
+    private void UpdatePager()
+    {
+        var totalPages = PclPager.TotalPages(_totalHits, PclPager.SearchPageSize);
+        if (totalPages <= 1)
+        {
+            PnlPager.Visibility = Visibility.Collapsed;
+            TxtTotal.Text = _totalHits > 0 ? string.Format(S("S.Pg.Total"), _totalHits) : "";
+            return;
+        }
+        PnlPager.Visibility = Visibility.Visible;
+        PagerBar.Build(PnlPager, PclPager.BuildButtons(_page, totalPages), Pager_Go);
+        TxtTotal.Text = string.Format(S("S.Pg.PageOf"), _page, totalPages) + " · " + string.Format(S("S.Pg.Total"), _totalHits);
     }
 
     /// <summary>搜索过渡层（v0.1.5，PCL 式「正在搜索」）：期间禁用结果列表与搜索按钮。</summary>
@@ -398,7 +417,6 @@ public partial class ModsPage : Page
         finally
         {
             _busy = false;
-            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 
@@ -504,7 +522,6 @@ public partial class ModsPage : Page
             done += delta;
             var speed = meter.Observe(done);
             var pct = Math.Min(100, done * 100.0 / total);
-            RingProgress.Visibility = Visibility.Visible; // v0.1.13：容器内旋转指示器（替代进度条）
             task.SetProgress(pct, filename, speed, done, total);
         }));
 
@@ -711,7 +728,6 @@ public partial class ModsPage : Page
         {
             _busy = false;
             UpdateBatchUi();
-            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 
@@ -833,7 +849,7 @@ public partial class ModsPage : Page
     {
         _detailHit = null;
         PnlDetail.Visibility = Visibility.Collapsed;
-        if (_allHits.Count == 0) PnlEmpty.Visibility = Visibility.Visible;
+        if (_pageHits.Count == 0) PnlEmpty.Visibility = Visibility.Visible;
     }
 
     private void BtnDetailOpenWeb_Click(object sender, RoutedEventArgs e)
@@ -991,7 +1007,6 @@ public partial class ModsPage : Page
         {
             _busy = false;
             UpdateBatchUi();
-            Dispatcher.Invoke(() => RingProgress.Visibility = Visibility.Collapsed);
         }
     }
 

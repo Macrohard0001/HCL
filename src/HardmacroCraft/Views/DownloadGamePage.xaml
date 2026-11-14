@@ -137,17 +137,33 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <TextBlock Grid.Row="3" x:Name="TxtVanillaEmpty" Margin="0,10,0,0"
-                           Style="{StaticResource HmHint}" Visibility="Collapsed" />
+                <!-- v0.15.0：PCL 式翻页条（版本列表不再 Take(300) 截断，翻页浏览全部结果） -->
+                <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <StackPanel x:Name="PnlPager" Orientation="Horizontal" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TxtPageOf" Style="{StaticResource HmHint}" Margin="10,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="TxtVanillaEmpty" Margin="0,8,0,0" HorizontalAlignment="Center"
+                               Style="{StaticResource HmHint}" Visibility="Collapsed" />
+                </StackPanel>
             </Grid>
         </Border>
 
-        <!-- v0.1.13：底部进度条 → 容器内旋转加载指示器 + 状态文本（空闲时不抢版面） -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
-            <ui:ProgressRing x:Name="RingProgress" Width="18" Height="18" IsIndeterminate="True"
-                             Visibility="Collapsed" />
-            <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" VerticalAlignment="Center"
-                       Margin="8,0,0,0" MaxHeight="48" />
-        </StackPanel>
+        <!-- v0.15.0：居中加载过渡层（指示器页面居中，替代底部旋转指示器） -->
+        <Border Grid.Row="1" x:Name="PnlLoading" Visibility="Collapsed"
+                Background="{DynamicResource ApplicationBackgroundBrush}" Opacity="0.82" CornerRadius="10"
+                KeyboardNavigation.TabNavigation="None" Focusable="False">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ui:ProgressRing Width="42" Height="42" IsIndeterminate="True" />
+                <TextBlock x:Name="TxtLoading" Margin="0,12,0,0" HorizontalAlignment="Center" FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- v0.15.0：底部常驻提示行移除（PCL 式）—— 状态文本只在有话要说时短暂出现 -->
+        <TextBlock Grid.Row="2" x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,10,0,0"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                   MaxHeight="56" Visibility="Collapsed" />
     </Grid>
 </Page>

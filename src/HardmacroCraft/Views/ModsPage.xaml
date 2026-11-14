@@ -12,7 +12,6 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,2">
@@ -286,19 +285,17 @@
             </StackPanel>
         </Border>
 
-        <!-- 加载更多（Modrinth 分页） -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
-            <ui:Button x:Name="BtnMore" Content="{DynamicResource S.Mod.LoadMore}"
-                       Icon="{ui:SymbolIcon ChevronDown24}" MinHeight="30" MinWidth="160"
-                       Click="BtnMore_Click" Visibility="Collapsed" />
-        </StackPanel>
-
-        <!-- v0.1.13：底部进度条 → 容器内旋转加载指示器 + 状态文本（不再占一整行进度条） -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0">
-            <ui:ProgressRing x:Name="RingProgress" Width="18" Height="18" IsIndeterminate="True"
-                             Visibility="Collapsed" />
-            <TextBlock x:Name="TxtProgress" Style="{StaticResource HmHint}" VerticalAlignment="Center"
-                       Margin="8,0,0,0" TextWrapping="Wrap" MaxHeight="70" />
+        <!-- v0.15.0：PCL 式翻页条（替代"加载更多"，超大列表翻页浏览）；
+             翻页行内的提示文本仅在有话要说时短暂出现（错误 / 安装反馈），空闲不占版面 -->
+        <StackPanel Grid.Row="4" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <StackPanel x:Name="PnlPager" Orientation="Horizontal" VerticalAlignment="Center" />
+                <TextBlock x:Name="TxtTotal" Style="{StaticResource HmHint}" Margin="10,0,0,0"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,6,0,0"
+                       HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       MaxHeight="56" Visibility="Collapsed" />
         </StackPanel>
     </Grid>
 </Page>
