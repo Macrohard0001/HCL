@@ -27,6 +27,11 @@
             <ui:Button x:Name="BtnImport" Content="{DynamicResource S.Msu.Import}"
                        Icon="{ui:SymbolIcon FolderOpen24}" MinHeight="32" Margin="10,0,0,0"
                        Click="BtnImport_Click" />
+            <!-- v0.15.0：不从游戏导入 —— 在启动器内搜索并挑选（Mod / 光影 / 资源包 / 数据包），PCL 式 -->
+            <ui:Button x:Name="BtnAddItems" Content="{DynamicResource S.Msu.AddItems}"
+                       Icon="{ui:SymbolIcon Search24}" MinHeight="32" Margin="8,0,0,0"
+                       Click="BtnAddItems_Click"
+                       ToolTip="{DynamicResource S.Msu.AddItemsTip}" />
             <ui:Button x:Name="BtnNewPreset" Content="{DynamicResource S.Msu.NewPreset}"
                        Icon="{ui:SymbolIcon Add24}" MinHeight="32" Margin="8,0,0,0"
                        Click="BtnNewPreset_Click" />

@@ -15,7 +15,9 @@ namespace HardmacroCraft.Views;
 /// </summary>
 public partial class ShadersPage : Page
 {
-    private readonly List<ModrinthService.SearchHit> _hits = new();
+    /// <summary>v0.15.0：当前页结果（PCL 式翻页，只展示当前页）。</summary>
+    private List<ModrinthService.SearchHit> _pageHits = new();
+    private int _page = 1;
     private int _totalHits;
     private bool _busy;
     private bool _recommendLoaded; // 推荐内容只在首次进入时拉取一次
@@ -56,19 +58,29 @@ public partial class ShadersPage : Page
 
     private void Log(string s)
     {
-        Dispatcher.Invoke(() => TxtStatus.Text = s);
+        // v0.15.0：底部常驻提示行移除（PCL 式）—— 状态文本只在有话要说时短暂出现
+        Dispatcher.Invoke(() =>
+        {
+            TxtStatus.Text = s;
+            TxtStatus.Visibility = string.IsNullOrEmpty(s) ? Visibility.Collapsed : Visibility.Visible;
+        });
     }
 
-    private void SetBusy(bool on)
+    private void SetBusy(bool on, bool isPaging = false)
     {
         Dispatcher.Invoke(() =>
         {
             _busy = on;
-            RingStatus.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            // v0.15.0：加载指示器页面居中（与 Mod 页同款过渡层）
+            PnlSearching.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            if (on) TxtSearching.Text = isPaging ? S("S.Mod.LoadingMore") : S("S.Mod.Searching");
             BtnSearch.IsEnabled = !on;
             LstResults.IsEnabled = !on;
         });
     }
+
+    /// <summary>读语言键的统一小助手（缺省空串，与 ModsPage 同款）。</summary>
+    private static string S(string key) => App.Current?.TryFindResource(key) as string ?? "";
 
     private async void TxtQuery_KeyDown(object sender, KeyEventArgs e)
     {
@@ -77,8 +89,7 @@ public partial class ShadersPage : Page
 
     private async void BtnSearch_Click(object sender, RoutedEventArgs e) => await SearchAsync();
 
-    private async void BtnMore_Click(object sender, RoutedEventArgs e)
-        => await SearchCoreAsync(reset: false);
+    private void Pager_Go(int page) => _ = SearchCoreAsync(gotoPage: page);
 
     private async void CmbVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -93,27 +104,26 @@ public partial class ShadersPage : Page
 
     private async Task SearchAsync() => await SearchCoreAsync(reset: true);
 
-    private async Task SearchCoreAsync(bool reset, string? indexOverride = null, bool recommend = false)
+    private async Task SearchCoreAsync(bool reset = false, int? gotoPage = null, string? indexOverride = null, bool recommend = false)
     {
         if (_busy) return;
         try
         {
-            if (reset)
-            {
-                _hits.Clear();
-                _totalHits = 0;
-            }
-            SetBusy(true);
+            _busy = true;
+            SetBusy(true, isPaging: gotoPage is not null && gotoPage != 1);
+            var page = Math.Max(1, gotoPage ?? 1);
             var index = indexOverride ?? SortIndex;
             Log(recommend
                 ? App.Current.TryFindResource("S.Sh.LoadingRecommend") as string ?? "正在获取推荐光影包..."
                 : App.Current.TryFindResource("S.Sh.Searching") as string ?? "正在搜索...");
-            var (page, total) = await App.Modrinth.SearchAsync(
-                TxtQuery.Text ?? "", "shader", index, _hits.Count);
+            var offset = PclPager.OffsetOf(page, PclPager.SearchPageSize);
+            var (hits, total) = await App.Modrinth.SearchAsync(
+                TxtQuery.Text ?? "", "shader", index, offset);
+            _page = page;
             _totalHits = total;
-            _hits.AddRange(page.Where(h => !_hits.Any(x => x.ProjectId == h.ProjectId)));
+            _pageHits = hits.ToList();
 
-            LstResults.ItemsSource = _hits.Select(h => new
+            LstResults.ItemsSource = _pageHits.Select(h => new
             {
                 h.Title,
                 h.Description,
@@ -123,30 +133,39 @@ public partial class ShadersPage : Page
                 Hit = h,
             }).ToList();
 
-            PnlEmpty.Visibility = _hits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (_hits.Count == 0)
+            PnlEmpty.Visibility = _pageHits.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (_pageHits.Count == 0)
                 TxtEmpty.Text = string.Format(
                     App.Current.TryFindResource("S.Mod.NoResults") as string ?? "没有找到与 {0} 相关的结果。",
                     TxtQuery.Text ?? "");
 
-            var moreText = App.Current?.TryFindResource("S.Mod.LoadMore") as string ?? "加载更多";
-            BtnMore.Visibility = _hits.Count < _totalHits ? Visibility.Visible : Visibility.Collapsed;
-            BtnMore.IsEnabled = _hits.Count < _totalHits;
-            BtnMore.Content = _hits.Count < _totalHits
-                ? $"{moreText}（{_hits.Count}/{_totalHits}）"
-                : App.Current?.TryFindResource("S.Mod.NoMore") as string ?? "没有更多结果了";
-            Log(string.Format(
-                App.Current.TryFindResource("S.Sh.ShownCount") as string ?? "已显示 {0} / {1} 个光影包。",
-                _hits.Count, _totalHits));
+            UpdatePager();
         }
         catch (Exception ex)
         {
-            Log(App.Current.TryFindResource("S.Sh.SearchFail") as string ?? "搜索失败: " + ex.Message);
+            Log(string.Format(
+                App.Current.TryFindResource("S.Sh.SearchFail") as string ?? "搜索失败: {0}",
+                ex.Message));
         }
         finally
         {
             SetBusy(false);
         }
+    }
+
+    /// <summary>v0.15.0：PCL 式翻页条（总页数 > 1 时显示）。</summary>
+    private void UpdatePager()
+    {
+        var totalPages = PclPager.TotalPages(_totalHits, PclPager.SearchPageSize);
+        if (totalPages <= 1)
+        {
+            PnlPager.Visibility = Visibility.Collapsed;
+            TxtTotal.Text = _totalHits > 0 ? string.Format(S("S.Pg.Total"), _totalHits) : "";
+            return;
+        }
+        PnlPager.Visibility = Visibility.Visible;
+        PagerBar.Build(PnlPager, PclPager.BuildButtons(_page, totalPages), Pager_Go);
+        TxtTotal.Text = string.Format(S("S.Pg.PageOf"), _page, totalPages) + " · " + string.Format(S("S.Pg.Total"), _totalHits);
     }
 
     // ---------- 安装：下载主文件到目标版本的 shaderpacks 目录 ----------

@@ -181,6 +181,7 @@ public partial class ModSetupPage : Page
         BtnRename.IsEnabled = enabled && _selected != null;
         BtnDelete.IsEnabled = enabled && _selected != null;
         BtnImport.IsEnabled = !_busy;
+        BtnAddItems.IsEnabled = !_busy;
         BtnNewPreset.IsEnabled = !_busy;
         CmbVersion.IsEnabled = !_busy;
     }
@@ -211,7 +212,54 @@ public partial class ModSetupPage : Page
             App.Current.TryFindResource("S.Msu.PresetNameTitle") as string ?? "新建预设",
             App.Current.TryFindResource("S.Mod.PresetNamePh") as string ?? "给这组预设起个名字");
         if (string.IsNullOrWhiteSpace(name)) return;
-        _ = ImportFromVersionAsync(name.Trim());
+        // v0.15.0：新建预设 = 命名后直接在启动器内搜索挑选（不再强制从游戏导入）
+        var items = PickItems();
+        _presets = ModPresetStore.Upsert(_presets, name.Trim(), items);
+        ModPresetStore.Save(ModPresetStore.PresetsPath, _presets);
+        _selected = _presets.FirstOrDefault(p => p.Name == name.Trim());
+        RebuildPresetList();
+        Log(items.Count > 0
+            ? string.Format(App.Current.TryFindResource("S.Msu.PresetCreated") as string
+                ?? "已创建预设「{0}」：{1} 个条目。", name.Trim(), items.Count)
+            : App.Current.TryFindResource("S.Msu.PresetEmptyHint") as string
+                ?? "预设已创建（空清单）。点「添加条目」搜索并挑选要安装的内容。");
+    }
+
+    /// <summary>
+    /// v0.15.0：「添加条目」—— 不从游戏导入，直接在启动器里搜索 Modrinth / CurseForge
+    /// 并挑选（Mod / 光影 / 资源包 / 数据包），勾选跨页保持，一键并入所选预设。
+    /// </summary>
+    private void BtnAddItems_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        if (_selected == null)
+        {
+            Log(App.Current.TryFindResource("S.Msu.NeedPreset") as string
+                ?? "请先在左侧选择一个预设，或新建一个预设。");
+            return;
+        }
+        var items = PickItems();
+        if (items.Count == 0) return;
+        ModPresetStore.Upsert(_presets, _selected.Name, _selected.Items.Concat(items).ToList());
+        ModPresetStore.Save(ModPresetStore.PresetsPath, _presets);
+        _selected = _presets.FirstOrDefault(p => p.Name == _selected.Name);
+        RebuildPresetList();
+        Log(string.Format(App.Current.TryFindResource("S.Msu.ItemsAdded") as string
+            ?? "已向预设「{0}」添加 {1} 个条目。", _selected.Name, items.Count));
+    }
+
+    /// <summary>弹出搜索选择窗（PCL 式），返回挑选的条目清单（类型由窗内下拉决定）。</summary>
+    private static List<ModPresetItem> PickItems()
+    {
+        var picked = ModSearchPickWindow.Show(App.Current.Windows.OfType<Window>().LastOrDefault(), "mod");
+        return picked.Select(p => new ModPresetItem
+        {
+            Platform = p.Hit.Source == "curseforge" ? "curseforge" : "modrinth",
+            ProjectId = p.Hit.ProjectId,
+            Slug = p.Hit.Slug,
+            Title = p.Hit.Title,
+            Type = p.Type,
+        }).ToList();
     }
 
     /// <summary>从所选已装版本导入预设：mods 目录逐 jar 算 SHA1 反查 Modrinth 项目。</summary>

@@ -8,10 +8,13 @@ namespace HardmacroCraft.Views;
 public partial class DownloadGamePage : Page
 {
     private List<CmlLib.Core.VersionMetadata.IVersionMetadata> _all = new();
+    /// <summary>v0.15.0：当前筛选后的完整列表（翻页浏览，不再 Take(300) 截断）。</summary>
+    private List<CmlLib.Core.VersionMetadata.IVersionMetadata> _filtered = new();
     private HashSet<string> _installed = new();
     private string _latestRelease = "";
     private string _latestSnapshot = "";
     private string _filter = "release";
+    private int _vanillaPage = 1;
     private bool _loaded;
     private bool _loading;
 
@@ -27,8 +30,9 @@ public partial class DownloadGamePage : Page
         if (_loading) return;
         _loading = true;
         BtnRefreshVersions.IsEnabled = false;
-        RingProgress.Visibility = Visibility.Visible; // v0.1.13：容器内旋转指示器（替代进度条）
-        TxtProgress.Text = (string)FindResource("S.Dl.Loading");
+        // v0.15.0：加载指示器页面居中（过渡层），底部常驻提示行移除
+        PnlLoading.Visibility = Visibility.Visible;
+        TxtLoading.Text = (string)FindResource("S.Dl.Loading");
         try
         {
             _all = (await App.LauncherService.GetAllVersionsAsync()).ToList();
@@ -37,18 +41,17 @@ public partial class DownloadGamePage : Page
             _latestSnapshot = _all.FirstOrDefault(v => v.Type == "snapshot")?.Name ?? "";
 
             ApplyVanillaFilter();
-            TxtProgress.Text = $"{string.Format((string)FindResource("S.Dl.LoadedCount"), _all.Count)}";
         }
         catch (Exception ex)
         {
-            TxtProgress.Text = (string)FindResource("S.Dl.LoadFail") + ex.Message;
+            SetBusy((string)FindResource("S.Dl.LoadFail") + ex.Message);
             _loaded = false; // 下次进入页面自动重试
         }
         finally
         {
             _loading = false;
             BtnRefreshVersions.IsEnabled = true;
-            RingProgress.Visibility = Visibility.Collapsed;
+            PnlLoading.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -77,6 +80,28 @@ public partial class DownloadGamePage : Page
     private void TxtVanillaSearch_TextChanged(object sender, TextChangedEventArgs e)
         => ApplyVanillaFilter();
 
+    private void Pager_Go(int page)
+    {
+        _vanillaPage = page;
+        RenderVanillaPage();
+    }
+
+    /// <summary>v0.15.0：PCL 式翻页条（版本列表每页 50 条，全量浏览不再截断）。</summary>
+    private void UpdateVanillaPager()
+    {
+        var totalPages = PclPager.TotalPages(_filtered.Count, PclPager.LocalPageSize);
+        if (totalPages <= 1)
+        {
+            PnlPager.Visibility = Visibility.Collapsed;
+            TxtPageOf.Text = _filtered.Count > 0 ? string.Format((string)FindResource("S.Pg.Total"), _filtered.Count) : "";
+            return;
+        }
+        PnlPager.Visibility = Visibility.Visible;
+        Views.PagerBar.Build(PnlPager, PclPager.BuildButtons(_vanillaPage, totalPages), Pager_Go);
+        TxtPageOf.Text = string.Format((string)FindResource("S.Pg.PageOf"), _vanillaPage, totalPages)
+            + " · " + string.Format((string)FindResource("S.Pg.Total"), _filtered.Count);
+    }
+
     private void ApplyVanillaFilter()
     {
         var kw = TxtVanillaSearch.Text?.Trim() ?? "";
@@ -93,7 +118,19 @@ public partial class DownloadGamePage : Page
         if (kw.Length > 0)
             q = q.Where(v => v.Name.Contains(kw, StringComparison.OrdinalIgnoreCase));
 
-        var items = q.Take(300).Select(v =>
+        // v0.15.0：完整物化筛选结果（翻页展示，PCL 式）—— 换筛选/搜索时回到第 1 页
+        _filtered = q.ToList();
+        _vanillaPage = 1;
+        RenderVanillaPage();
+    }
+
+    private void RenderVanillaPage()
+    {
+        var kw = TxtVanillaSearch.Text?.Trim() ?? "";
+        var pageItems = _filtered
+            .Skip(PclPager.OffsetOf(_vanillaPage, PclPager.LocalPageSize))
+            .Take(PclPager.LocalPageSize)
+            .Select(v =>
         {
             var name = v.Name;
             var descKey = "S.Dl.Desc." + name;
@@ -135,9 +172,10 @@ public partial class DownloadGamePage : Page
             };
         }).ToList();
 
-        LstVanilla.ItemsSource = items;
+        LstVanilla.ItemsSource = pageItems;
         TxtVanillaEmpty.Text = string.Format((string)FindResource("S.Dl.EmptyResult"), kw);
-        TxtVanillaEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        TxtVanillaEmpty.Visibility = _filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateVanillaPager();
     }
 
     private sealed class VanillaRow
@@ -153,7 +191,9 @@ public partial class DownloadGamePage : Page
 
     private void SetBusy(string? msg)
     {
-        TxtProgress.Text = msg ?? "";
+        // v0.15.0：底部常驻提示行移除 —— 状态文本只在有话要说时短暂出现
+        TxtStatus.Text = msg ?? "";
+        TxtStatus.Visibility = string.IsNullOrEmpty(msg) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // ---------- 版本行安装：PCL 式弹窗选择加载器 ----------

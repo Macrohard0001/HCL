@@ -13,7 +13,6 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-
         <TextBlock Grid.Row="0" Style="{StaticResource HmPageSubtitle}"
                    Text="{DynamicResource S.Sh.Subtitle}" Margin="0,0,0,10" />
 
@@ -108,20 +107,28 @@
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
-            <!-- 加载更多（Modrinth 分页） -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                <ui:Button x:Name="BtnMore" Content="{DynamicResource S.Mod.LoadMore}"
-                           Icon="{ui:SymbolIcon ChevronDown24}" MinHeight="32" MinWidth="160"
-                           Click="BtnMore_Click" Visibility="Collapsed" />
+            <!-- v0.15.0：居中加载过渡层（与 Mod 页同款「正在搜索」，指示器页面居中） -->
+            <Border Grid.Row="0" Grid.RowSpan="2" x:Name="PnlSearching" Visibility="Collapsed"
+                    Background="{DynamicResource ApplicationBackgroundBrush}" Opacity="0.82" CornerRadius="8"
+                    KeyboardNavigation.TabNavigation="None" Focusable="False">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ui:ProgressRing Width="42" Height="42" IsIndeterminate="True" />
+                    <TextBlock x:Name="TxtSearching" Margin="0,12,0,0" HorizontalAlignment="Center" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- v0.15.0：PCL 式翻页条（替代"加载更多"）+ 短暂状态文本（空闲不占版面） -->
+            <StackPanel Grid.Row="1" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <StackPanel x:Name="PnlPager" Orientation="Horizontal" VerticalAlignment="Center" />
+                    <TextBlock x:Name="TxtTotal" Style="{StaticResource HmHint}" Margin="10,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,6,0,0"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                           MaxHeight="56" Visibility="Collapsed" />
             </StackPanel>
         </Grid>
-
-        <!-- v0.1.13：底部旋转加载指示器（容器内，替代旧进度条）+ 状态文本 -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0" x:Name="PnlStatus">
-            <ui:ProgressRing x:Name="RingStatus" Width="18" Height="18" IsIndeterminate="True"
-                             Visibility="Collapsed" />
-            <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" VerticalAlignment="Center"
-                       Margin="8,0,0,0" TextWrapping="Wrap" MaxHeight="60" />
-        </StackPanel>
     </Grid>
 </Page>

@@ -595,6 +595,7 @@
     <sys:String x:Key="S.Task.SpeedLabel">下载速度</sys:String>
     <sys:String x:Key="S.Task.CurrentFile">正在下载</sys:String>
     <sys:String x:Key="S.Mod.LoadingRecommend">正在获取推荐内容...</sys:String>
+    <sys:String x:Key="S.Mp.Searching">正在搜索...</sys:String>
     <sys:String x:Key="S.Mp.LoadingRecommend">正在获取推荐整合包...</sys:String>
     <sys:String x:Key="S.Mp.TaskTitle">整合包下载：{0}</sys:String>
     <sys:String x:Key="S.Mp.TaskInstall">安装整合包：{0}</sys:String>
@@ -630,4 +631,39 @@
     <sys:String x:Key="S.Vs.IconNone">未设置自定义图标（使用加载器 / 草方块自动图标）</sys:String>
     <sys:String x:Key="S.Vs.IconHint">自定义图标显示在版本列表 / 首页下拉框 / 最近启动（优先于加载器自动图标），保存在 config/version-icons/。</sys:String>
     <sys:String x:Key="S.Vs.IconFail">图标设置失败</sys:String>
+    <!-- ==================== v0.15.0：翻页条 / 资源包页 / 数据包页 / 一键配置搜索选择 ==================== -->
+    <sys:String x:Key="S.Pg.First">首页</sys:String>
+    <sys:String x:Key="S.Pg.Prev">上一页</sys:String>
+    <sys:String x:Key="S.Pg.Next">下一页</sys:String>
+    <sys:String x:Key="S.Pg.Last">末页</sys:String>
+    <sys:String x:Key="S.Pg.PageOf">第 {0} / {1} 页</sys:String>
+    <sys:String x:Key="S.Pg.Total">共 {0} 个结果</sys:String>
+
+    <sys:String x:Key="S.Nav.Resources">资源包</sys:String>
+    <sys:String x:Key="S.Nav.Datapacks">数据包</sys:String>
+
+    <sys:String x:Key="S.Rp.Subtitle">从 Modrinth 搜索并下载资源包，安装到所选版本的 resourcepacks 目录（版本隔离生效时为版本独立目录）。</sys:String>
+    <sys:String x:Key="S.Rp.SearchHint">搜索资源包…</sys:String>
+    <sys:String x:Key="S.Rp.Install">下载</sys:String>
+    <sys:String x:Key="S.Rp.LoadingRecommend">正在获取推荐资源包...</sys:String>
+    <sys:String x:Key="S.Rp.TaskTitle">资源包下载：{0}</sys:String>
+
+    <sys:String x:Key="S.Dp.Subtitle">从 Modrinth 搜索并下载数据包，安装到所选版本的 datapacks 目录（放入具体存档的 datapacks 文件夹后生效）。</sys:String>
+    <sys:String x:Key="S.Dp.SearchHint">搜索数据包…</sys:String>
+    <sys:String x:Key="S.Dp.Install">下载</sys:String>
+    <sys:String x:Key="S.Dp.LoadingRecommend">正在获取推荐数据包...</sys:String>
+    <sys:String x:Key="S.Dp.TaskTitle">数据包下载：{0}</sys:String>
+
+    <sys:String x:Key="S.Msu.AddItems">添加条目</sys:String>
+    <sys:String x:Key="S.Msu.AddItemsTip">在启动器内搜索 Modrinth / CurseForge 并挑选（Mod / 光影 / 资源包 / 数据包），不需要从游戏导入</sys:String>
+    <sys:String x:Key="S.Msu.PickTitle">搜索并选择</sys:String>
+    <sys:String x:Key="S.Msu.PickSubtitle">从 Modrinth / CurseForge 搜索，勾选后添加到当前预设（不从游戏导入，启动器内直接挑选）。</sys:String>
+    <sys:String x:Key="S.Msu.PickSearchHint">搜索 Mod / 光影 / 资源包 / 数据包…</sys:String>
+    <sys:String x:Key="S.Msu.PickConfirm">添加所选</sys:String>
+    <sys:String x:Key="S.Msu.PickCount">已选 {0} 项</sys:String>
+    <sys:String x:Key="S.Msu.PickLoading">正在获取推荐内容...</sys:String>
+    <sys:String x:Key="S.Msu.PresetCreated">已创建预设「{0}」：{1} 个条目。</sys:String>
+    <sys:String x:Key="S.Msu.PresetEmptyHint">预设已创建（空清单）。点「添加条目」搜索并挑选要安装的内容。</sys:String>
+    <sys:String x:Key="S.Msu.NeedPreset">请先在左侧选择一个预设，或新建一个预设。</sys:String>
+    <sys:String x:Key="S.Msu.ItemsAdded">已向预设「{0}」添加 {1} 个条目。</sys:String>
 </ResourceDictionary>

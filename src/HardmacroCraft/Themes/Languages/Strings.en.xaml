@@ -595,6 +595,7 @@
     <sys:String x:Key="S.Task.SpeedLabel">Download speed</sys:String>
     <sys:String x:Key="S.Task.CurrentFile">Downloading</sys:String>
     <sys:String x:Key="S.Mod.LoadingRecommend">Loading recommended content...</sys:String>
+    <sys:String x:Key="S.Mp.Searching">Searching...</sys:String>
     <sys:String x:Key="S.Mp.LoadingRecommend">Loading recommended modpacks...</sys:String>
     <sys:String x:Key="S.Mp.TaskTitle">Modpack download: {0}</sys:String>
     <sys:String x:Key="S.Mp.TaskInstall">Install modpack: {0}</sys:String>
@@ -630,4 +631,39 @@
     <sys:String x:Key="S.Vs.IconNone">No custom icon (auto loader / grass icon in use)</sys:String>
     <sys:String x:Key="S.Vs.IconHint">Custom icon shows in version list / home dropdown / recent launches (overrides loader icon), stored in config/version-icons/.</sys:String>
     <sys:String x:Key="S.Vs.IconFail">Failed to set icon</sys:String>
+    <!-- ==================== v0.15.0: pager bar / resource packs page / data packs page / one-click setup search-and-pick ==================== -->
+    <sys:String x:Key="S.Pg.First">First page</sys:String>
+    <sys:String x:Key="S.Pg.Prev">Previous page</sys:String>
+    <sys:String x:Key="S.Pg.Next">Next page</sys:String>
+    <sys:String x:Key="S.Pg.Last">Last page</sys:String>
+    <sys:String x:Key="S.Pg.PageOf">Page {0} / {1}</sys:String>
+    <sys:String x:Key="S.Pg.Total">{0} results</sys:String>
+
+    <sys:String x:Key="S.Nav.Resources">Resource Packs</sys:String>
+    <sys:String x:Key="S.Nav.Datapacks">Data Packs</sys:String>
+
+    <sys:String x:Key="S.Rp.Subtitle">Search and download resource packs from Modrinth into the selected version's resourcepacks folder (version-isolated directory when isolation is on).</sys:String>
+    <sys:String x:Key="S.Rp.SearchHint">Search resource packs…</sys:String>
+    <sys:String x:Key="S.Rp.Install">Download</sys:String>
+    <sys:String x:Key="S.Rp.LoadingRecommend">Loading recommended resource packs...</sys:String>
+    <sys:String x:Key="S.Rp.TaskTitle">Resource pack download: {0}</sys:String>
+
+    <sys:String x:Key="S.Dp.Subtitle">Search and download data packs from Modrinth into the selected version's datapacks folder (takes effect once placed into a save's datapacks folder).</sys:String>
+    <sys:String x:Key="S.Dp.SearchHint">Search data packs…</sys:String>
+    <sys:String x:Key="S.Dp.Install">Download</sys:String>
+    <sys:String x:Key="S.Dp.LoadingRecommend">Loading recommended data packs...</sys:String>
+    <sys:String x:Key="S.Dp.TaskTitle">Data pack download: {0}</sys:String>
+
+    <sys:String x:Key="S.Msu.AddItems">Add items</sys:String>
+    <sys:String x:Key="S.Msu.AddItemsTip">Search Modrinth / CurseForge in the launcher and pick items (mods / shaders / resource packs / data packs) — no game import needed</sys:String>
+    <sys:String x:Key="S.Msu.PickTitle">Search and pick</sys:String>
+    <sys:String x:Key="S.Msu.PickSubtitle">Search Modrinth / CurseForge, tick items and add them to the current preset (pick inside the launcher, no game import).</sys:String>
+    <sys:String x:Key="S.Msu.PickSearchHint">Search mods / shaders / resource packs / data packs…</sys:String>
+    <sys:String x:Key="S.Msu.PickConfirm">Add selected</sys:String>
+    <sys:String x:Key="S.Msu.PickCount">{0} selected</sys:String>
+    <sys:String x:Key="S.Msu.PickLoading">Loading recommendations...</sys:String>
+    <sys:String x:Key="S.Msu.PresetCreated">Created preset "{0}": {1} item(s).</sys:String>
+    <sys:String x:Key="S.Msu.PresetEmptyHint">Preset created (empty list). Use "Add items" to search and pick what to install.</sys:String>
+    <sys:String x:Key="S.Msu.NeedPreset">Select a preset on the left first, or create a new one.</sys:String>
+    <sys:String x:Key="S.Msu.ItemsAdded">Added {1} item(s) to preset "{0}".</sys:String>
 </ResourceDictionary>

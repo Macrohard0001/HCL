@@ -9,7 +9,9 @@ namespace HardmacroCraft.Views;
 
 public partial class ModpacksPage : Page
 {
-    private readonly List<ModrinthService.SearchHit> _hits = new();
+    /// <summary>v0.15.0：当前页结果（PCL 式翻页，只展示当前页）。</summary>
+    private List<ModrinthService.SearchHit> _pageHits = new();
+    private int _page = 1;
     private int _totalHits;
     private bool _busy;
 
@@ -21,7 +23,7 @@ public partial class ModpacksPage : Page
         Loaded += (_, _) =>
         {
             // v0.1.13：默认显示推荐内容（空关键词 + 下载量排序的热门整合包，PCL 同款）
-            if (!_recommendLoaded && _hits.Count == 0 && string.IsNullOrWhiteSpace(TxtQuery.Text))
+            if (!_recommendLoaded && _pageHits.Count == 0 && string.IsNullOrWhiteSpace(TxtQuery.Text))
             {
                 _recommendLoaded = true;
                 _ = SearchCoreAsync(reset: true, indexOverride: "downloads", recommend: true);
@@ -31,13 +33,16 @@ public partial class ModpacksPage : Page
 
     private string SortIndex => (CmbSort.SelectedItem as ComboBoxItem)?.Tag as string ?? "relevance";
 
+    private static string S(string key) => App.Current?.TryFindResource(key) as string ?? "";
+
+    /// <summary>v0.15.0：底部常驻进度卡移除（PCL 式）—— 状态文本只在有话要说时短暂出现；
+    /// 安装进度由任务中心承载（速度 / 当前文件 / 字节数）。</summary>
     private void Log(string s)
     {
         Dispatcher.Invoke(() =>
         {
-            // fix8：有输出时才展开进度卡，空闲时不占版面
-            CardProgress.Visibility = Visibility.Visible;
-            TxtProgress.Text += s + Environment.NewLine;
+            TxtStatus.Text = s;
+            TxtStatus.Visibility = string.IsNullOrEmpty(s) ? Visibility.Collapsed : Visibility.Visible;
         });
     }
 
@@ -45,8 +50,17 @@ public partial class ModpacksPage : Page
     {
         Dispatcher.Invoke(() =>
         {
-            TxtProgress.Text = "";
-            CardProgress.Visibility = Visibility.Collapsed;
+            TxtStatus.Text = "";
+            TxtStatus.Visibility = Visibility.Collapsed;
+        });
+    }
+
+    private void SetSearching(bool on, bool isPaging = false)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            PnlSearching.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            if (on) TxtSearching.Text = isPaging ? S("S.Mod.LoadingMore") : S("S.Mp.Searching");
         });
     }
 
@@ -57,38 +71,37 @@ public partial class ModpacksPage : Page
 
     private async void BtnSearch_Click(object sender, RoutedEventArgs e) => await SearchAsync();
 
+    private void Pager_Go(int page) => _ = SearchCoreAsync(gotoPage: page);
+
     private async void CmbSort_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // 初始化时也会触发一次；列表为空则忽略，有结果则按新排序重查
-        if (_hits.Count > 0) await SearchAsync();
+        if (_totalHits > 0) await SearchAsync();
     }
 
     private async Task SearchAsync() => await SearchCoreAsync(reset: true);
 
-    private async void BtnMore_Click(object sender, RoutedEventArgs e) => await SearchCoreAsync(reset: false);
-
-    private async Task SearchCoreAsync(bool reset, string? indexOverride = null, bool recommend = false)
+    private async Task SearchCoreAsync(bool reset = false, int? gotoPage = null, string? indexOverride = null, bool recommend = false)
     {
         if (_busy) return;
         try
         {
-            if (reset)
-            {
-                _hits.Clear();
-                _totalHits = 0;
-            }
             _busy = true;
+            SetSearching(true, isPaging: gotoPage is not null && gotoPage != 1);
             ClearLog();
+            var page = Math.Max(1, gotoPage ?? 1);
             var index = indexOverride ?? SortIndex;
             Log(recommend
                 ? App.Current.TryFindResource("S.Mp.LoadingRecommend") as string ?? "正在获取推荐整合包..."
-                : reset ? "搜索 Modrinth 整合包..." : "加载更多...");
-            var (page, total) = await App.Modrinth.SearchAsync(
-                TxtQuery.Text ?? "", "modpack", index, _hits.Count);
+                : "搜索 Modrinth 整合包...");
+            var offset = PclPager.OffsetOf(page, PclPager.SearchPageSize);
+            var (hits, total) = await App.Modrinth.SearchAsync(
+                TxtQuery.Text ?? "", "modpack", index, offset);
+            _page = page;
             _totalHits = total;
-            _hits.AddRange(page.Where(h => !_hits.Any(x => x.ProjectId == h.ProjectId)));
+            _pageHits = hits.ToList();
 
-            LstResults.ItemsSource = _hits.Select(h => new
+            LstResults.ItemsSource = _pageHits.Select(h => new
             {
                 h.Title,
                 h.Description,
@@ -98,14 +111,7 @@ public partial class ModpacksPage : Page
                 Badges = ModsPage.BuildBadges(h),
             }).ToList();
 
-            var moreText = App.Current?.TryFindResource("S.Mod.LoadMore") as string ?? "加载更多";
-            var noMoreText = App.Current?.TryFindResource("S.Mod.NoMore") as string ?? "没有更多结果了";
-            BtnMore.Visibility = _hits.Count < _totalHits ? Visibility.Visible : Visibility.Collapsed;
-            BtnMore.IsEnabled = _hits.Count < _totalHits;
-            BtnMore.Content = _hits.Count < _totalHits
-                ? $"{moreText}（{_hits.Count}/{_totalHits}）"
-                : noMoreText;
-            Log($"已显示 {_hits.Count} / {_totalHits} 个结果。");
+            UpdatePager();
         }
         catch (Exception ex)
         {
@@ -113,8 +119,24 @@ public partial class ModpacksPage : Page
         }
         finally
         {
+            SetSearching(false);
             _busy = false;
         }
+    }
+
+    /// <summary>v0.15.0：PCL 式翻页条（总页数 > 1 时显示）。</summary>
+    private void UpdatePager()
+    {
+        var totalPages = PclPager.TotalPages(_totalHits, PclPager.SearchPageSize);
+        if (totalPages <= 1)
+        {
+            PnlPager.Visibility = Visibility.Collapsed;
+            TxtTotal.Text = _totalHits > 0 ? string.Format(S("S.Pg.Total"), _totalHits) : "";
+            return;
+        }
+        PnlPager.Visibility = Visibility.Visible;
+        PagerBar.Build(PnlPager, PclPager.BuildButtons(_page, totalPages), Pager_Go);
+        TxtTotal.Text = string.Format(S("S.Pg.PageOf"), _page, totalPages) + " · " + string.Format(S("S.Pg.Total"), _totalHits);
     }
 
     // ---------- 安装远程整合包 ----------
@@ -153,10 +175,9 @@ public partial class ModpacksPage : Page
                 Dispatcher.Invoke(() =>
                 {
                     done += delta;
-                    // v0.1.13：进度条移除，旋转指示器随卡片显示；速度经任务条目展示
+                    // v0.15.0：底部进度卡已移除，进度经任务中心条目展示（速度 / 当前文件 / 字节）
                     dlTask.SetProgress(file.Size > 0 ? done * 100.0 / file.Size : -1,
                         file.Filename, meter.Observe(done), done, file.Size);
-                    TxtProgress.Text = $"下载整合包: {file.Filename} · {SpeedMeter.FormatBytes(done)}/{SpeedMeter.FormatBytes(file.Size)} · {SpeedMeter.FormatSpeed(meter.Observe(done))}";
                 }));
             await App.Modrinth.DownloadAsync(file.Url, tmp, progress,
                 DownloadTaskService.Instance.TokenFor(dlTask));
@@ -231,7 +252,6 @@ public partial class ModpacksPage : Page
                 var speed = meter.Observe(p.DoneBytes);
                 task.SetProgress(p.TotalBytes > 0 ? p.DoneBytes * 100.0 / p.TotalBytes : -1,
                     p.CurrentFile, speed, p.DoneBytes, p.TotalBytes);
-                TxtProgress.Text = $"{p.CurrentFile} · 文件 {p.DoneFiles}/{p.TotalFiles} · {SpeedMeter.FormatBytes(p.DoneBytes)}/{SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}";
             }));
 
         try

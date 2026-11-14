@@ -52,6 +52,7 @@
     <Compile Include="../HardmacroCraft/Services/VersionInfo.cs" Link="Services/VersionInfo.cs" />
     <Compile Include="../HardmacroCraft/Services/VersionSettingsStore.cs" Link="Services/VersionSettingsStore.cs" />
     <Compile Include="../HardmacroCraft/Services/MemoryManager.cs" Link="Services/MemoryManager.cs" />
+    <Compile Include="../HardmacroCraft/Services/PclPager.cs" Link="Services/PclPager.cs" />
     <Compile Include="../HardmacroCraft/Services/PortablePath.cs" Link="Services/PortablePath.cs" />
     <Compile Include="../HardmacroCraft/Services/UiRefreshPolicy.cs" Link="Services/UiRefreshPolicy.cs" />
     <Compile Include="../HardmacroCraft/Services/LaunchProgressCalc.cs" Link="Services/LaunchProgressCalc.cs" />
