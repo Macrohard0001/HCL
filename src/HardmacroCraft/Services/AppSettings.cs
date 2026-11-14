@@ -40,6 +40,20 @@ public class AppSettings
     public bool MemoryAuto { get; set; } = true;
     public int MemoryMb { get; set; } = 4096;
     public bool UseMirror { get; set; } = true;
+    /// <summary>
+    /// v0.1.14 下载源方案（对齐 PCL「下载源」）："auto" = 镜像优先、失败自动回退官方；
+    /// "mirror" = 强制镜像；"official" = 强制官方直连。旧字段 UseMirror 保留兼容旧配置
+    /// （DownloadSource 未设置时按 UseMirror 推导）。
+    /// </summary>
+    public string DownloadSource { get; set; } = "";
+
+    /// <summary>下载源最终生效值（DownloadSource 缺省时按旧 UseMirror 推导，进测试）。</summary>
+    public string EffectiveDownloadSource => DownloadSource switch
+    {
+        "official" or "mirror" or "auto" => DownloadSource,
+        _ => UseMirror ? "auto" : "official",
+    };
+
     public string Language { get; set; } = "zh-CN";
     public string AzureClientId { get; set; } = "";
     /// <summary>版本隔离：每个版本独立的存档 / mod / 资源包目录（类似 PCL 的版本隔离）。</summary>

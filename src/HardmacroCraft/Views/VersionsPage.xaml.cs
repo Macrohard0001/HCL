@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using HardmacroCraft.Services;
 
 namespace HardmacroCraft.Views;
@@ -12,6 +13,11 @@ namespace HardmacroCraft.Views;
 /// <summary>
 /// 版本管理页（v0.1.6 重构，对齐主流启动器）：
 /// 搜索过滤 + 图标列表（加载器 / 创建来源一眼可辨）+ 单击进版本设置 + 双击启动。
+/// v0.1.14：
+/// - 最近启动卡自首页迁移至此（版本相关操作集中在版本管理页）；
+/// - 工具按钮收纳（重命名 / 复制 / 目录直达移入版本独立设置窗口），页面只留高频操作；
+/// - 修复「打开版本目录」在 v0.1.6 后因 SelectedVersion 类型变化永远打开游戏根目录的问题
+///   （版本目录入口收敛到版本独立设置窗口的「打开版本目录」，逻辑唯一且正确）。
 /// </summary>
 public partial class VersionsPage : Page
 {
@@ -36,6 +42,7 @@ public partial class VersionsPage : Page
                 })
                 .ToList();
             ApplyFilter();
+            RefreshRecent();
         }
         catch (Exception ex)
         {
@@ -93,6 +100,12 @@ public partial class VersionsPage : Page
             MessageBox.Show("请先选择一个版本。", "Hardmacro Craft Launcher");
             return;
         }
+        await LaunchExternalAsync(version);
+    }
+
+    /// <summary>跨页启动：切回主页并直连启动（最近启动 chips / 启动按钮共用）。</summary>
+    internal async Task LaunchExternalAsync(string version)
+    {
         if (Application.Current.MainWindow is MainWindow main)
         {
             try
@@ -121,69 +134,59 @@ public partial class VersionsPage : Page
         // 版本设置可能改了隔离等展示信息（副标题不含这些，无需刷新；保持简单）
     }
 
-    // ---------- 文件操作 ----------
+    // ---------- 最近启动（v0.1.14 自首页迁移） ----------
 
-    private void BtnRename_Click(object sender, RoutedEventArgs e)
+    /// <summary>最近启动快捷 chips（图标对齐版本列表：加载器图标 / 原版草方块）。</summary>
+    private void RefreshRecent()
     {
-        if (!EnsureSelected()) return;
-        var v = SelectedVersion!;
-        var newName = Prompt.Show("新版本名（存档 / mods / 资源包目录将一并改名）：", "重命名版本");
-        if (string.IsNullOrWhiteSpace(newName)) return;
-        try
+        PnlRecent.Children.Clear();
+        var recent = AppSettings.Instance.RecentVersions;
+        CardRecent.Visibility = recent.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var v in recent)
         {
-            App.LauncherService.RenameVersion(v, newName.Trim());
-            Refresh();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("重命名失败: " + ex.Message, "Hardmacro Craft Launcher");
+            var installed = App.LauncherService.GetInstalledVersions().Contains(v);
+            ImageSource? icon = null;
+            string? badge = null;
+            Brush? badgeBrush = null;
+            try
+            {
+                var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, v);
+                (icon, badge, badgeBrush) = VersionIconProvider.DescribeIcon(desc);
+            }
+            catch { /* 版本目录读取失败时回退草方块 */ }
+            icon ??= new System.Windows.Media.Imaging.BitmapImage(
+                new Uri("pack://application:,,,/Assets/grass.png"));
+            var chipContent = new StackPanel { Orientation = Orientation.Horizontal };
+            chipContent.Children.Add(new System.Windows.Controls.Image
+            {
+                Source = icon,
+                Width = 16, Height = 16,
+                Stretch = Stretch.Uniform,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            chipContent.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = v, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 0, 0),
+                Opacity = installed ? 1.0 : 0.45,
+                FontSize = 12,
+            });
+            if (chipContent.Children[0] is System.Windows.Controls.Image chipImg)
+                RenderOptions.SetBitmapScalingMode(chipImg, BitmapScalingMode.NearestNeighbor);
+            var chip = new Wpf.Ui.Controls.Button
+            {
+                Content = chipContent,
+                MinHeight = 30,
+                Padding = new Thickness(8, 3, 10, 3),
+                Margin = new Thickness(0, 0, 6, 6),
+                ToolTip = installed ? v : v + "（已不存在，点击重试）",
+            };
+            chip.Click += async (_, _) => await LaunchExternalAsync(v);
+            PnlRecent.Children.Add(chip);
         }
     }
 
-    private void BtnCopy_Click(object sender, RoutedEventArgs e)
-    {
-        if (!EnsureSelected()) return;
-        var v = SelectedVersion!;
-        var newName = Prompt.Show("新版本名（将完整复制该版本的文件与隔离内容）：", "复制版本");
-        if (string.IsNullOrWhiteSpace(newName)) return;
-        try
-        {
-            App.LauncherService.CopyVersion(v, newName.Trim());
-            Refresh();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("复制失败: " + ex.Message, "Hardmacro Craft Launcher");
-        }
-    }
-
-    private void BtnOpenFolder_Click(object sender, RoutedEventArgs e)
-    {
-        var path = SelectedVersion is string v
-            ? Path.Combine(AppSettings.Instance.GameRoot, "versions", v)
-            : AppSettings.Instance.GameRoot;
-        if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-    }
-
-    /// <summary>打开所选版本的存档 / mods / 资源包目录（版本隔离时指向 versions/&lt;id&gt;/ 下）。</summary>
-    private void OpenSubDir(string sub)
-    {
-        var root = AppSettings.Instance.GameRoot;
-        var version = SelectedVersion;
-        var path = VersionSettingsStore.EffectiveIsolation(version, AppSettings.Instance.VersionIsolation)
-            && version != null
-            ? Path.Combine(root, "versions", version, sub)
-            : Path.Combine(root, sub);
-        Directory.CreateDirectory(path);
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-    }
-
-    private void BtnOpenSaves_Click(object sender, RoutedEventArgs e) => OpenSubDir("saves");
-
-    private void BtnOpenMods_Click(object sender, RoutedEventArgs e) => OpenSubDir("mods");
-
-    private void BtnOpenPacks_Click(object sender, RoutedEventArgs e) => OpenSubDir("resourcepacks");
+    // ---------- 删除（低频 destructive 操作保留在页面 + 版本设置窗口双入口） ----------
 
     private void BtnDelete_Click(object sender, RoutedEventArgs e)
     {

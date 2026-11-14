@@ -616,4 +616,18 @@
     <sys:String x:Key="S.Sh.InstallDone">Download complete</sys:String>
     <sys:String x:Key="S.Sh.Canceled">Download canceled.</sys:String>
     <sys:String x:Key="S.Sh.InstallFail">Install failed: {0}</sys:String>
+    <!-- v0.1.14: download source / loader compat hints / per-version custom icon & ops -->
+    <sys:String x:Key="S.Set.DlSourceAuto">Auto (mirror first, fallback to official)</sys:String>
+    <sys:String x:Key="S.Set.DlSourceMirror">BMCLAPI mirror</sys:String>
+    <sys:String x:Key="S.Set.DlSourceOfficial">Official source (direct)</sys:String>
+    <sys:String x:Key="S.Set.DlSourceHint">Download source changes apply immediately, no restart needed. Mirror accelerates Mojang domains; official suits proxy users.</sys:String>
+    <sys:String x:Key="S.Dl.CompatJavaOnly">Requires Java {0}</sys:String>
+    <sys:String x:Key="S.Dl.CompatJavaRange">Requires Java {0}+, supports Java {0}&#x2013;{1}</sys:String>
+    <sys:String x:Key="S.Dl.CompatLine">{0} &#xB7; Only for Minecraft {1} &#xB7; {2} (auto-selected at launch)</sys:String>
+    <sys:String x:Key="S.Vs.GroupVersion">Version</sys:String>
+    <sys:String x:Key="S.Vs.IconPick">Custom icon</sys:String>
+    <sys:String x:Key="S.Vs.IconClear">Reset icon</sys:String>
+    <sys:String x:Key="S.Vs.IconNone">No custom icon (auto loader / grass icon in use)</sys:String>
+    <sys:String x:Key="S.Vs.IconHint">Custom icon shows in version list / home dropdown / recent launches (overrides loader icon), stored in config/version-icons/.</sys:String>
+    <sys:String x:Key="S.Vs.IconFail">Failed to set icon</sys:String>
 </ResourceDictionary>

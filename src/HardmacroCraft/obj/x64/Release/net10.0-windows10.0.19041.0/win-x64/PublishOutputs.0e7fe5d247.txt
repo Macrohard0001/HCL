@@ -1,0 +1,2 @@
+/tmp/my-project/staging-0114/single/HardmacroCraftLauncher.pdb
+/tmp/my-project/staging-0114/single/HardmacroCraftLauncher.exe

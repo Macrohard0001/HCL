@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows.Media;
 
 namespace HardmacroCraft.Services;
@@ -48,9 +49,59 @@ public static class VersionIconProvider
     public static string DecideIconKind(VersionInfo.VersionDescriptor desc)
         => desc.Loader == McLoaderKind.Vanilla ? "grass" : "loader:" + desc.Loader;
 
-    /// <summary>版本列表条目视图模型（图标 / 徽章 / 名称一次成型，绑定零转换器）。</summary>
-    public static (ImageSource? Icon, string? Badge, Brush? BadgeBrush) DescribeIcon(VersionInfo.VersionDescriptor desc)
+    // v0.1.14：版本自定义图标（对齐 PCL「版本设置 → 自定义图标」）——
+    // config/version-icons/<版本名>.<png|jpg|jpeg|gif|bmp|ico>，存在即优先于加载器图标。
+    private static readonly string[] IconExts = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico"];
+
+    public static string IconDir => System.IO.Path.Combine(AppSettings.ConfigDir, "version-icons");
+
+    /// <summary>某版本的自定义图标路径（无则 null）。决定优先级：自定义 &gt; 加载器 &gt; 草方块。</summary>
+    public static string? CustomIconPath(string? version)
     {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+        try
+        {
+            foreach (var ext in IconExts)
+            {
+                var p = System.IO.Path.Combine(IconDir, version + ext);
+                if (File.Exists(p)) return p;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>从磁盘加载任意图片文件为冻结的 ImageSource（失败回退 null）。</summary>
+    public static ImageSource? LoadFile(string path)
+    {
+        try
+        {
+            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(path);
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>版本列表条目视图模型（图标 / 徽章 / 名称一次成型，绑定零转换器）。
+    /// v0.1.14：version 非空时优先使用该版本的自定义图标。</summary>
+    public static (ImageSource? Icon, string? Badge, Brush? BadgeBrush) DescribeIcon(
+        VersionInfo.VersionDescriptor desc, string? version = null)
+    {
+        // 自定义图标最高优先（PCL 同款：用户设置过就完全取代自动图标）
+        if (version != null)
+        {
+            var custom = CustomIconPath(version);
+            if (custom != null)
+            {
+                var img = LoadFile(custom);
+                if (img != null) return (img, null, null);
+            }
+        }
         var loaderIcon = LoaderIcon(desc.Loader);
         if (loaderIcon != null) return (loaderIcon, null, null);
         // 纯净版（含本启动器安装 / 其他启动器创建 / 无标记）一律原版草方块
@@ -75,6 +126,6 @@ public sealed class VersionItemViewModel
     {
         Name = name;
         Subtitle = subtitle;
-        (Icon, Badge, BadgeBrush) = VersionIconProvider.DescribeIcon(desc);
+        (Icon, Badge, BadgeBrush) = VersionIconProvider.DescribeIcon(desc, name);
     }
 }

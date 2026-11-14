@@ -78,11 +78,16 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!-- 加载器版本行 -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
-            <TextBlock Text="{DynamicResource S.Dl.LoaderVersion}" VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" />
-            <ComboBox x:Name="CmbLoaderVersion" MinWidth="220" MinHeight="30" Margin="10,0,0,0" />
+        <!-- 加载器版本行（v0.1.14：下拉带滚动条 + 兼容说明实时刷新） -->
+        <StackPanel Grid.Row="2" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{DynamicResource S.Dl.LoaderVersion}" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="13" />
+                <ComboBox x:Name="CmbLoaderVersion" MinWidth="220" MinHeight="30" Margin="10,0,0,0"
+                          MaxDropDownHeight="280" />
+            </StackPanel>
+            <TextBlock x:Name="TxtLoaderCompat" FontSize="11.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
         </StackPanel>
 
         <!-- 自定义版本名称（fix5，PCL 同款：可选改名后安装） -->

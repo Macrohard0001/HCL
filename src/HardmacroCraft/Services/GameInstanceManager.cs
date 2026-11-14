@@ -78,8 +78,30 @@ public static class GameInstanceManager
         {
             Instances_.Insert(0, inst);
         }
+        EnsureWatchdog();
         Fire();
         return inst;
+    }
+
+    // v0.1.14 退出看门狗：CmlLib 的 ProcessWrapper.Exited 依赖进程对象的
+    // EnableRaisingEvents / 内部等待任务，实测存在不触发的情况 —— 游戏窗口关了，
+    // 实例列表与「游戏运行中」文案却永远停留（用户报告 v0.1.14）。
+    // 现在每 2 秒轮询一次 Process.HasExited，事件不触发也能可靠收尾（OnExited 幂等）。
+    private static System.Threading.Timer? _watchdog;
+
+    private static void EnsureWatchdog()
+    {
+        if (_watchdog != null) return;
+        _watchdog = new System.Threading.Timer(_ =>
+        {
+            GameInstance[] snapshot;
+            lock (Gate) snapshot = Instances_.ToArray();
+            foreach (var inst in snapshot)
+            {
+                if (inst.State == GameInstanceState.Exited) continue;
+                if (inst.HasExited) OnExited(inst);
+            }
+        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
     }
 
     /// <summary>结束实例（整个进程树，包括 Java 派生的子进程）。返回是否发出结束请求。</summary>
@@ -95,6 +117,8 @@ public static class GameInstanceManager
 
     private static void OnExited(GameInstance inst)
     {
+        // v0.1.14：幂等保护 —— wrapper.Exited 与看门狗轮询可能先后触发，只收尾一次
+        if (inst.State == GameInstanceState.Exited) return;
         int code = int.MinValue;
         try
         {
@@ -104,6 +128,9 @@ public static class GameInstanceManager
         catch { /* 进程对象不可用时按未知退出码处理 */ }
         inst.MarkExited(code);
         Log?.Invoke($"[实例] {inst.Version}（PID {inst.Pid}）已退出，退出代码 {code}");
+        // v0.1.14：空闲终态文案同步更新（此前一直显示「游戏运行中」，与实际不符）
+        try { LaunchProgressHub.SetIdleLine($"游戏已退出：{inst.Version}（退出代码 {code}）"); }
+        catch { /* 无启动流程时忽略 */ }
         Remove(inst);
     }
 

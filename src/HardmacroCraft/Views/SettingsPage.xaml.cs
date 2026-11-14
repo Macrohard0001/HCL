@@ -53,7 +53,9 @@ public partial class SettingsPage : Page
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
             // fix6：自动检测模式下滑杆禁用，显示检测到的物理内存与推荐值
             RefreshMemoryDetected();
-            ChkMirror.IsChecked = AppSettings.Instance.UseMirror;
+            // v0.1.14：下载源三档（auto / mirror / official），替代旧镜像开关
+            foreach (ComboBoxItem i in CmbDownloadSource.Items)
+                if ((string)i.Tag == AppSettings.Instance.EffectiveDownloadSource) { CmbDownloadSource.SelectedItem = i; break; }
             ChkIsolation.IsChecked = AppSettings.Instance.VersionIsolation;
             ChkHideOnStart.IsChecked = AppSettings.Instance.HideLauncherOnGameStart;
             ChkExitOnGameExit.IsChecked = AppSettings.Instance.ExitLauncherOnGameExit;
@@ -71,6 +73,10 @@ public partial class SettingsPage : Page
             RefreshManagedJavas();
             foreach (ComboBoxItem i in CmbLanguage.Items)
                 if ((string)i.Tag == AppSettings.Instance.Language) { CmbLanguage.SelectedItem = i; break; }
+            // v0.1.14：语言下拉即时生效（PCL 式）—— 此前要等点「保存」才应用，
+            // 用户改了下拉以为没作用；现在选中即切换并落盘（保存按钮仍会兜底再存一次）
+            CmbLanguage.SelectionChanged -= CmbLanguage_SelectionChanged;
+            CmbLanguage.SelectionChanged += CmbLanguage_SelectionChanged;
             // 主题选项（不触发 SelectionChanged 的重复应用）
             _applyingTheme = true;
             foreach (ComboBoxItem i in CmbTheme.Items)
@@ -179,6 +185,25 @@ public partial class SettingsPage : Page
     {
         if (CmbWindowMode.SelectedItem is not ComboBoxItem item || item.Tag is not string mode) return;
         PnlWindowSize.Visibility = mode == "custom" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>v0.1.14：语言切换即时生效（PCL 式）—— 选中即应用并持久化，
+    /// 不再等待「保存」按钮；修复「切换语言没有作用」（此前只改下拉毫无反馈）。</summary>
+    private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbLanguage.SelectedItem is not ComboBoxItem item || item.Tag is not string lang) return;
+        if (string.Equals(lang, App.Language, StringComparison.Ordinal)) return; // 初始化回放不重复应用
+        try
+        {
+            App.ApplyLanguage(lang);
+            AppSettings.Instance.Language = lang;
+            AppSettings.Instance.Save();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"语言切换失败：{ex.Message}", "Hardmacro Craft Launcher",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     /// <summary>主题切换：即时应用并持久化，所有 DynamicResource 颜色（含字体）随之变化。</summary>
@@ -366,7 +391,12 @@ public partial class SettingsPage : Page
         s.UiRefreshMaxFps = NumUiMaxFps.Value is >= 1 and <= 240 ? (int)NumUiMaxFps.Value!.Value : 30;
         s.MemoryAuto = ChkMemAuto.IsChecked == true;
         s.MemoryMb = (int)SldMemory.Value;
-        s.UseMirror = ChkMirror.IsChecked == true;
+        // v0.1.14：下载源三档（对齐 PCL）；切换即时生效（LauncherService 订阅了 Saved 事件）
+        if (CmbDownloadSource.SelectedItem is ComboBoxItem ds && ds.Tag is string dsTag)
+        {
+            s.DownloadSource = dsTag;
+            s.UseMirror = dsTag != "official"; // 旧字段同步，兼容旧版本读配置
+        }
         s.VersionIsolation = ChkIsolation.IsChecked == true;
         s.HideLauncherOnGameStart = ChkHideOnStart.IsChecked == true;
         s.ExitLauncherOnGameExit = ChkExitOnGameExit.IsChecked == true;

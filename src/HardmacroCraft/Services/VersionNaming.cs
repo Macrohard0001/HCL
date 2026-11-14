@@ -1,15 +1,17 @@
 namespace HardmacroCraft.Services;
 
 /// <summary>
-/// v0.1.11 版本默认命名（纯逻辑，进测试）—— 对齐主流启动器的默认版本名风格：
-///   原版：&lt;MC 版本&gt;                    如 1.20.1
-///   Forge：&lt;MC&gt;-Forge_&lt;loader 版本&gt;       如 1.20.1-Forge_47.2.0
-///   NeoForge：&lt;MC&gt;-NeoForge_&lt;loader 版本&gt; 如 1.21.0-NeoForge_21.0.67
-///   Fabric：&lt;MC&gt;-Fabric &lt;loader 版本&gt;     如 1.20.1-Fabric 0.16.9（去掉 +build）
-///   LegacyFabric：&lt;MC&gt;-LegacyFabric &lt;v&gt;
-///   Quilt：&lt;MC&gt;-Quilt &lt;loader 版本&gt;
-///   LiteLoader：&lt;MC&gt;-LiteLoader（无版本号后缀）
-///   OptiFine：&lt;MC&gt;-OptiFine_&lt;显示名&gt;
+/// v0.1.14 版本默认命名（纯逻辑，进测试）—— 彻底对齐 PCL：默认版本名不再包含游戏版本
+/// 前缀（v0.1.13 及之前是 "1.20.1-Forge_47.2.0" 风格，用户指出 PCL 的默认名只有装载器名 +
+/// 装载器版本；游戏版本在版本列表副标题 / 版本 json 中另有记录，不该塞进版本名）：
+///   原版：&lt;MC 版本&gt;              如 1.20.1
+///   Forge：Forge &lt;loader 版本&gt;     如 Forge 47.2.0
+///   NeoForge：NeoForge &lt;loader 版本&gt;   如 NeoForge 21.0.67
+///   Fabric：Fabric &lt;loader 版本&gt;   如 Fabric 0.16.9（去掉 +build）
+///   LegacyFabric：Legacy Fabric &lt;v&gt;
+///   Quilt：Quilt &lt;loader 版本&gt;
+///   LiteLoader：LiteLoader（无版本号后缀）
+///   OptiFine：OptiFine &lt;显示名&gt;    如 OptiFine HD_U_I7
 /// 用户在安装弹窗里改名后以用户输入为准（前缀相同则视为未改，安装后不再重命名）。
 /// </summary>
 public static class VersionNaming
@@ -17,19 +19,19 @@ public static class VersionNaming
     /// <summary>按 MC 版本 + 加载器种类（VersionNaming.LoaderKind 字符串）+ 加载器版本生成默认版本名。</summary>
     public static string DefaultName(string mcVersion, string loaderKind, string? loaderVersion)
     {
-        var mc = (mcVersion ?? "").Trim();
-        if (string.IsNullOrEmpty(mc)) return "";
-        return loaderKind?.Trim().ToLowerInvariant() switch
+        var kind = (loaderKind ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(kind) || kind == "vanilla") return (mcVersion ?? "").Trim();
+        var lv = TrimLoader(loaderVersion);
+        return kind switch
         {
-            "" or "vanilla" => mc,
-            "forge" => loaderVersion is { Length: > 0 } ? $"{mc}-Forge_{TrimLoader(loaderVersion)}" : mc + "-Forge",
-            "neoforge" => loaderVersion is { Length: > 0 } ? $"{mc}-NeoForge_{TrimLoader(loaderVersion)}" : mc + "-NeoForge",
-            "fabric" => loaderVersion is { Length: > 0 } ? $"{mc}-Fabric {TrimLoader(loaderVersion)}" : mc + "-Fabric",
-            "legacyfabric" => loaderVersion is { Length: > 0 } ? $"{mc}-LegacyFabric {TrimLoader(loaderVersion)}" : mc + "-LegacyFabric",
-            "quilt" => loaderVersion is { Length: > 0 } ? $"{mc}-Quilt {TrimLoader(loaderVersion)}" : mc + "-Quilt",
-            "liteloader" => mc + "-LiteLoader",
-            "optifine" => loaderVersion is { Length: > 0 } ? $"{mc}-OptiFine_{OptiFineDisplay(loaderVersion)}" : mc + "-OptiFine",
-            _ => loaderVersion is { Length: > 0 } ? $"{mc}-{loaderKind}_{TrimLoader(loaderVersion)}" : mc,
+            "forge" => lv.Length > 0 ? "Forge " + lv : "Forge",
+            "neoforge" => lv.Length > 0 ? "NeoForge " + lv : "NeoForge",
+            "fabric" => lv.Length > 0 ? "Fabric " + lv : "Fabric",
+            "legacyfabric" => lv.Length > 0 ? "Legacy Fabric " + lv : "Legacy Fabric",
+            "quilt" => lv.Length > 0 ? "Quilt " + lv : "Quilt",
+            "liteloader" => "LiteLoader",
+            "optifine" => lv.Length > 0 ? "OptiFine " + OptiFineDisplay(loaderVersion ?? "") : "OptiFine",
+            _ => lv.Length > 0 ? $"{loaderKind} {lv}" : loaderKind ?? "",
         };
     }
 

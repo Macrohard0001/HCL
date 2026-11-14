@@ -54,6 +54,30 @@ public partial class LoaderPickerWindow : FluentWindow
         _updatingName = false;
     }
 
+    /// <summary>
+    /// v0.1.14：加载器版本兼容说明（随加载器 / 版本选择实时刷新）——
+    /// 显示该 MC 版本所需的 Java 大版本与可用范围（PCL 安装页同款信息位），
+    /// 用户装错 Java 的「启动即崩」在安装前就能看到。
+    /// </summary>
+    private void UpdateCompatHint()
+    {
+        if (TxtLoaderCompat == null) return;
+        var row = Selected;
+        if (row == null) { TxtLoaderCompat.Text = ""; return; }
+        try
+        {
+            var min = JavaManager.RequiredJavaMajorByName(_mcVersion);
+            var max = Math.Max(min, JavaManager.MaxSupportedJavaMajor(_mcVersion));
+            var javaText = min >= max
+                ? string.Format(FindRes("S.Dl.CompatJavaOnly") ?? "需要 Java {0}", min)
+                : string.Format(FindRes("S.Dl.CompatJavaRange") ?? "需要 Java {0}+，可使用 Java {0}–{1}", min, max);
+            TxtLoaderCompat.Text = string.Format(
+                FindRes("S.Dl.CompatLine") ?? "{0} · 仅适用于 Minecraft {1} · {2}",
+                row.Name, _mcVersion, javaText);
+        }
+        catch { TxtLoaderCompat.Text = ""; }
+    }
+
     public LoaderPickerWindow(string mcVersion)
     {
         InitializeComponent();
@@ -63,7 +87,7 @@ public partial class LoaderPickerWindow : FluentWindow
             if (!_updatingName) _nameEdited = TxtVersionName.Text.Length > 0;
         };
         // v0.1.11：切换加载器版本时同步刷新默认版本名（PCL 同款）
-        CmbLoaderVersion.SelectionChanged += (_, _) => UpdateDefaultName();
+        CmbLoaderVersion.SelectionChanged += (_, _) => { UpdateDefaultName(); UpdateCompatHint(); };
         _mcVersion = mcVersion;
         // fix7：Esc 关闭窗口（PCL 同款）
         PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) Close(); };
@@ -119,6 +143,7 @@ public partial class LoaderPickerWindow : FluentWindow
         var row = Selected;
         if (row == null) return;
         UpdateDefaultName(); // v0.1.11：切加载器时同步预填默认版本名（原版 = MC 版本号）
+        UpdateCompatHint();  // v0.1.14：兼容说明随加载器切换刷新
 
         // 原版不需要加载器版本；Forbric 走独立安装器（无镜像版本列表）
         CmbLoaderVersion.ItemsSource = null;

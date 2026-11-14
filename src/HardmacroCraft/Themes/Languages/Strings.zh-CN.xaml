@@ -616,4 +616,18 @@
     <sys:String x:Key="S.Sh.InstallDone">下载完成</sys:String>
     <sys:String x:Key="S.Sh.Canceled">下载已取消。</sys:String>
     <sys:String x:Key="S.Sh.InstallFail">安装失败: {0}</sys:String>
+    <!-- v0.1.14：下载源三档 / 装载器兼容说明 / 版本自定义图标与操作 -->
+    <sys:String x:Key="S.Set.DlSourceAuto">自动（镜像优先，失败回退官方）</sys:String>
+    <sys:String x:Key="S.Set.DlSourceMirror">BMCLAPI 镜像源</sys:String>
+    <sys:String x:Key="S.Set.DlSourceOfficial">官方源直连</sys:String>
+    <sys:String x:Key="S.Set.DlSourceHint">下载源切换立即生效，无需重启。镜像源对 Mojang 域名加速，官方源适合代理环境。</sys:String>
+    <sys:String x:Key="S.Dl.CompatJavaOnly">需要 Java {0}</sys:String>
+    <sys:String x:Key="S.Dl.CompatJavaRange">需要 Java {0}+，可使用 Java {0}–{1}</sys:String>
+    <sys:String x:Key="S.Dl.CompatLine">{0} · 仅适用于 Minecraft {1} · {2}（启动时自动选择）</sys:String>
+    <sys:String x:Key="S.Vs.GroupVersion">版本</sys:String>
+    <sys:String x:Key="S.Vs.IconPick">自定义图标</sys:String>
+    <sys:String x:Key="S.Vs.IconClear">恢复默认图标</sys:String>
+    <sys:String x:Key="S.Vs.IconNone">未设置自定义图标（使用加载器 / 草方块自动图标）</sys:String>
+    <sys:String x:Key="S.Vs.IconHint">自定义图标显示在版本列表 / 首页下拉框 / 最近启动（优先于加载器自动图标），保存在 config/version-icons/。</sys:String>
+    <sys:String x:Key="S.Vs.IconFail">图标设置失败</sys:String>
 </ResourceDictionary>

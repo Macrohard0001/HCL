@@ -56,6 +56,124 @@ public static class VersionSettingsWindow
             e.Handled = true;
         };
 
+        // ---------- 分组：版本（v0.1.14：自定义图标 + 重命名 / 复制 / 删除，自版本管理页收纳至此） ----------
+        root.Children.Add(GroupTitle("S.Vs.GroupVersion", "版本"));
+        var verOps = new WrapPanel { Orientation = Orientation.Horizontal };
+        var iconPreviewBorder = new Border
+        {
+            Width = 40, Height = 40, CornerRadius = new CornerRadius(8),
+            Background = (Brush)System.Windows.Application.Current.Resources["SubtleFillColorTertiaryBrush"],
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 4, 8, 4),
+        };
+        var iconPreview = new System.Windows.Controls.Image
+        {
+            Width = 30, Height = 30,
+            Stretch = Stretch.Uniform,
+        };
+        RenderOptions.SetBitmapScalingMode(iconPreview, BitmapScalingMode.NearestNeighbor);
+        UpdateIconPreview();
+        iconPreviewBorder.Child = iconPreview;
+        verOps.Children.Add(iconPreviewBorder);
+        void UpdateIconPreview()
+        {
+            var path = VersionIconProvider.CustomIconPath(version);
+            iconPreview.Source = path != null ? VersionIconProvider.LoadFile(path) : null;
+            iconPreview.Visibility = path != null ? Visibility.Visible : Visibility.Collapsed;
+            iconPreviewBorder.ToolTip = path ?? Find("S.Vs.IconNone") ?? "未设置自定义图标（使用加载器 / 草方块自动图标）";
+        }
+        var btnIconPick = new Wpf.Ui.Controls.Button
+        {
+            Content = Find("S.Vs.IconPick") ?? "自定义图标",
+            MinHeight = 30, MinWidth = 104, Margin = new Thickness(0, 4, 8, 4),
+            Icon = new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Image24 },
+        };
+        btnIconPick.Click += (_, _) =>
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = Find("S.Vs.IconPick") ?? "自定义图标",
+                Filter = "图片|*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.ico",
+            };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                Directory.CreateDirectory(VersionIconProvider.IconDir);
+                var ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                if (!new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico" }.Contains(ext)) ext = ".png";
+                // 先清掉旧扩展名的图标文件，再拷贝新图标（避免旧 png 残留遮蔽新 jpg）
+                foreach (var e2 in new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico" })
+                {
+                    var old = Path.Combine(VersionIconProvider.IconDir, version + e2);
+                    if (File.Exists(old)) File.Delete(old);
+                }
+                File.Copy(dlg.FileName, Path.Combine(VersionIconProvider.IconDir, version + ext), overwrite: true);
+                UpdateIconPreview();
+            }
+            catch (Exception ex)
+            {
+                HmMsg.Error(win, Find("S.Vs.IconFail") ?? "图标设置失败", ex.Message);
+            }
+        };
+        verOps.Children.Add(btnIconPick);
+        var btnIconClear = new Wpf.Ui.Controls.Button
+        {
+            Content = Find("S.Vs.IconClear") ?? "恢复默认图标",
+            MinHeight = 30, MinWidth = 116, Margin = new Thickness(0, 4, 8, 4),
+        };
+        btnIconClear.Click += (_, _) =>
+        {
+            try
+            {
+                foreach (var e2 in new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico" })
+                {
+                    var old = Path.Combine(VersionIconProvider.IconDir, version + e2);
+                    if (File.Exists(old)) File.Delete(old);
+                }
+            }
+            catch { }
+            UpdateIconPreview();
+        };
+        verOps.Children.Add(btnIconClear);
+        root.Children.Add(verOps);
+        root.Children.Add(Hint("S.Vs.IconHint",
+            "自定义图标显示在版本列表 / 首页下拉框 / 最近启动（优先于加载器自动图标），保存在 config/version-icons/。"));
+
+        var actRow = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
+        void AddOp(string key, string fallback, Wpf.Ui.Controls.ControlAppearance app, Action action)
+        {
+            var b = new Wpf.Ui.Controls.Button
+            {
+                Content = Find(key) ?? fallback,
+                Appearance = app,
+                MinHeight = 30, MinWidth = 96, Margin = new Thickness(0, 4, 8, 4),
+            };
+            b.Click += (_, _) => { try { action(); } catch (Exception ex) { HmMsg.Error(win, fallback, ex.Message); } };
+            actRow.Children.Add(b);
+        }
+        AddOp("S.Ver.Rename", "重命名版本", Wpf.Ui.Controls.ControlAppearance.Secondary, () =>
+        {
+            var newName = Prompt.Show("新版本名（存档 / mods / 资源包目录将一并改名）：", "重命名版本");
+            if (string.IsNullOrWhiteSpace(newName)) return;
+            App.LauncherService.RenameVersion(version, newName.Trim());
+            win.Close();
+        });
+        AddOp("S.Ver.Copy", "复制版本", Wpf.Ui.Controls.ControlAppearance.Secondary, () =>
+        {
+            var newName = Prompt.Show("新版本名（将完整复制该版本的文件与隔离内容）：", "复制版本");
+            if (string.IsNullOrWhiteSpace(newName)) return;
+            App.LauncherService.CopyVersion(version, newName.Trim());
+        });
+        AddOp("S.Ver.Delete", "删除版本", Wpf.Ui.Controls.ControlAppearance.Danger, () =>
+        {
+            if (!HmMsg.Confirm(win, Find("S.Ver.Delete") ?? "删除版本",
+                    $"确定删除版本 [{version}] 吗？\n（版本隔离开启时，其存档 / mod 一并删除）")) return;
+            App.LauncherService.DeleteVersion(version);
+            VersionSettingsStore.Delete(version);
+            win.Close();
+        });
+        root.Children.Add(actRow);
+
         // ---------- 分组：游戏 ----------
         root.Children.Add(GroupTitle("S.Vs.GroupGame", "游戏"));
         var isoCombo = new ComboBox { MinHeight = 32, Margin = new Thickness(0, 4, 0, 0), MinWidth = 320, HorizontalAlignment = HorizontalAlignment.Left };
@@ -394,13 +512,14 @@ public static class VersionSettingsWindow
         {
             var type = types[Math.Max(0, cmbType.SelectedIndex)].Value;
             var dir = DirFor(type);
-            txtDir.Text = dir;
             var kw = (txtQuery.Text ?? "").Trim();
             var all = LocalModScanner.ScanDir(dir);
             if (kw.Length > 0)
                 all = all.Where(m => m.FileName.Contains(kw, StringComparison.OrdinalIgnoreCase)
                                      || m.DisplayName.Contains(kw, StringComparison.OrdinalIgnoreCase))
                     .ToList();
+            // v0.1.14：目录行带条目数（PCL 式一览），长路径省略号截断
+            txtDir.Text = $"{dir}  ·  {all.Count} 项";
             lst.ItemsSource = all.Select(m => new ModRow(m)).ToList();
         }
 
