@@ -188,8 +188,11 @@ public class DownloadTaskService
     /// <summary>取任务绑定的取消令牌（不可取消任务返回 default）。</summary>
     public CancellationToken TokenFor(TaskItem item) => item.Cts?.Token ?? default;
 
-    /// <summary>更新进度（0–100，-1 表示不确定）。detail 变化时自动记入任务日志。</summary>
-    public void Update(TaskItem item, double percent, string? detail = null)
+    /// <summary>更新进度（0–100，-1 表示不确定）。detail 变化时自动记入任务日志。
+    /// v0.1.14：logDetail=false 用于逐字节的进度行（速度 / 百分比 / 字节数）——
+    /// 这类"无意义的进度日志"此前每变一次就写一行，任务详情被刷屏（Java 下载 100+ 行）；
+    /// 卡片与详情页的实时信息改由 Detail 字段 / 分行速度文件名承载，日志只留阶段变更。</summary>
+    public void Update(TaskItem item, double percent, string? detail = null, bool logDetail = true)
     {
         string? lastDetail;
         lock (_lock)
@@ -199,7 +202,7 @@ public class DownloadTaskService
             if (detail != null) item.Detail = detail;
         }
         // v0.1.10：详情与上次不同时记一条日志（同进度高频回调不会刷屏）
-        if (!string.IsNullOrWhiteSpace(detail) && detail != lastDetail)
+        if (logDetail && !string.IsNullOrWhiteSpace(detail) && detail != lastDetail)
             item.AppendLog(detail);
         Changed?.Invoke();
     }

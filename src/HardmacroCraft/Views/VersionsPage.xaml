@@ -8,6 +8,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -31,8 +32,23 @@
                        FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
         </Grid>
 
-        <!-- 工具按钮（WrapPanel：小窗口下自动换行） -->
-        <Border Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,0,0,12" Padding="12">
+        <!-- v0.1.14：最近启动（自首页迁移到版本管理页 —— 版本相关操作集中在这） -->
+        <Border x:Name="CardRecent" Grid.Row="2" Style="{StaticResource HmCard}" Margin="0,0,0,12"
+                Padding="14,8" Visibility="Collapsed">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <ui:SymbolIcon Symbol="History24" FontSize="15"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{DynamicResource S.Home.Recent}" FontWeight="Medium" FontSize="12"
+                               Margin="6,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <WrapPanel x:Name="PnlRecent" />
+            </StackPanel>
+        </Border>
+
+        <!-- 工具按钮（v0.1.14 收纳：重命名 / 复制 / 删除 / 目录直达全部移入版本独立设置窗口，
+             页面只留高频三键，对齐 PCL 版本管理布局） -->
+        <Border Grid.Row="3" Style="{StaticResource HmCard}" Margin="0,0,0,12" Padding="12">
             <WrapPanel>
                 <ui:Button Content="{DynamicResource S.Ver.Launch}" MinHeight="32" Margin="0,0,8,8"
                            Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Click="BtnLaunch_Click" />
@@ -40,25 +56,13 @@
                            Icon="{ui:SymbolIcon Settings24}" Click="BtnSettings_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon ArrowClockwise24}" Click="BtnRefresh_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenFolder}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon Folder24}" Click="BtnOpenFolder_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenSaves}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon Save24}" Click="BtnOpenSaves_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenMods}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon PuzzlePiece24}" Click="BtnOpenMods_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.OpenPacks}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon Image24}" Click="BtnOpenPacks_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Rename}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon Edit24}" Click="BtnRename_Click" />
-                <ui:Button Content="{DynamicResource S.Ver.Copy}" MinHeight="32" Margin="0,0,8,8"
-                           Icon="{ui:SymbolIcon Copy24}" Click="BtnCopy_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.Delete}" MinHeight="32" Margin="0,0,0,8"
                            Appearance="Danger" Icon="{ui:SymbolIcon Delete24}" Click="BtnDelete_Click" />
             </WrapPanel>
         </Border>
 
-        <!-- v0.1.6 版本列表（PCL 式）：图标（加载器 / 创建来源）+ 名称 + 副标题；单击进版本设置 -->
-        <ListBox Grid.Row="3" x:Name="LstVersions" Style="{StaticResource HmListBox}"
+        <!-- v0.1.6 版本列表（PCL 式）：图标（加载器 / 创建来源）+ 名称 + 副标题；双击启动 -->
+        <ListBox Grid.Row="4" x:Name="LstVersions" Style="{StaticResource HmListBox}"
                  VirtualizingPanel.VirtualizationMode="Recycling"
                  SelectionMode="Single"
                  MouseDoubleClick="LstVersions_MouseDoubleClick"
@@ -93,7 +97,7 @@
         </ListBox>
 
         <!-- 提示行 -->
-        <TextBlock Grid.Row="4" Text="{DynamicResource S.Ver.ClickHint}" FontSize="11"
+        <TextBlock Grid.Row="5" Text="{DynamicResource S.Ver.ClickHint}" FontSize="11"
                    Margin="2,8,0,0"
                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
     </Grid>

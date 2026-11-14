@@ -305,8 +305,13 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <CheckBox x:Name="ChkMirror" Content="{DynamicResource S.Set.Mirror}" Margin="0,0,0,2" />
-                    <TextBlock Text="{DynamicResource S.Set.MirrorHint}" Style="{StaticResource HmHint}" Margin="24,0,0,12" />
+                    <!-- v0.1.14：下载源三档（对齐 PCL）—— 替代旧镜像开关（其值此前从未接入下载器） -->
+                    <ComboBox x:Name="CmbDownloadSource" MinHeight="30" MinWidth="200" SelectedIndex="0">
+                        <ComboBoxItem Content="{DynamicResource S.Set.DlSourceAuto}" Tag="auto" IsSelected="True" />
+                        <ComboBoxItem Content="{DynamicResource S.Set.DlSourceMirror}" Tag="mirror" />
+                        <ComboBoxItem Content="{DynamicResource S.Set.DlSourceOfficial}" Tag="official" />
+                    </ComboBox>
+                    <TextBlock Text="{DynamicResource S.Set.DlSourceHint}" Style="{StaticResource HmHint}" Margin="8,4,0,12" />
 
                     <!-- v0.1.1：下载线程数（多线程预取） -->
                     <Grid Margin="0,0,0,12">

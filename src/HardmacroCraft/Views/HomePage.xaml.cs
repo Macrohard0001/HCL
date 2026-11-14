@@ -62,6 +62,17 @@ public partial class HomePage : Page
         SetLogOpen(AppSettings.Instance.HomeLogOpen);
         Loaded += async (_, _) =>
         {
+            // v0.1.14 修复「启动按钮不变样式 / 进度区不出现」：Unloaded 退订了进度中枢，
+            // 而 Wpf-Ui 导航缓存页面实例 —— 切页回来走缓存，构造器不重跑，本页从此失聪。
+            // 现在 Loaded 时重新订阅（先 -= 防重复），并回放当前启动状态。
+            LaunchProgressHub.Changed -= ApplyLaunchUi;
+            LaunchProgressHub.Changed += ApplyLaunchUi;
+            LaunchProgressHub.CancelRequested -= OnHubCancelRequested;
+            LaunchProgressHub.CancelRequested += OnHubCancelRequested;
+            GameInstanceManager.Log -= OnInstanceLog;
+            GameInstanceManager.Log += OnInstanceLog;
+            if (Current == null) Current = this;
+            ApplyLaunchUi();
             // v0.1.8 紧急修复：版本列表每次进入首页都刷新 —— 此前只在首次 Loaded 刷新，
             // 在下载页装完新版本回到首页，下拉框里根本没有它（选不了也启动不了）；
             // 主流启动器装完立即可见。账号 / 最近启动同步刷新。
@@ -70,7 +81,6 @@ public partial class HomePage : Page
             if (keep != null && _versionItems.Any(i => i.Name == keep))
                 CmbVersions.SelectedValue = keep;
             RefreshAccountUi();
-            RefreshRecent();
             if (!_loaded)
             {
                 _loaded = true;
@@ -151,6 +161,8 @@ public partial class HomePage : Page
             PnlButtons.Visibility = Visibility.Visible;
             PnlLaunchProgress.Visibility = Visibility.Collapsed;
             BtnLaunch.IsEnabled = true;
+            // v0.1.14：空闲时恢复启动按钮默认文案（启动中曾改为「启动中 / 下载中 xx%」）
+            BtnLaunch.Content = _btnLaunchDefault;
             BtnCancelLaunch.Visibility = Visibility.Collapsed;
             BtnCancelLaunch.IsEnabled = true;
             TxtStage.Visibility = Visibility.Collapsed;
@@ -161,12 +173,16 @@ public partial class HomePage : Page
             TxtIdleStatus.Visibility = string.IsNullOrEmpty(idle) ? Visibility.Collapsed : Visibility.Visible;
             return;
         }
-        // v0.1.6 重排：启动中隐藏版本选择行 / 按钮行，显示进度区（进度条 + 文字说明 + 取消）
+        // v0.1.6 重排：启动中版本选择行换成进度区（进度条 + 文字说明 + 取消）；
+        // v0.1.14：按钮行不再整体隐藏 —— 启动按钮保留并变为「启动中 / 下载中 xx%」禁用态
+        //（对齐 PCL：按钮本身反映启动状态，用户不会以为点击没生效）
         PnlVersionRow.Visibility = Visibility.Collapsed;
-        PnlButtons.Visibility = Visibility.Collapsed;
+        PnlButtons.Visibility = Visibility.Visible;
         PnlLaunchProgress.Visibility = Visibility.Visible;
         TxtIdleStatus.Visibility = Visibility.Collapsed;
         BtnLaunch.IsEnabled = false;
+        var starting = App.Current.TryFindResource("S.Home.Starting") as string;
+        BtnLaunch.Content = string.IsNullOrEmpty(s.ButtonText) ? starting : s.ButtonText;
         if (s.Indeterminate) PbProgress.IsIndeterminate = true;
         else { PbProgress.IsIndeterminate = false; PbProgress.Value = s.Percent; }
         TxtProgress.Text = s.ProgressLine;
@@ -197,61 +213,8 @@ public partial class HomePage : Page
         Log(line);
     }
 
-    /// <summary>主页最近启动快捷键（图标对齐版本列表：加载器图标 / 原版草方块）。</summary>
-    private void RefreshRecent()
-    {
-        PnlRecent.Children.Clear();
-        var recent = AppSettings.Instance.RecentVersions;
-        CardRecent.Visibility = recent.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var v in recent)
-        {
-            var installed = App.LauncherService.GetInstalledVersions().Contains(v);
-            // v0.1.11：图标不再硬编码草方块 —— 与首页下拉框同一套规则（加载器图标 / 原版草方块），
-            // 修复「最近启动的 Forge / Fabric 版本也显示草方块」的问题
-            ImageSource? icon = null;
-            string? badge = null;
-            Brush? badgeBrush = null;
-            try
-            {
-                var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, v);
-                (icon, badge, badgeBrush) = VersionIconProvider.DescribeIcon(desc);
-            }
-            catch { /* 版本目录读取失败时回退草方块 */ }
-            icon ??= new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/Assets/grass.png"));
-            var chipContent = new StackPanel { Orientation = Orientation.Horizontal };
-            chipContent.Children.Add(new System.Windows.Controls.Image
-            {
-                Source = icon,
-                Width = 16, Height = 16,
-                Stretch = Stretch.Uniform,
-                                VerticalAlignment = VerticalAlignment.Center,
-            });
-            chipContent.Children.Add(new System.Windows.Controls.TextBlock
-            {
-                Text = v, VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(6, 0, 0, 0),
-                Opacity = installed ? 1.0 : 0.45,
-                FontSize = 12,
-            });
-            if (chipContent.Children[0] is System.Windows.Controls.Image chipImg)
-                RenderOptions.SetBitmapScalingMode(chipImg, BitmapScalingMode.NearestNeighbor);
-            var chip = new Wpf.Ui.Controls.Button
-            {
-                Content = chipContent,
-                MinHeight = 30,
-                Padding = new Thickness(8, 3, 10, 3),
-                Margin = new Thickness(0, 0, 6, 6),
-                ToolTip = installed ? v : v + "（已不存在，点击重试）",
-            };
-            chip.Click += async (_, _) =>
-            {
-                if (_versionItems.Any(i => i.Name == v)) CmbVersions.SelectedValue = v;
-                await LaunchAsync(v);
-            };
-            PnlRecent.Children.Add(chip);
-        }
-    }
+    // v0.1.14：最近启动卡已迁移到「版本管理」页（VersionsPage.RefreshRecent），
+    // 主页不再展示（用户要求：版本相关操作集中在版本管理页）
 
     private const int LogCapLines = 500;   // v0.1.3：日志超过 600 行时修剪回 500 行，防长会话撑爆内存
     private const int LogTrimToLines = 500;
@@ -527,6 +490,9 @@ public partial class HomePage : Page
 
         _launching = true;
         LaunchProgressHub.Begin(version); // v0.1.1：进度入库（跨页面存活），本实例与新实例都会回放
+        // v0.1.14：启动按钮立即变「启动中」（此前按钮文案要等下载阶段才变，用户以为点击没生效）
+        LaunchProgressHub.Update(s =>
+            s.ButtonText = App.Current.TryFindResource("S.Home.Starting") as string ?? "启动中");
         // v0.1.11：统一进度源（修复进度条乱蹦）—— 字节尺 / 文件尺合并 + PCL 式显示平滑
         _progressCalc = new LaunchProgressCalc();
         _shownPct = 0;
@@ -760,7 +726,9 @@ public partial class HomePage : Page
                             s.ProgressLine = line;
                             s.ButtonText = $"Java {p.Percent:0}%";
                         });
-                        DownloadTaskService.Instance.Update(jTask, p.Percent, line);
+                        // v0.1.14：逐字节进度行不再写任务日志（详情页日志不再被 100+ 行百分比刷屏），
+                        // 实时速度 / 剩余时间仍显示在卡片与详情页的信息行
+                        DownloadTaskService.Instance.Update(jTask, p.Percent, line, logDetail: false);
                     }));
                     javaToUse = await JavaManager.EnsureJreAsync(installMajor, App.LauncherService.Http, jp, Log, askDir, launchCt);
                     DownloadTaskService.Instance.Complete(jTask, "Java 安装完成");
@@ -807,9 +775,8 @@ public partial class HomePage : Page
             Log("游戏进程已创建，PID = " + process.Process?.Id);
             // v0.1.7：注册进多实例管理（主页「运行中的实例」卡实时可见，可结束进程树）
             GameInstanceManager.Register(version, process);
-            // 记录最近启动（主页快捷启动，最新在前）
+            // 记录最近启动（版本管理页快捷启动区实时刷新）
             AppSettings.Instance.RecordLaunch(version);
-            RefreshRecent();
             // v0.1.7：启动流程本体到此结束（可立即再启动第二个实例），
             // 进度区交给后台等待器接管 —— 等游戏窗口出现后再恢复空闲 UI，
             // 消除「显示已启动 → MC 窗口出现」之间没有任何提示的时间差
@@ -1120,6 +1087,9 @@ public class OfflineInputDialog : System.Windows.Controls.UserControl
 public static class HmMsg
 {
     public static void Info(Window? owner, string title, string msg) => Show(owner, title, msg, true);
+
+    /// <summary>v0.1.14：错误弹窗（语义化入口，实现同 Info）。</summary>
+    public static void Error(Window? owner, string title, string msg) => Show(owner, title, msg, true);
 
     public static bool Confirm(Window? owner, string title, string msg) => Show(owner, title, msg, false);
 

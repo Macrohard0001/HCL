@@ -29,28 +29,90 @@ public class MirrorHttpHandler : DelegatingHandler
     {
     }
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    /// <summary>
+    /// v0.1.14 下载源方案（对齐 PCL「下载源」选择）：
+    /// "auto"（默认）= 走镜像，连接失败自动回退官方源直连；
+    /// "mirror" = 强制镜像；"official" = 强制官方直连。
+    /// 此前设置页的镜像开关从未接入本处理器（恒镜像）—— 现在随设置实时生效。
+    /// </summary>
+    public string Mode { get; set; } = "auto";
+
+    /// <summary>旧布尔开关兼容（镜像开 = auto，关 = official）。</summary>
+    public bool UseMirror
     {
-        var uri = request.RequestUri;
-        if (uri != null && uri.Host.EndsWith("mojang.com", StringComparison.OrdinalIgnoreCase) ||
-            uri != null && Map.ContainsKey(uri.Host))
+        get => Mode != "official";
+        set => Mode = value ? "auto" : "official";
+    }
+
+    /// <summary>判断某 URL 是否会被镜像重写（纯规则，进测试）。</summary>
+    public static bool IsMirrorable(string? url)
+    {
+        if (string.IsNullOrEmpty(url) || !Uri.TryCreate(url, UriKind.Absolute, out var u)) return false;
+        return u.Host.EndsWith("mojang.com", StringComparison.OrdinalIgnoreCase) || Map.ContainsKey(u.Host);
+    }
+
+    /// <summary>重写规则（纯函数，进测试）：返回镜像 URL；不适用返回 null。</summary>
+    public static string? Rewrite(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+        if (!Map.TryGetValue(uri.Host, out var target)) return null;
+        var prefix = target.PathPrefix;
+        var path = string.IsNullOrEmpty(prefix) ? uri.PathAndQuery : prefix + uri.PathAndQuery;
+        var b = new UriBuilder(uri)
         {
-            if (uri != null && Map.TryGetValue(uri.Host, out var target))
+            Host = target.Host,
+            Path = "",
+            Query = "",
+        };
+        b.Path = path.StartsWith('/') ? path : "/" + path;
+        return b.Uri.ToString();
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var original = request.RequestUri;
+        // 强制官方：跳过重写
+        if (Mode == "official")
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var rewritten = original != null ? Rewrite(original.ToString()) : null;
+        if (rewritten == null)
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        request.RequestUri = new Uri(rewritten);
+        if (Mode == "mirror")
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        // auto：镜像连接失败（DNS / 超时 / 5xx）时回退官方源重试一次；
+        // 响应已开始流式传输后的中断由下载引擎的重试逻辑负责（此处不重复处理）
+        try
+        {
+            var resp = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if ((int)resp.StatusCode >= 500)
             {
-                var prefix = target.PathPrefix;
-                var path = string.IsNullOrEmpty(prefix)
-                    ? uri.PathAndQuery
-                    : prefix + uri.PathAndQuery;
-                var b = new UriBuilder(uri)
-                {
-                    Host = target.Host,
-                    Path = "",
-                    Query = "",
-                };
-                b.Path = path.StartsWith('/') ? path : "/" + path;
-                request.RequestUri = b.Uri;
+                resp.Dispose();
+                return await SendOriginalAsync(original, request, cancellationToken).ConfigureAwait(false);
             }
+            return resp;
         }
-        return base.SendAsync(request, cancellationToken);
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+                                   && ex is HttpRequestException
+                                   or System.Net.Sockets.SocketException
+                                   or InvalidOperationException)
+        {
+            return await SendOriginalAsync(original, request, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendOriginalAsync(
+        Uri? original, HttpRequestMessage request, CancellationToken ct)
+    {
+        if (original == null) throw new HttpRequestException("镜像与官方源均不可用");
+        var retry = new HttpRequestMessage(request.Method, original)
+        {
+            Content = request.Content,
+        };
+        return await base.SendAsync(retry, ct).ConfigureAwait(false);
     }
 }

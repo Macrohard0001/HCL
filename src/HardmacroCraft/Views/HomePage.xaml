@@ -53,29 +53,14 @@
             </Grid>
         </Border>
 
-        <!-- 中部弹性区：最近启动 + 日志（运行实例已迁移到「实例管理」页；日志卡展开时撑满剩余空间） -->
+        <!-- 中部弹性区：游戏日志（v0.1.14：最近启动卡已迁移到「版本管理」页，日志卡展开时撑满剩余空间） -->
         <Grid Grid.Row="2" Margin="0,8,0,0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- 最近启动（快捷启动） -->
-            <Border x:Name="CardRecent" Grid.Row="0" Style="{StaticResource HmCard}" Margin="0,8,0,0" Visibility="Collapsed"
-                    Padding="14,8">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <ui:SymbolIcon Symbol="History24" FontSize="15"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{DynamicResource S.Home.Recent}" FontWeight="Medium" FontSize="12"
-                                   Margin="6,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <WrapPanel x:Name="PnlRecent" />
-                </StackPanel>
-            </Border>
-
             <!-- 游戏日志（默认折叠成一条标题栏；展开后撑满本区剩余空间；主容器不滚动） -->
-            <Border x:Name="CardLog" Grid.Row="1" Style="{StaticResource HmCard}" Padding="14,8"
+            <Border x:Name="CardLog" Grid.Row="0" Style="{StaticResource HmCard}" Padding="14,8"
                     Margin="0,8,0,0" VerticalAlignment="Top">
                 <Grid>
                     <Grid.RowDefinitions>

@@ -2432,18 +2432,18 @@ try
         LaunchProgressCalc.Smooth(100, 10) >= 10 && LaunchProgressCalc.Smooth(100, 10) < 100);
     Check("平滑：夹紧非法输入", LaunchProgressCalc.Smooth(-5, 150) >= 0 && LaunchProgressCalc.Smooth(-5, 150) <= 100);
 
-    // 32.3 版本默认命名（对齐主流启动器风格）
+    // 32.3 版本默认命名（v0.1.14 彻底对齐 PCL：装载器默认名不再包含游戏版本前缀）
     Check("原版默认名 = MC 版本", VersionNaming.DefaultName("1.20.1", "vanilla", null) == "1.20.1");
-    Check("Forge 默认名（下划线）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
-    Check("NeoForge 默认名", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "1.21.0-NeoForge_21.0.67");
-    Check("Fabric 默认名（空格）", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9") == "1.20.1-Fabric 0.16.9");
-    Check("LegacyFabric 默认名", VersionNaming.DefaultName("1.12.2", "legacyfabric", "1.13.1") == "1.12.2-LegacyFabric 1.13.1");
-    Check("Quilt 默认名", VersionNaming.DefaultName("1.20.1", "quilt", "0.26.0") == "1.20.1-Quilt 0.26.0");
-    Check("LiteLoader 默认名（无版本后缀）", VersionNaming.DefaultName("1.12.2", "liteloader", "1.12.2-SNAPSHOT") == "1.12.2-LiteLoader");
-    Check("未知加载器回落 <mc>-<kind>_<v>", VersionNaming.DefaultName("1.20.1", "forbric", "0.3.1") == "1.20.1-forbric_0.3.1");
-    Check("空 MC 版本返回空串", VersionNaming.DefaultName("", "forge", "47.2.0") == "");
+    Check("Forge 默认名（无游戏版本前缀）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "Forge 47.2.0");
+    Check("NeoForge 默认名", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "NeoForge 21.0.67");
+    Check("Fabric 默认名", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9") == "Fabric 0.16.9");
+    Check("LegacyFabric 默认名", VersionNaming.DefaultName("1.12.2", "legacyfabric", "1.13.1") == "Legacy Fabric 1.13.1");
+    Check("Quilt 默认名", VersionNaming.DefaultName("1.20.1", "quilt", "0.26.0") == "Quilt 0.26.0");
+    Check("LiteLoader 默认名（无版本后缀）", VersionNaming.DefaultName("1.12.2", "liteloader", "1.12.2-SNAPSHOT") == "LiteLoader");
+    Check("未知加载器回落 <kind> <v>", VersionNaming.DefaultName("1.20.1", "forbric", "0.3.1") == "forbric 0.3.1");
+    Check("OptiFine 默认名（无游戏版本前缀）", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "OptiFine HD_U_I7");
     Check("IsDefaultOrEmpty 判定", VersionNaming.IsDefaultOrEmpty("", "1.20.1", "forge", "47.2.0")
-        && VersionNaming.IsDefaultOrEmpty("1.20.1-Forge_47.2.0", "1.20.1", "forge", "47.2.0")
+        && VersionNaming.IsDefaultOrEmpty("Forge 47.2.0", "1.20.1", "forge", "47.2.0")
         && !VersionNaming.IsDefaultOrEmpty("我的整合", "1.20.1", "forge", "47.2.0"));
 
     // 32.4 相对路径增强（便携化迁移）
@@ -2594,13 +2594,13 @@ try
         && deduped.Count(a => AccountKeys.KeyOf(a) == AccountKeys.KeyOf(a1)) == 1
         && deduped.First(a => a.Type == "authlib").RefreshToken == "new");
 
-    // 34.3 VersionNaming：Fabric +build 剥离（PCL GetSelectName 同款）
+    // 34.3 VersionNaming：Fabric +build 剥离（PCL GetSelectName 同款）+ v0.1.14 无游戏版本前缀
     Check("Fabric +build 剥离", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1")
-        == "1.20.1-Fabric 0.16.9.1",
+        == "Fabric 0.16.9.1",
         VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1"));
-    Check("Forge 命名不变", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
-    Check("NeoForge 命名不变", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "1.21.0-NeoForge_21.0.67");
-    Check("OptiFine 命名不变", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
+    Check("Forge 命名不变", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "Forge 47.2.0");
+    Check("NeoForge 命名不变", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "NeoForge 21.0.67");
+    Check("OptiFine 命名不变", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "OptiFine HD_U_I7");
     Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
 
     // 34.4 内存口径：专用工作集纯函数（Valid=1 且 Shared=0 计私有页）
@@ -2648,6 +2648,41 @@ try
         && th2.ConsumePending(t0.AddMilliseconds(1001)) == true);
 }
 catch (Exception ex) { Check("第 34 节 v0.1.13（账号键 / 命名 / 内存 / 节流尾沿）", false, ex.Message); }
+
+// ==================== 第 35 节 v0.1.14：下载源 / 镜像重写 / 命名去游戏版本前缀 ====================
+try
+{
+    // 35.1 下载源生效值推导（DownloadSource 缺省时按旧 UseMirror 推导）
+    var s35a = new AppSettings();
+    Check("下载源默认 auto", s35a.EffectiveDownloadSource == "auto");
+    s35a.UseMirror = false;
+    Check("旧 UseMirror=false → official", s35a.EffectiveDownloadSource == "official");
+    s35a.DownloadSource = "mirror";
+    Check("显式 mirror 覆盖旧字段", s35a.EffectiveDownloadSource == "mirror");
+    s35a.DownloadSource = "bogus";
+    Check("非法值回落 UseMirror 推导", s35a.EffectiveDownloadSource == "official");
+
+    // 35.2 镜像重写纯函数（Mojang 域名 → BMCLAPI；非镜像域名不动）
+    Check("重写 libraries → /maven 前缀",
+        MirrorHttpHandler.Rewrite("https://libraries.minecraft.net/net/minecraft/a.jar")
+            == "https://bmclapi2.bangbang93.com/maven/net/minecraft/a.jar");
+    Check("重写 assets → /assets 前缀",
+        MirrorHttpHandler.Rewrite("https://resources.download.minecraft.net/ab/cd")
+            == "https://bmclapi2.bangbang93.com/assets/ab/cd");
+    Check("重写 piston-meta（原路径）",
+        MirrorHttpHandler.Rewrite("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
+            == "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json");
+    Check("Modrinth 不镜像", MirrorHttpHandler.Rewrite("https://api.modrinth.com/v2/project") == null);
+    Check("IsMirrorable 判定", MirrorHttpHandler.IsMirrorable("https://piston-data.mojang.com/x.jar")
+        && !MirrorHttpHandler.IsMirrorable("https://api.modrinth.com/v2")
+        && !MirrorHttpHandler.IsMirrorable("not-a-url"));
+
+    // 35.3 命名去游戏版本前缀后的回归（Forge 各形态 / 空版本号回落）
+    Check("Forge 无版本号回落", VersionNaming.DefaultName("1.20.1", "forge", null) == "Forge");
+    Check("Forge +build 剥离同样生效", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0+build.1") == "Forge 47.2.0.1");
+    Check("vanilla 空名仍返回空串", VersionNaming.DefaultName("", "vanilla", null) == "");
+}
+catch (Exception ex) { Check("第 35 节 v0.1.14（下载源 / 镜像 / 命名）", false, ex.Message); }
 
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");

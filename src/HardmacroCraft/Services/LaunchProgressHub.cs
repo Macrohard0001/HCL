@@ -68,6 +68,15 @@ public static class LaunchProgressHub
         Fire();
     }
 
+    /// <summary>v0.1.14：游戏实例退出时更新空闲终态文案 —— 此前退出后仍显示「游戏运行中」，
+    /// 启动器文案与实际状态不符（实例看门狗在游戏进程退出时调用）。</summary>
+    public static void SetIdleLine(string line)
+    {
+        if (Current.Running) return; // 正在进行的启动流程优先，不覆盖
+        LastProgressLine = line;
+        Fire();
+    }
+
     public static void RequestCancel() => CancelRequested?.Invoke();
 
     private static void Fire() => Changed?.Invoke();

@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.1.13";
+    public const string LauncherVersion = "0.1.14";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -59,10 +59,24 @@ public class LauncherService : IDisposable
     private static Task RunInInstallGateAsync(CancellationToken ct, Func<Task> work)
         => RunInInstallGateAsync<object?>(ct, async () => { await work(); return null; });
 
+    /// <summary>v0.1.14：镜像处理器引用（下载源方案随设置实时切换）。</summary>
+    public MirrorHttpHandler? Mirror { get; private set; }
+
     public LauncherService()
     {
-        Http = new HttpClient(new MirrorHttpHandler());
+        var mirror = new MirrorHttpHandler();
+        Mirror = mirror;
+        mirror.Mode = AppSettings.Instance.EffectiveDownloadSource; // auto / mirror / official
+        Http = new HttpClient(mirror);
         Http.DefaultRequestHeaders.UserAgent.ParseAdd($"HardmacroCraftLauncher/{LauncherVersion}");
+        // 设置保存后实时应用新下载源（PCL 同款：切换下载源立即生效，无需重启）
+        AppSettings.Saved += ApplyDownloadSource;
+    }
+
+    private void ApplyDownloadSource()
+    {
+        if (Mirror != null)
+            Mirror.Mode = AppSettings.Instance.EffectiveDownloadSource;
     }
 
     public string RootPath => AppSettings.Instance.GameRoot;
