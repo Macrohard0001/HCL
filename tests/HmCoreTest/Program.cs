@@ -2432,18 +2432,22 @@ try
         LaunchProgressCalc.Smooth(100, 10) >= 10 && LaunchProgressCalc.Smooth(100, 10) < 100);
     Check("平滑：夹紧非法输入", LaunchProgressCalc.Smooth(-5, 150) >= 0 && LaunchProgressCalc.Smooth(-5, 150) <= 100);
 
-    // 32.3 版本默认命名（v0.1.14 彻底对齐 PCL：装载器默认名不再包含游戏版本前缀）
+    // 32.3 版本默认命名（v0.15.1 重新对齐 PCL 真实命名：<MC>-<加载器>_<版本>，
+    // 经 PCL 崩溃日志 "Launched Version: 1.20.1-Forge_47.4.0" 实证；v0.1.14 的无前缀方案作废）
     Check("原版默认名 = MC 版本", VersionNaming.DefaultName("1.20.1", "vanilla", null) == "1.20.1");
-    Check("Forge 默认名（无游戏版本前缀）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "Forge 47.2.0");
-    Check("NeoForge 默认名", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "NeoForge 21.0.67");
-    Check("Fabric 默认名", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9") == "Fabric 0.16.9");
-    Check("LegacyFabric 默认名", VersionNaming.DefaultName("1.12.2", "legacyfabric", "1.13.1") == "Legacy Fabric 1.13.1");
-    Check("Quilt 默认名", VersionNaming.DefaultName("1.20.1", "quilt", "0.26.0") == "Quilt 0.26.0");
-    Check("LiteLoader 默认名（无版本后缀）", VersionNaming.DefaultName("1.12.2", "liteloader", "1.12.2-SNAPSHOT") == "LiteLoader");
-    Check("未知加载器回落 <kind> <v>", VersionNaming.DefaultName("1.20.1", "forbric", "0.3.1") == "forbric 0.3.1");
-    Check("OptiFine 默认名（无游戏版本前缀）", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "OptiFine HD_U_I7");
+    Check("Forge 默认名（PCL：<MC>-Forge_<v>）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
+    Check("NeoForge 默认名", VersionNaming.DefaultName("1.20.1", "neoforge", "20.1.80") == "1.20.1-NeoForge_20.1.80");
+    Check("Fabric 默认名", VersionNaming.DefaultName("1.19.2", "fabric", "0.16.9") == "1.19.2-Fabric_0.16.9");
+    Check("LegacyFabric 默认名", VersionNaming.DefaultName("1.12.2", "legacyfabric", "1.13.1") == "1.12.2-LegacyFabric_1.13.1");
+    Check("Quilt 默认名", VersionNaming.DefaultName("1.20.1", "quilt", "0.26.0") == "1.20.1-Quilt_0.26.0");
+    Check("LiteLoader 默认名（无版本后缀）", VersionNaming.DefaultName("1.12.2", "liteloader", "1.12.2-SNAPSHOT") == "1.12.2-LiteLoader");
+    Check("未知加载器回落 <kind>_<v>", VersionNaming.DefaultName("1.20.1", "forbric", "0.3.1") == "1.20.1-forbric_0.3.1");
+    Check("OptiFine 默认名（PCL：<MC>-OptiFine_HD_U_I7）", VersionNaming.DefaultName("1.12.2", "optifine", "1.12.2 HD U I7") == "1.12.2-OptiFine_HD_U_I7");
+    Check("MC 版本缺失回落（无开头连字符）", VersionNaming.DefaultName("", "forge", "47.2.0") == "Forge_47.2.0"
+        && VersionNaming.DefaultName("", "forge", null) == "Forge");
+    Check("装载器版本缺失回落", VersionNaming.DefaultName("1.20.1", "forge", null) == "1.20.1-Forge");
     Check("IsDefaultOrEmpty 判定", VersionNaming.IsDefaultOrEmpty("", "1.20.1", "forge", "47.2.0")
-        && VersionNaming.IsDefaultOrEmpty("Forge 47.2.0", "1.20.1", "forge", "47.2.0")
+        && VersionNaming.IsDefaultOrEmpty("1.20.1-Forge_47.2.0", "1.20.1", "forge", "47.2.0")
         && !VersionNaming.IsDefaultOrEmpty("我的整合", "1.20.1", "forge", "47.2.0"));
 
     // 32.4 相对路径增强（便携化迁移）
@@ -2594,14 +2598,21 @@ try
         && deduped.Count(a => AccountKeys.KeyOf(a) == AccountKeys.KeyOf(a1)) == 1
         && deduped.First(a => a.Type == "authlib").RefreshToken == "new");
 
-    // 34.3 VersionNaming：Fabric +build 剥离（PCL GetSelectName 同款）+ v0.1.14 无游戏版本前缀
+    // 34.3 VersionNaming：Fabric +build 剥离（PCL GetSelectName 同款）+ v0.15.1 PCL 命名回归
     Check("Fabric +build 剥离", VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1")
-        == "Fabric 0.16.9.1",
+        == "1.20.1-Fabric_0.16.9.1",
         VersionNaming.DefaultName("1.20.1", "fabric", "0.16.9+build.1"));
-    Check("Forge 命名不变", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "Forge 47.2.0");
-    Check("NeoForge 命名不变", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "NeoForge 21.0.67");
-    Check("OptiFine 命名不变", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "OptiFine HD_U_I7");
+    Check("Forge 命名（PCL 下划线风格）", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0") == "1.20.1-Forge_47.2.0");
+    Check("NeoForge 命名", VersionNaming.DefaultName("1.21.0", "neoforge", "21.0.67") == "1.21.0-NeoForge_21.0.67");
+    Check("OptiFine 命名", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
     Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
+
+    // 34.5 v0.15.1 下载停滞看门狗（纯逻辑判定）
+    var now = Environment.TickCount64;
+    Check("看门狗：刚有进展不触发", !LauncherService.IsStalled(now, now) && !LauncherService.IsStalled(now - 40_000, now));
+    Check("看门狗：45 秒无进展触发", LauncherService.IsStalled(now - 45_001, now));
+    Check("看门狗：边界（恰好 45 秒不触发）", !LauncherService.IsStalled(now - 45_000, now));
+    Check("看门狗：自定义超时", LauncherService.IsStalled(now - 5_000, now, 4_000));
 
     // 34.4 内存口径：专用工作集纯函数（Valid=1 且 Shared=0 计私有页）
     var flags = new ulong[]
@@ -2678,8 +2689,8 @@ try
         && !MirrorHttpHandler.IsMirrorable("not-a-url"));
 
     // 35.3 命名去游戏版本前缀后的回归（Forge 各形态 / 空版本号回落）
-    Check("Forge 无版本号回落", VersionNaming.DefaultName("1.20.1", "forge", null) == "Forge");
-    Check("Forge +build 剥离同样生效", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0+build.1") == "Forge 47.2.0.1");
+    Check("Forge 无版本号回落（PCL 前缀风格）", VersionNaming.DefaultName("1.20.1", "forge", null) == "1.20.1-Forge");
+    Check("Forge +build 剥离同样生效", VersionNaming.DefaultName("1.20.1", "forge", "47.2.0+build.1") == "1.20.1-Forge_47.2.0.1");
     Check("vanilla 空名仍返回空串", VersionNaming.DefaultName("", "vanilla", null) == "");
 }
 catch (Exception ex) { Check("第 35 节 v0.1.14（下载源 / 镜像 / 命名）", false, ex.Message); }

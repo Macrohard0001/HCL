@@ -666,4 +666,8 @@
     <sys:String x:Key="S.Msu.PresetEmptyHint">预设已创建（空清单）。点「添加条目」搜索并挑选要安装的内容。</sys:String>
     <sys:String x:Key="S.Msu.NeedPreset">请先在左侧选择一个预设，或新建一个预设。</sys:String>
     <sys:String x:Key="S.Msu.ItemsAdded">已向预设「{0}」添加 {1} 个条目。</sys:String>
+    <!-- ==================== v0.15.1：加载器版本备注 / 推荐信息 ==================== -->
+    <sys:String x:Key="S.Dl.LoaderTipLatest">推荐 {0}（最新版本，兼容与稳定性修复最全）</sys:String>
+    <sys:String x:Key="S.Dl.LoaderTipOldest">最早支持的版本（较旧，不建议日常使用）</sys:String>
+    <sys:String x:Key="S.Dl.CompatRecommend">，推荐 {0}（最早 {1}）</sys:String>
 </ResourceDictionary>

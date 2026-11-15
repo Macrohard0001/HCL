@@ -45,7 +45,7 @@ public partial class LoaderPickerWindow : FluentWindow
         if (_nameEdited || _installing) return;
         var row = Selected;
         if (row == null) return;
-        var loaderVersion = CmbLoaderVersion.SelectedItem as string;
+        var loaderVersion = SelectedLoaderVersion;
         if (loaderVersion == FindRes("S.Dl.LoaderLatest")) loaderVersion = null;
         var name = VersionNaming.DefaultName(_mcVersion, row.Id, loaderVersion);
         if (string.IsNullOrEmpty(name) || TxtVersionName.Text == name) return;
@@ -54,10 +54,15 @@ public partial class LoaderPickerWindow : FluentWindow
         _updatingName = false;
     }
 
+    /// <summary>v0.15.1：当前加载器已拉取的版本列表（降序，第一个 = 最新），供推荐备注用。</summary>
+    private string[] _loaderVersions = Array.Empty<string>();
+
     /// <summary>
     /// v0.1.14：加载器版本兼容说明（随加载器 / 版本选择实时刷新）——
     /// 显示该 MC 版本所需的 Java 大版本与可用范围（PCL 安装页同款信息位），
     /// 用户装错 Java 的「启动即崩」在安装前就能看到。
+    /// v0.15.1：同时备注当前游戏版本支持的加载器版本范围与推荐版本（PCL 下拉框旁的
+    /// 推荐信息位）——「推荐 最新版」= 列表第一个（最新），「最早支持」= 列表最后一个。
     /// </summary>
     private void UpdateCompatHint()
     {
@@ -71,9 +76,17 @@ public partial class LoaderPickerWindow : FluentWindow
             var javaText = min >= max
                 ? string.Format(FindRes("S.Dl.CompatJavaOnly") ?? "需要 Java {0}", min)
                 : string.Format(FindRes("S.Dl.CompatJavaRange") ?? "需要 Java {0}+，可使用 Java {0}–{1}", min, max);
+            var recommend = "";
+            if (row.Id != "vanilla" && _loaderVersions.Length > 0)
+            {
+                // 「最新版」= 列表第一项（推荐）；最早支持 = 列表最后一项
+                recommend = string.Format(
+                    FindRes("S.Dl.CompatRecommend") ?? "，推荐 {0}（最早 {1}）",
+                    _loaderVersions[0], _loaderVersions[^1]);
+            }
             TxtLoaderCompat.Text = string.Format(
                 FindRes("S.Dl.CompatLine") ?? "{0} · 仅适用于 Minecraft {1} · {2}",
-                row.Name, _mcVersion, javaText);
+                row.Name + recommend, _mcVersion, javaText);
         }
         catch { TxtLoaderCompat.Text = ""; }
     }
@@ -136,6 +149,11 @@ public partial class LoaderPickerWindow : FluentWindow
 
     private LoaderRow? Selected => LstLoaders.SelectedItem as LoaderRow;
 
+    /// <summary>v0.1.11：切换加载器版本时同步刷新默认版本名（PCL 同款）。</summary>
+    private string? SelectedLoaderVersion
+        => (CmbLoaderVersion.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content as string
+           ?? CmbLoaderVersion.SelectedItem as string;
+
     // ---------- 加载器版本 ----------
     private async void LstLoaders_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
@@ -186,11 +204,30 @@ public partial class LoaderPickerWindow : FluentWindow
             };
             if (vers.Length == 0)
             {
+                _loaderVersions = Array.Empty<string>();
                 TxtStatus.Text = string.Format(FindRes("S.Dl.LoaderNone"), row.Name, _mcVersion);
                 return;
             }
-            var items = new List<string> { FindRes("S.Dl.LoaderLatest") };
-            items.AddRange(vers);
+            _loaderVersions = vers;
+            // v0.15.1：每个加载器版本带备注（tooltip）—— 最新 = 推荐，最老 = 最早支持（PCL 同款信息位）
+            var tipLatest = FindRes("S.Dl.LoaderTipLatest");
+            var tipOldest = FindRes("S.Dl.LoaderTipOldest");
+            var items = new List<object>
+            {
+                new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = FindRes("S.Dl.LoaderLatest"),
+                    ToolTip = string.Format(tipLatest, vers[0]),
+                },
+            };
+            for (var i = 0; i < vers.Length; i++)
+            {
+                items.Add(new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = vers[i],
+                    ToolTip = i == vers.Length - 1 ? tipOldest : null,
+                });
+            }
             CmbLoaderVersion.ItemsSource = items;
             CmbLoaderVersion.SelectedIndex = 0;
             TxtStatus.Text = string.Format(FindRes("S.Dl.LoaderFetched"), vers.Length);
@@ -201,6 +238,7 @@ public partial class LoaderPickerWindow : FluentWindow
         {
             // 版本列表拉取失败：仍允许尝试安装（默认最新），给出提示
             TxtStatus.Text = FindRes("S.Dl.LoaderFetchFail") + ex.Message;
+            _loaderVersions = Array.Empty<string>();
             CmbLoaderVersion.ItemsSource = new[] { FindRes("S.Dl.LoaderLatest") };
             CmbLoaderVersion.SelectedIndex = 0;
             // Forge / NeoForge 必须指定版本，拉不到列表就不能盲装；其余可默认最新
@@ -213,7 +251,7 @@ public partial class LoaderPickerWindow : FluentWindow
     {
         var row = Selected;
         if (row == null || _installing) return;
-        if (CmbLoaderVersion.IsEnabled && CmbLoaderVersion.SelectedItem is not string) return;
+        if (CmbLoaderVersion.IsEnabled && SelectedLoaderVersion == null) return;
 
         _installing = true;
         _cts = new CancellationTokenSource();
@@ -227,7 +265,7 @@ public partial class LoaderPickerWindow : FluentWindow
         PbInstall.Value = 0;
         TxtStatus.Text = string.Format(FindRes("S.Dl.LoaderInstalling"), row.Name, _mcVersion);
 
-        var loaderVersion = CmbLoaderVersion.SelectedItem as string;
+        var loaderVersion = SelectedLoaderVersion;
         if (loaderVersion == FindRes("S.Dl.LoaderLatest")) loaderVersion = null;
 
         _centerTask = DownloadTaskService.Instance.StartCancellableKeyed(
@@ -240,11 +278,14 @@ public partial class LoaderPickerWindow : FluentWindow
         var meter = new SpeedMeter();
 
         // 详细进度（fix3）：文件数百分比 + 字节 / 速度；后台模式只更新任务中心
+        // v0.15.1：进度同时写入任务的 SpeedBps / CurrentFile / 字节数 —— 此前安装链路只走
+        // Update()（只更新百分比与 Detail），任务中心卡片与详情页的「下载速度」「正在下载」
+        // 两行对游戏 / 装载器安装永远空白；文案对齐 PCL（「正在下载文件（x/y）：名称」）。
         var fileProgress = new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(p =>
             Dispatcher.Invoke(() =>
             {
                 var pct = p.TotalTasks > 0 ? p.ProgressedTasks * 100.0 / p.TotalTasks : -1;
-                var text = $"[{p.ProgressedTasks}/{p.TotalTasks}] {p.Name}";
+                var text = $"正在下载文件（{p.ProgressedTasks}/{p.TotalTasks}）：{p.Name}";
                 if (pct >= 0)
                 {
                     PbInstall.IsIndeterminate = false;
@@ -252,6 +293,7 @@ public partial class LoaderPickerWindow : FluentWindow
                 }
                 if (!_backgrounded) TxtStatus.Text = text;
                 DownloadTaskService.Instance.Update(_centerTask, Math.Max(pct, 0), text);
+                _centerTask.SetProgress(Math.Max(pct, 0), p.Name);
             }));
         var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
             Dispatcher.Invoke(() =>
@@ -270,14 +312,15 @@ public partial class LoaderPickerWindow : FluentWindow
                 }
                 if (!_backgrounded) TxtStatus.Text = text;
                 DownloadTaskService.Instance.Update(_centerTask, pct, text);
+                _centerTask.SetProgress(pct, null, speed, p.ProgressedBytes, p.TotalBytes);
             }));
 
         try
         {
-            // v0.1.10：安装阶段文案更详细（参考 PCL 的分段提示）
+            // v0.1.10：安装阶段文案对齐 PCL 的分段提示
             _centerTask.AppendLog($"开始安装 {row.Name} {_mcVersion}" +
                 (loaderVersion != null ? "（装载器版本 " + loaderVersion + "）" : ""));
-            _centerTask.AppendLog("阶段 1/2：下载并处理装载器安装器（安装器包 + 运行处理链）...");
+            _centerTask.AppendLog("阶段 1/2：下载装载器安装器并运行处理链...");
             switch (row.Id)
             {
                 case "vanilla":
@@ -316,7 +359,7 @@ public partial class LoaderPickerWindow : FluentWindow
                     .FirstOrDefault(v => !versionsBefore.Contains(v));
                 if (installedId != null)
                 {
-                    _centerTask.AppendLog("阶段 2/2：下载游戏文件（原版主 jar / 库 / 资源，装完即可直接启动）...");
+                    _centerTask.AppendLog("阶段 2/2：下载游戏必要文件（主文件 / 支持库 / 资源文件，装完即可直接启动）...");
                     if (!_backgrounded)
                         TxtStatus.Text = FindRes("S.Dl.GameFiles");
                     DownloadTaskService.Instance.Update(_centerTask, 0, FindRes("S.Dl.GameFiles"));

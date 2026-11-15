@@ -666,4 +666,8 @@
     <sys:String x:Key="S.Msu.PresetEmptyHint">Preset created (empty list). Use "Add items" to search and pick what to install.</sys:String>
     <sys:String x:Key="S.Msu.NeedPreset">Select a preset on the left first, or create a new one.</sys:String>
     <sys:String x:Key="S.Msu.ItemsAdded">Added {1} item(s) to preset "{0}".</sys:String>
+    <!-- ==================== v0.15.1: loader version notes / recommendation ==================== -->
+    <sys:String x:Key="S.Dl.LoaderTipLatest">Recommended {0} (latest build, newest stability fixes)</sys:String>
+    <sys:String x:Key="S.Dl.LoaderTipOldest">Earliest supported build (old, not recommended for daily use)</sys:String>
+    <sys:String x:Key="S.Dl.CompatRecommend">, recommended {0} (earliest {1})</sys:String>
 </ResourceDictionary>

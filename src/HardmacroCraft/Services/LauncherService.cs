@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.15.0";
+    public const string LauncherVersion = "0.15.1";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -106,6 +106,12 @@ public class LauncherService : IDisposable
         {
             UseLocalManifestWhenError = true,
         };
+        // v0.15.1：并行下载安装（速度优化）。默认的 BasicGameInstaller 逐文件串行下载，
+        // 全量安装（主 jar / 数百个 libraries / 数千个 assets）很慢；ParallelGameInstaller
+        // 多连接并行校验 + 下载，并行度按下载线程数设置推导（64 线程 → 8 并行，4–16 钳制，BMCLAPI 对单 IP 并发敏感，保守起步）。
+        var parallel = Math.Clamp(AppSettings.Instance.DownloadThreads / 8, 4, 16);
+        parameters.GameInstaller = new CmlLib.Core.Installers.ParallelGameInstaller(
+            parallel, parallel, 64, http ?? Http);
         return new MinecraftLauncher(parameters);
     }
 
@@ -151,12 +157,86 @@ public class LauncherService : IDisposable
     /// <summary>不带闸门的安装实现（供已持闸门的调用方复用，避免 SemaphoreSlim 嵌套死锁）。
     /// v0.1.11：网络类异常自动重试 2 次 —— 修复「安装失败： Received an unexpected EOF
     /// or 0 bytes from the transport stream」等一次网络抖动即整体失败的问题
-    /// （CmlLib 内置安装器可重入：重试只补缺缺失文件，不会重复下载已完整文件）。</summary>
+    /// （CmlLib 内置安装器可重入：重试只补缺缺失文件，不会重复下载已完整文件）。
+    /// v0.15.1：内置下载停滞看门狗 —— 45 秒无任何进度（字节 / 文件事件）即断开当前
+    /// 连接按瞬时网络错误重试，修复镜像 / 官方源偶发挂流导致的「下载游戏卡住」。
+    /// 注意：看门狗在**每次重试尝试内部**独立建立 —— 共享的 linked CTS 一旦被看门狗
+    /// 取消，后续重试会拿着已取消的令牌秒失败（首版实现踩过的坑，b1.2_01 联网测试抓到）。</summary>
     private Task InstallCoreAsync(string versionName,
         IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
         IProgress<CmlLib.Core.ByteProgress>? byteProgress, CancellationToken ct = default)
-        => WithNetRetryAsync(2,
-            _ => Launcher.InstallAsync(versionName, fileProgress, byteProgress, ct).AsTask());
+    {
+        // 停滞时间戳：任一进度事件刷新；跨重试尝试共享，每个尝试开始时重置
+        var lastTick = Environment.TickCount64;
+        var watchedFile = fileProgress == null ? null
+            : new ProgressWatch<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(
+                fileProgress, () => Interlocked.Exchange(ref lastTick, Environment.TickCount64));
+        var watchedByte = byteProgress == null ? null
+            : new ProgressWatch<CmlLib.Core.ByteProgress>(
+                byteProgress, () => Interlocked.Exchange(ref lastTick, Environment.TickCount64));
+        long GetTick() => Interlocked.Read(ref lastTick);
+        return WithNetRetryAsync(2, _ =>
+            InstallSingleAttemptAsync(versionName, watchedFile, watchedByte, ct,
+                () => Interlocked.Exchange(ref lastTick, Environment.TickCount64), GetTick));
+    }
+
+    /// <summary>v0.15.1：单次安装尝试（独立 linked CTS + 独立看门狗，45s 停滞即断开）。</summary>
+    private async Task InstallSingleAttemptAsync(string versionName,
+        IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
+        IProgress<CmlLib.Core.ByteProgress>? byteProgress,
+        CancellationToken ct, Action resetTick, Func<long> getTick)
+    {
+        resetTick(); // 重试尝试开始：重置停滞计时
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var watchdog = Task.Run(async () =>
+        {
+            try
+            {
+                while (true)
+                {
+                    await Task.Delay(10_000, linked.Token);
+                    if (IsStalled(getTick(), Environment.TickCount64))
+                    {
+                        linked.Cancel();
+                        return;
+                    }
+                }
+            }
+            catch (OperationCanceledException) { /* 正常收尾 */ }
+        }, CancellationToken.None);
+
+        try
+        {
+            await Launcher.InstallAsync(versionName, fileProgress, byteProgress, linked.Token).AsTask();
+        }
+        catch (OperationCanceledException) when (linked.IsCancellationRequested && !ct.IsCancellationRequested)
+        {
+            // 看门狗断开（非用户取消）→ 转成超时异常，走既有瞬时错误重试 / 失败提示路径
+            throw new TimeoutException("下载停滞超过 45 秒，看门狗已断开当前连接");
+        }
+        finally
+        {
+            try { linked.Cancel(); } catch { }
+            try { await watchdog; } catch { }
+        }
+    }
+
+    /// <summary>v0.15.1：停滞判定（纯逻辑，进测试）—— 距上次进度超过 45 秒即视为挂流。</summary>
+    internal static bool IsStalled(long lastProgressTick, long nowTick, long timeoutMs = 45_000)
+        => nowTick - lastProgressTick > timeoutMs;
+
+    /// <summary>v0.15.1：进度包装 —— 转发原始 IProgress 并喂狗（刷新停滞时间戳）。</summary>
+    private sealed class ProgressWatch<T> : IProgress<T>
+    {
+        private readonly IProgress<T> _inner;
+        private readonly Action _touch;
+        public ProgressWatch(IProgress<T> inner, Action touch) { _inner = inner; _touch = touch; }
+        public void Report(T value)
+        {
+            _touch();
+            _inner?.Report(value);
+        }
+    }
 
     /// <summary>
     /// v0.1.11：网络类异常重试包装（指数退避）。仅对「瞬时网络错误」重试 ——
