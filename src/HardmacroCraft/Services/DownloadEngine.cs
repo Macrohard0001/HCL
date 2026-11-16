@@ -110,13 +110,37 @@ public static class DownloadEngine
 
         var buf = new byte[1 << 16];
         int read;
-        while ((read = await src.ReadAsync(buf, ct)) > 0)
+        while ((read = await ReadWithStallTimeoutAsync(src, buf, ct)) > 0)
         {
             await dst.WriteAsync(buf.AsMemory(0, read), ct);
             byteProgress?.Report(read);
         }
         await dst.FlushAsync(ct);
         return true;
+    }
+
+    /// <summary>单次读取停滞超时（纯逻辑参数进测试）。ResponseHeadersRead 后的流读取
+    /// 不受 HttpClient.Timeout 约束 —— 服务器挂流时 ReadAsync 永不返回，批量的最后
+    /// 几个文件在此拖死整批（「下载快结束的时候经常卡住」的根因）。</summary>
+    internal const int ReadStallTimeoutMs = 30_000;
+
+    /// <summary>
+    /// v0.15.2：带停滞超时的单次流读取 —— 30 秒读不到任何字节即抛 TimeoutException，
+    /// 走外层重试（Range 断点续传接着下）。用户取消（外层 ct）仍正常抛出取消。
+    /// </summary>
+    internal static async Task<int> ReadWithStallTimeoutAsync(
+        Stream src, byte[] buf, CancellationToken ct, int timeoutMs = ReadStallTimeoutMs)
+    {
+        using var stallCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        stallCts.CancelAfter(timeoutMs);
+        try
+        {
+            return await src.ReadAsync(buf, stallCts.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException($"连接停滞超过 {timeoutMs / 1000} 秒，已断开（将断点续传重试）");
+        }
     }
 
     /// <summary>校验已下载文件，返回 null = 通过，否则返回失败原因描述。</summary>

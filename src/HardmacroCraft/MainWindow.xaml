@@ -9,7 +9,7 @@
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Mica"
-                 Icon="pack://application:,,,/Assets/icon.ico">
+                 Icon="pack://application:,,,/Assets/icon.jpg">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -19,7 +19,7 @@
 
         <ui:TitleBar Grid.Row="0" Title="Hardmacro Craft Launcher" Padding="8,4">
             <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="pack://application:,,,/Assets/icon.png" />
+                <ui:ImageIcon Source="pack://application:,,,/Assets/icon.jpg" />
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 

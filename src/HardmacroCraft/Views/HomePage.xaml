@@ -95,7 +95,10 @@
                                  FontSize="12" Foreground="#FFE2E6EC" Background="Transparent"
                                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                                  VerticalAlignment="Stretch" BorderThickness="0" Margin="10,8,10,8"
-                                 TextChanged="TxtLog_TextChanged" />
+                                 TextChanged="TxtLog_TextChanged"
+                                 PreviewMouseLeftButtonDown="TxtLog_SelectionStart"
+                                 PreviewMouseLeftButtonUp="TxtLog_SelectionEnd"
+                                 LostMouseCapture="TxtLog_SelectionEnd" />
                     </Border>
                 </Grid>
             </Border>

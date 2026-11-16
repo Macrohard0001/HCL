@@ -345,9 +345,21 @@ public static class VersionSettingsWindow
             dirsRow.Children.Add(b);
         }
         var gameRootDir = AppSettings.Instance.GameRoot;
-        var verDir = Path.Combine(gameRootDir, "versions", version);
+        // v0.15.2：分目录版本 —— 嵌套目录（versions/{目录}/{id}/）下的版本目录需扫描解析；
+        // 同时给出 PCL 版本设置同款的信息行（所在目录 / 大小 / 更新时间）
+        var entry = App.LauncherService.GetInstalledVersionEntries()
+            .FirstOrDefault(x => x.Name == version);
+        var verDir = entry?.FolderPath ?? Path.Combine(gameRootDir, "versions", version);
         var isoOn = VersionSettingsStore.EffectiveIsolation(version, AppSettings.Instance.VersionIsolation);
         var baseDir = isoOn ? verDir : gameRootDir;
+        var infoParts = new List<string>();
+        if (entry != null && !string.IsNullOrEmpty(entry.FolderName))
+            infoParts.Add("所在目录 versions/" + entry.FolderName + "/" + entry.Name + "/");
+        if (entry is { SizeMb: > 0 }) infoParts.Add("占用 " + entry.SizeMb + " MB");
+        if (entry != null && entry.LastWrite != DateTime.MinValue)
+            infoParts.Add("更新于 " + entry.LastWrite.ToString("yyyy-MM-dd HH:mm"));
+        if (infoParts.Count > 0)
+            root.Children.Add(Hint("", "版本信息：" + string.Join(" · ", infoParts)));
         AddDirBtn("S.Vs.OpenVersionDir", "打开版本目录", () => OpenDir(verDir));
         AddDirBtn("S.Vs.OpenSavesDir", "打开存档", () => OpenDir(Path.Combine(baseDir, "saves")));
         AddDirBtn("S.Vs.OpenModsDir", "打开 Mod 目录", () => OpenDir(Path.Combine(baseDir, "mods")));

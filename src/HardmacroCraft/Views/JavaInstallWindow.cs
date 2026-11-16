@@ -143,6 +143,37 @@ public static class JavaInstallWindow
         };
         sp.Children.Add(txtDir);
 
+        // v0.15.2：下载路径支持「浏览」（对齐主流启动器）—— 目录选择对话框回填输入框
+        var dirRow = new System.Windows.Controls.Grid();
+        dirRow.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+        dirRow.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
+        System.Windows.Controls.Grid.SetColumn(txtDir, 0);
+        var btnBrowse = new Wpf.Ui.Controls.Button
+        {
+            Content = App.Current.TryFindResource("S.Common.Browse") as string ?? "浏览",
+            MinHeight = 32,
+            MinWidth = 72,
+            Margin = new Thickness(8, 0, 0, 0),
+            Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary,
+        };
+        btnBrowse.Click += (_, _) =>
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.OpenFolderDialog
+                {
+                    Title = "选择 Java 下载安装位置",
+                    InitialDirectory = System.IO.Directory.Exists(txtDir.Text?.Trim()) ? txtDir.Text!.Trim() : defaultDir,
+                };
+                if (dlg.ShowDialog() == true) txtDir.Text = dlg.FolderName;
+            }
+            catch { /* 对话框打不开时保持手输路径可用 */ }
+        };
+        System.Windows.Controls.Grid.SetColumn(btnBrowse, 1);
+        dirRow.Children.Add(txtDir);
+        dirRow.Children.Add(btnBrowse);
+        sp.Children.Add(dirRow);
+
         // 版本切换后，若用户未手动改过目录，默认目录跟随所选 Java 大版本
         var dirTouched = false;
         txtDir.TextChanged += (_, _) => dirTouched = true;

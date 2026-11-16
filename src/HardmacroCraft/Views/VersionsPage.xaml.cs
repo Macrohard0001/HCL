@@ -34,11 +34,22 @@ public partial class VersionsPage : Page
     {
         try
         {
-            _all = App.LauncherService.GetInstalledVersions()
-                .Select(v =>
+            // v0.15.2：分目录版本管理（对齐 PCL）—— 扫描含嵌套目录的版本条目，
+            // 列表按目录分组（默认目录 / versions/{目录}/），并展示大小与更新时间
+            _all = App.LauncherService.GetInstalledVersionEntries()
+                .Select(e =>
                 {
-                    var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, v);
-                    return new VersionItemViewModel(v, desc, BuildSubtitle(desc));
+                    var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, e.Name);
+                    var subtitle = BuildSubtitle(desc);
+                    var extras = new List<string>();
+                    if (!string.IsNullOrEmpty(e.FolderName))
+                        extras.Add("目录 versions/" + e.FolderName + "/");
+                    if (e.SizeMb > 0) extras.Add(e.SizeMb + " MB");
+                    if (e.LastWrite != default)
+                        extras.Add("更新于 " + e.LastWrite.ToString("yyyy-MM-dd HH:mm"));
+                    if (extras.Count > 0) subtitle += "\n" + string.Join(" · ", extras);
+                    return new VersionItemViewModel(e.Name, desc, subtitle,
+                        e.FolderName, e.FolderPath, e.SizeMb, e.LastWrite);
                 })
                 .ToList();
             ApplyFilter();
@@ -68,7 +79,10 @@ public partial class VersionsPage : Page
         var view = kw.Length == 0
             ? _all
             : _all.Where(i => i.Name.Contains(kw, StringComparison.OrdinalIgnoreCase)).ToList();
-        LstVersions.ItemsSource = view;
+        // v0.15.2：按目录分组展示（PCL 版本管理同款）—— 默认目录 / 各隔离目录
+        var grouped = new System.Windows.Data.ListCollectionView(view.Cast<object>().ToList());
+        grouped.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(VersionItemViewModel.GroupHeader)));
+        LstVersions.ItemsSource = grouped;
         // v0.1.7：版本计数（搜索时显示「匹配数 / 总数」，对齐同类启动器的列表头）
         var total = _all.Count;
         TxtVerCount.Text = string.Format(
@@ -155,7 +169,7 @@ public partial class VersionsPage : Page
             }
             catch { /* 版本目录读取失败时回退草方块 */ }
             icon ??= new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/Assets/grass.png"));
+                new Uri("pack://application:,,,/Assets/grass.jpg"));
             var chipContent = new StackPanel { Orientation = Orientation.Horizontal };
             chipContent.Children.Add(new System.Windows.Controls.Image
             {

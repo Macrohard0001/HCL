@@ -13,10 +13,22 @@ public partial class MainWindow : FluentWindow
         {
             WindowState = System.Windows.WindowState.Maximized;
         }
-        Closing += (_, _) =>
+        Closing += (_, e) =>
         {
             AppSettings.Instance.WindowMaximized = WindowState == System.Windows.WindowState.Maximized;
             AppSettings.Instance.Save();
+            // v0.15.2：任务未完成时确认退出（PCL 同款）—— 此前直接关闭会让后台任务
+            // 撞上已释放的服务对象抛致命错误（crash.log 2026-11-09）；确认后统一取消任务再退出
+            var active = DownloadTaskService.Instance.Snapshot().Count(t => t.IsActive);
+            if (active > 0)
+            {
+                var r = System.Windows.MessageBox.Show(
+                    $"还有 {active} 个任务正在进行中（下载 / 安装 / 启动）。\n\n" +
+                    "退出会自动取消这些任务，确定退出吗？",
+                    "Hardmacro Craft Launcher", System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+                if (r != System.Windows.MessageBoxResult.Yes) e.Cancel = true;
+            }
         };
         Loaded += (_, _) =>
         {

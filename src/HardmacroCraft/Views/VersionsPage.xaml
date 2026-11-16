@@ -67,6 +67,17 @@
                  SelectionMode="Single"
                  MouseDoubleClick="LstVersions_MouseDoubleClick"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <!-- v0.15.2：分目录分组头（PCL 版本管理同款） -->
+            <ListBox.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold"
+                                       Margin="14,8,0,2" Opacity="0.75" />
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListBox.GroupStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="12,9">

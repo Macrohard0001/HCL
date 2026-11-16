@@ -110,14 +110,14 @@ public partial class LoaderPickerWindow : FluentWindow
         // pack URI 图标在弹窗中也走应用资源，无须重新加载
         _icons = new Dictionary<string, ImageSource>
         {
-            ["vanilla"] = LoadIcon("/Assets/grass.png"),
-            ["forge"] = LoadIcon("/Assets/Anvil.png"),
-            ["neoforge"] = LoadIcon("/Assets/NeoForge.png"),
-            ["fabric"] = LoadIcon("/Assets/Fabric.png"),
-            ["quilt"] = LoadIcon("/Assets/Quilt.png"),
-            ["legacyfabric"] = LoadIcon("/Assets/Fabric.png"),
-            ["liteloader"] = LoadIcon("/Assets/Anvil.png"),
-            ["forbric"] = LoadIcon("/Assets/Fabric.png"),
+            ["vanilla"] = LoadIcon("/Assets/grass.jpg"),
+            ["forge"] = LoadIcon("/Assets/Anvil.jpg"),
+            ["neoforge"] = LoadIcon("/Assets/NeoForge.jpg"),
+            ["fabric"] = LoadIcon("/Assets/Fabric.jpg"),
+            ["quilt"] = LoadIcon("/Assets/Quilt.jpg"),
+            ["legacyfabric"] = LoadIcon("/Assets/Fabric.jpg"),
+            ["liteloader"] = LoadIcon("/Assets/Anvil.jpg"),
+            ["forbric"] = LoadIcon("/Assets/Fabric.jpg"),
         };
 
         _rows = new List<LoaderRow>
@@ -277,6 +277,18 @@ public partial class LoaderPickerWindow : FluentWindow
         var ct = DownloadTaskService.Instance.TokenFor(_centerTask);
         var meter = new SpeedMeter();
 
+        // v0.15.2：失败重试（PCL 同款「重试」）—— 无 UI 后台重跑安装流程（窗口可能已关），
+        // 复用同 Key 任务：失败态任务已不活跃，StartCancellableKeyed 会建新任务并重置状态
+        var installKey = $"loader-install:{row.Id}:{_mcVersion}";
+        var installTitle = $"安装 {row.Name} {_mcVersion}" + (loaderVersion != null ? " (" + loaderVersion + ")" : "");
+        var versionsBeforeRetry = versionsBefore;
+        var rowRetry = row;
+        var loaderVersionRetry = loaderVersion;
+        _centerTask.RetryAction = () =>
+        {
+            _ = Task.Run(() => RunHeadlessRetryAsync(rowRetry, loaderVersionRetry, installKey, installTitle, versionsBeforeRetry));
+        };
+
         // 详细进度（fix3）：文件数百分比 + 字节 / 速度；后台模式只更新任务中心
         // v0.15.1：进度同时写入任务的 SpeedBps / CurrentFile / 字节数 —— 此前安装链路只走
         // Update()（只更新百分比与 Detail），任务中心卡片与详情页的「下载速度」「正在下载」
@@ -298,9 +310,18 @@ public partial class LoaderPickerWindow : FluentWindow
         var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
             Dispatcher.Invoke(() =>
             {
-                if (p.TotalBytes <= 0) return;
-                var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
+                // v0.15.2：速度恒计 —— 此前 TotalBytes<=0（聚合器未汇总出总量 / 阶段 2
+                // 多文件聚合）时直接 return，详情页「下载速度」整段安装几乎全程空白
                 var speed = meter.Observe(p.ProgressedBytes);
+                if (p.TotalBytes <= 0)
+                {
+                    var spdText = SpeedMeter.FormatSpeed(speed);
+                    if (!_backgrounded) TxtStatus.Text = spdText;
+                    DownloadTaskService.Instance.Update(_centerTask, -1, spdText);
+                    _centerTask.SetProgress(-1, null, speed, p.ProgressedBytes, p.TotalBytes);
+                    return;
+                }
+                var pct = p.ProgressedBytes * 100.0 / p.TotalBytes;
                 var eta = SpeedMeter.FormatEta(p.TotalBytes - p.ProgressedBytes, speed);
                 var text = $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)}"
                            + $" · {SpeedMeter.FormatSpeed(speed)}"
@@ -423,6 +444,92 @@ public partial class LoaderPickerWindow : FluentWindow
 
     // ---------- Forbric（fix5）：下载官方安装器并拉起，装好后版本列表出现 26.2-forbric ----------
     private const string ForbricVersion = "0.3.1-beta2";
+
+    /// <summary>
+    /// v0.15.2：任务失败后的无 UI 重试（PCL 同款「重试」）—— 不开窗口、不弹完成对话框，
+    /// 直接重跑安装 + 阶段 2 游戏文件下载，全程只更新任务中心；失败后仍带 RetryAction。
+    /// </summary>
+    private async Task RunHeadlessRetryAsync(LoaderRow row, string? loaderVersion,
+        string key, string title, HashSet<string> versionsBefore)
+    {
+        var task = DownloadTaskService.Instance.StartCancellableKeyed(key, title, FindRes("S.Task.CheckingFiles"));
+        var ct = DownloadTaskService.Instance.TokenFor(task);
+        var meter = new SpeedMeter();
+        var fileProgress = new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(p =>
+        {
+            var pct = p.TotalTasks > 0 ? p.ProgressedTasks * 100.0 / p.TotalTasks : -1;
+            DownloadTaskService.Instance.Update(task, Math.Max(pct, 0),
+                $"正在下载文件（{p.ProgressedTasks}/{p.TotalTasks}）：{p.Name}");
+            task.SetProgress(Math.Max(pct, 0), p.Name);
+        });
+        var byteProgress = new Progress<CmlLib.Core.ByteProgress>(p =>
+        {
+            var speed = meter.Observe(p.ProgressedBytes);
+            var pct = p.TotalBytes > 0 ? p.ProgressedBytes * 100.0 / p.TotalBytes : -1;
+            DownloadTaskService.Instance.Update(task, pct,
+                p.TotalBytes > 0
+                    ? $"{SpeedMeter.FormatBytes(p.ProgressedBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · {SpeedMeter.FormatSpeed(speed)}"
+                    : SpeedMeter.FormatSpeed(speed));
+            task.SetProgress(pct, null, speed, p.ProgressedBytes, p.TotalBytes);
+        });
+        try
+        {
+            task.AppendLog("阶段 1/2：下载装载器安装器并运行处理链...");
+            switch (row.Id)
+            {
+                case "vanilla":
+                    await App.LauncherService.InstallAsync(_mcVersion, fileProgress, byteProgress, ct);
+                    break;
+                case "forge":
+                    await App.LauncherService.ForgeInstallAsync(_mcVersion, loaderVersion!, fileProgress, byteProgress, ct);
+                    break;
+                case "neoforge":
+                    await App.LauncherService.NeoForgeInstallAsync(_mcVersion, loaderVersion!, fileProgress, byteProgress, ct);
+                    break;
+                case "fabric":
+                    await App.LauncherService.FabricInstallAsync(_mcVersion, loaderVersion, ct);
+                    break;
+                case "quilt":
+                    await App.LauncherService.QuiltInstallAsync(_mcVersion, loaderVersion, ct);
+                    break;
+                case "legacyfabric":
+                    await App.LauncherService.LegacyFabricInstallAsync(_mcVersion, loaderVersion, ct);
+                    break;
+                case "liteloader":
+                    await App.LauncherService.LiteLoaderInstallAsync(_mcVersion, loaderVersion, ct);
+                    break;
+                default:
+                    throw new InvalidOperationException("该装载器类型不支持任务中心重试，请在下载页重新安装");
+            }
+
+            if (row.Id is not ("vanilla" or "forbric"))
+            {
+                var installedId = App.LauncherService.GetInstalledVersions()
+                    .FirstOrDefault(v => !versionsBefore.Contains(v));
+                if (installedId != null)
+                {
+                    task.AppendLog("阶段 2/2：下载游戏必要文件（主文件 / 支持库 / 资源文件，装完即可直接启动）...");
+                    DownloadTaskService.Instance.Update(task, 0, FindRes("S.Dl.GameFiles"));
+                    await App.LauncherService.InstallAsync(installedId, fileProgress, byteProgress, ct);
+                }
+            }
+
+            App.LauncherService.MarkNewestVersionOwned(versionsBefore, null);
+            DownloadTaskService.Instance.Complete(task, FindRes("S.Dl.LoaderDone"));
+            Services.MemoryManager.OptimizeAfterHeavyOp();
+        }
+        catch (OperationCanceledException)
+        {
+            DownloadTaskService.Instance.Cancel(task, FindRes("S.Dl.Canceled"));
+        }
+        catch (Exception ex)
+        {
+            Services.BootLogger.Error($"装载器重试失败 {row.Name} {_mcVersion}: " + Services.BootLogger.Format(ex));
+            DownloadTaskService.Instance.Fail(task, "安装失败: " + ex.Message);
+            task.RetryAction = () =>
+                _ = Task.Run(() => RunHeadlessRetryAsync(row, loaderVersion, key, title, versionsBefore));
+        }
+    }
 
     private async Task InstallForbricAsync(CancellationToken ct)
     {

@@ -241,11 +241,38 @@ public partial class HomePage : Page
         }
         void Apply()
         {
+            // v0.15.2：修复「选择日志经常变成全选」—— 用户正在拖选时文本被替换
+            //（环形修剪触发时整段重设 Text），WPF 的拖选终点失锚后退化成全选。
+            // 选择期间挂起更新，松开鼠标后一次性补上；选择期间也不强制滚到底。
+            if (_logSelecting)
+            {
+                _logPendingFull = true;
+                return;
+            }
             if (full != null) TxtLog.Text = string.Join(Environment.NewLine, full);
             else TxtLog.AppendText(entry + Environment.NewLine);
             TxtLog.ScrollToEnd();
         }
         if (Dispatcher.CheckAccess()) Apply(); else Dispatcher.BeginInvoke(Apply);
+    }
+
+    // v0.15.2：日志选择状态 —— 拖选期间挂起文本更新（见 Log/Apply 注释）
+    private bool _logSelecting;
+    private bool _logPendingFull;
+
+    private void TxtLog_SelectionStart(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        => _logSelecting = true;
+
+    private void TxtLog_SelectionEnd(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (!_logSelecting) return;
+        _logSelecting = false;
+        if (!_logPendingFull) return;
+        _logPendingFull = false;
+        // 拖选期间积压的环形修剪 → 一次性整段重设
+        List<string> full;
+        lock (LogLock) full = LogLines.ToList();
+        TxtLog.Text = string.Join(Environment.NewLine, full);
     }
 
     private void RefreshAccountUi()
@@ -709,6 +736,41 @@ public partial class HomePage : Page
                 var jTask = DownloadTaskService.Instance.StartKeyed($"java-install:{installMajor}",
                     $"下载 Java {installMajor} (Temurin JRE)",
                     (string)FindResource("S.Task.CheckingFiles"));
+                // v0.15.2：Java 下载失败支持任务中心「重试」（PCL 同款）—— 无 UI 后台重跑下载安装
+                async Task RunJavaInstallAsync(DownloadTaskService.TaskItem task)
+                {
+                    try
+                    {
+                        var jp = new Progress<JavaManager.JavaDownloadProgress>(p => Dispatcher.Invoke(() =>
+                        {
+                            var eta = SpeedMeter.FormatEta(p.TotalBytes - p.DoneBytes, p.SpeedBps);
+                            var line = $"下载 Java {installMajor}: {p.Percent:0}% · " +
+                                       $"{SpeedMeter.FormatBytes(p.DoneBytes)} / {SpeedMeter.FormatBytes(p.TotalBytes)} · " +
+                                       SpeedMeter.FormatSpeed(p.SpeedBps) +
+                                       (eta.Length > 0 ? " · " + eta : "");
+                            DownloadTaskService.Instance.Update(task, p.Percent, line, logDetail: false);
+                            task.SetProgress(p.Percent, null, p.SpeedBps, p.DoneBytes, p.TotalBytes);
+                        }));
+                        await JavaManager.EnsureJreAsync(installMajor, App.LauncherService.Http, jp, Log, askDir, CancellationToken.None);
+                        DownloadTaskService.Instance.Complete(task, "Java 安装完成");
+                        Log($"[Java] Java {installMajor} 下载安装完成（任务中心重试路径）。");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        DownloadTaskService.Instance.Cancel(task, "已取消");
+                    }
+                    catch (Exception rex)
+                    {
+                        Services.BootLogger.Error($"Java 重试失败: " + rex.Message);
+                        DownloadTaskService.Instance.Fail(task, "Java 下载失败: " + rex.Message);
+                        task.RetryAction = () => _ = Task.Run(() => RunJavaInstallAsync(
+                            DownloadTaskService.Instance.StartKeyed($"java-install:{installMajor}",
+                                $"下载 Java {installMajor} (Temurin JRE)", "重试")));
+                    }
+                }
+                jTask.RetryAction = () => _ = Task.Run(() => RunJavaInstallAsync(
+                    DownloadTaskService.Instance.StartKeyed($"java-install:{installMajor}",
+                        $"下载 Java {installMajor} (Temurin JRE)", (string)FindResource("S.Task.CheckingFiles"))));
                 try
                 {
                     // v0.1.10：Java 下载也显示速度与剩余时间（此前只有百分比）

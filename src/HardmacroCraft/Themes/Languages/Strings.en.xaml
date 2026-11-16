@@ -463,7 +463,7 @@
     <sys:String x:Key="S.Task.DetailCopy">Copy log</sys:String>
     <sys:String x:Key="S.Task.ClickHint">Click a task card to view its details and progress log.</sys:String>
     <sys:String x:Key="S.Set.MemCleanNow">Clean up memory now</sys:String>
-    <sys:String x:Key="S.Set.MemCleanDone">Memory reclaimed: working set {0} MB → {1} MB · managed heap {2} MB → {3} MB</sys:String>
+    <sys:String x:Key="S.Set.MemCleanDone">Memory reclaimed: private working set {0} MB → {1} MB (task manager metric) · managed heap {2} MB → {3} MB</sys:String>
     <sys:String x:Key="S.Set.WinModeDefault">Default (1280×720)</sys:String>
     <sys:String x:Key="S.Set.WinModeMatch">Match launcher window size</sys:String>
     <sys:String x:Key="S.Set.WinModeCustom">Custom size</sys:String>
@@ -670,4 +670,7 @@
     <sys:String x:Key="S.Dl.LoaderTipLatest">Recommended {0} (latest build, newest stability fixes)</sys:String>
     <sys:String x:Key="S.Dl.LoaderTipOldest">Earliest supported build (old, not recommended for daily use)</sys:String>
     <sys:String x:Key="S.Dl.CompatRecommend">, recommended {0} (earliest {1})</sys:String>
+    <!-- ==================== v0.15.2: task retry / path browse ==================== -->
+    <sys:String x:Key="S.Task.Retry">Retry</sys:String>
+    <sys:String x:Key="S.Common.Browse">Browse</sys:String>
 </ResourceDictionary>

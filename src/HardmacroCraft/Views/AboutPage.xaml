@@ -15,7 +15,7 @@
             <StackPanel Orientation="Horizontal">
                 <Border Width="64" Height="64" CornerRadius="14"
                         Background="{DynamicResource SystemAccentColorPrimaryBrush}">
-                    <Image Source="/Assets/icon.png" Width="52" Height="52" />
+                    <Image Source="/Assets/icon.jpg" Width="52" Height="52" />
                 </Border>
                 <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="Hardmacro Craft Launcher" FontSize="28" FontWeight="SemiBold"

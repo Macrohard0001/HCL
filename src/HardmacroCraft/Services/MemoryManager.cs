@@ -228,9 +228,13 @@ public static class MemoryManager
     public static (long WsBefore, long WsAfter, long ManagedBefore, long ManagedAfter, long PrivateAfter)
         OptimizeNowDetailed()
     {
-        var wsBefore = WorkingSetMb;
+        // v0.15.2：口径统一 —— 此前清理收益用「完整工作集」（WorkingSet64），而设置页
+        // 默认文案用「专用工作集」（任务管理器同口径），同一个页面两个口径互相打架，
+        // 用户看到清理收益数字与默认文案对不上（「默认文案计算不正确」根因）。
+        // 现在统一为专用工作集口径（非 Windows 时 QueryWorkingSetEx 不可用 → 兜底完整工作集）。
+        var wsBefore = PrivateWorkingSetMb;
         var (mBefore, mAfter) = OptimizeNow();
-        return (wsBefore, WorkingSetMb, mBefore / (1024 * 1024), mAfter / (1024 * 1024), PrivateMb);
+        return (wsBefore, PrivateWorkingSetMb, mBefore / (1024 * 1024), mAfter / (1024 * 1024), PrivateMb);
     }
 
     /// <summary>

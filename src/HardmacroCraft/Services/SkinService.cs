@@ -122,7 +122,7 @@ public static class SkinService
 
     /// <summary>默认头像资源路径（WPF pack URI 相对路径），PicksAlexDefault ? alex : steve。</summary>
     public static string DefaultFacePath(string? uuid)
-        => PicksAlexDefault(uuid) ? "/Assets/alex.png" : "/Assets/steve.png";
+        => PicksAlexDefault(uuid) ? "/Assets/alex.jpg" : "/Assets/steve.jpg";
 
     // ==================== 离线皮肤（PCL 式本机注入） ====================
     // 原理与 PCL 一致：离线玩家没有服务端身份，客户端渲染默认皮肤（Steve/Alex）。

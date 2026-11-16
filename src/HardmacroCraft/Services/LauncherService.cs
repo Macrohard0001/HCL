@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.15.1";
+    public const string LauncherVersion = "0.15.2";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -108,11 +108,70 @@ public class LauncherService : IDisposable
         };
         // v0.15.1：并行下载安装（速度优化）。默认的 BasicGameInstaller 逐文件串行下载，
         // 全量安装（主 jar / 数百个 libraries / 数千个 assets）很慢；ParallelGameInstaller
-        // 多连接并行校验 + 下载，并行度按下载线程数设置推导（64 线程 → 8 并行，4–16 钳制，BMCLAPI 对单 IP 并发敏感，保守起步）。
-        var parallel = Math.Clamp(AppSettings.Instance.DownloadThreads / 8, 4, 16);
+        // 多连接并行校验 + 下载，并行度按下载线程数设置推导。
+        // v0.15.2：并行度上调（64 线程 → 16 并行，8–32 钳制），配合镜像连接池放宽
+        //（SocketsHttpHandler MaxConnectionsPerServer=128），对齐 PCL 的多连接下载吞吐。
+        var parallel = Math.Clamp(AppSettings.Instance.DownloadThreads / 4, 8, 32);
         parameters.GameInstaller = new CmlLib.Core.Installers.ParallelGameInstaller(
             parallel, parallel, 64, http ?? Http);
+        // v0.15.2：分目录版本发现（对齐 PCL 版本管理）—— CmlLib 的本地扫描只有
+        // versions/{id}/{id}.json 一层；PCL 支持 versions/{目录}/{id}/{id}.json 分目录管理。
+        // 自定义 NestedVersionLoader 扫第二层，与 V2（远端清单 + 一层本地）合并。
+        var v2Loader = (MojangJsonVersionLoaderV2)parameters.VersionLoader;
+        parameters.VersionLoader = new CmlLib.Core.VersionLoader.VersionLoaderCollection
+        {
+            new NestedVersionLoader(ownPath),
+            v2Loader,
+        };
         return new MinecraftLauncher(parameters);
+    }
+
+    /// <summary>
+    /// v0.15.2：分目录版本加载器（对齐 PCL 版本管理的分目录支持）—— 扫描
+    /// versions/{目录}/{id}/{id}.json 第二层嵌套（目录名与版本 id 相同的一层结构
+    /// 已由 CmlLib 本地扫描覆盖，跳过避免重复）。发现的版本以 LocalVersionMetadata
+    /// 暴露，启动 / 安装 / 删除与根目录版本完全一致。
+    /// </summary>
+    public class NestedVersionLoader : CmlLib.Core.VersionLoader.IVersionLoader
+    {
+        private readonly MinecraftPath _path;
+        public NestedVersionLoader(MinecraftPath path) => _path = path;
+
+        public ValueTask<CmlLib.Core.VersionMetadata.VersionMetadataCollection> GetVersionMetadatasAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var versions = GetNestedVersionEntries(_path.Versions)
+                .Select(e => ToMetadata(e.Id, e.JsonPath));
+            var collection = new CmlLib.Core.VersionMetadata.VersionMetadataCollection(versions, null, null);
+            return new ValueTask<CmlLib.Core.VersionMetadata.VersionMetadataCollection>(collection);
+        }
+
+        internal static CmlLib.Core.VersionMetadata.IVersionMetadata ToMetadata(string id, string jsonPath)
+            => new CmlLib.Core.VersionMetadata.LocalVersionMetadata(
+                new CmlLib.Core.VersionMetadata.JsonVersionMetadataModel { Id = id, Type = "local" },
+                jsonPath);
+
+        /// <summary>纯文件系统扫描（进测试）：枚举 versions 下第二层嵌套的版本 JSON。</summary>
+        internal static List<(string Id, string JsonPath, string FolderName, string FolderPath)> GetNestedVersionEntries(
+            string? versionsDir)
+        {
+            var result = new List<(string Id, string JsonPath, string FolderName, string FolderPath)>();
+            if (string.IsNullOrEmpty(versionsDir) || !Directory.Exists(versionsDir)) return result;
+            foreach (var folder in Directory.GetDirectories(versionsDir))
+            {
+                var folderName = Path.GetFileName(folder);
+                if (string.IsNullOrEmpty(folderName)) continue;
+                foreach (var dir in Directory.GetDirectories(folder))
+                {
+                    var id = Path.GetFileName(dir);
+                    if (string.IsNullOrEmpty(id) || id == folderName) continue; // 一层结构留给 CmlLib
+                    var json = Path.Combine(dir, id + ".json");
+                    if (!File.Exists(json)) continue;
+                    result.Add((id, json, folderName, folder));
+                }
+            }
+            return result;
+        }
     }
 
     public MinecraftLauncher Launcher => _launcher ??= BuildLauncher();
@@ -175,16 +234,19 @@ public class LauncherService : IDisposable
             : new ProgressWatch<CmlLib.Core.ByteProgress>(
                 byteProgress, () => Interlocked.Exchange(ref lastTick, Environment.TickCount64));
         long GetTick() => Interlocked.Read(ref lastTick);
-        return WithNetRetryAsync(2, _ =>
+        return WithNetRetryAsync(2, attempt =>
             InstallSingleAttemptAsync(versionName, watchedFile, watchedByte, ct,
-                () => Interlocked.Exchange(ref lastTick, Environment.TickCount64), GetTick));
+                () => Interlocked.Exchange(ref lastTick, Environment.TickCount64), GetTick,
+                // v0.15.2：看门狗超时按尝试次数放宽（45s → 90s → 135s）—— 阶段末尾的
+                // 校验 / 解包没有字节事件，固定 45s 可能误断并形成重试循环
+                45_000 * attempt));
     }
 
-    /// <summary>v0.15.1：单次安装尝试（独立 linked CTS + 独立看门狗，45s 停滞即断开）。</summary>
+    /// <summary>v0.15.2：单次安装尝试（独立 linked CTS + 独立看门狗，停滞即断开重试）。</summary>
     private async Task InstallSingleAttemptAsync(string versionName,
         IProgress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>? fileProgress,
         IProgress<CmlLib.Core.ByteProgress>? byteProgress,
-        CancellationToken ct, Action resetTick, Func<long> getTick)
+        CancellationToken ct, Action resetTick, Func<long> getTick, int stallTimeoutMs = 45_000)
     {
         resetTick(); // 重试尝试开始：重置停滞计时
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -195,7 +257,7 @@ public class LauncherService : IDisposable
                 while (true)
                 {
                     await Task.Delay(10_000, linked.Token);
-                    if (IsStalled(getTick(), Environment.TickCount64))
+                    if (IsStalled(getTick(), Environment.TickCount64, stallTimeoutMs))
                     {
                         linked.Cancel();
                         return;
@@ -212,7 +274,7 @@ public class LauncherService : IDisposable
         catch (OperationCanceledException) when (linked.IsCancellationRequested && !ct.IsCancellationRequested)
         {
             // 看门狗断开（非用户取消）→ 转成超时异常，走既有瞬时错误重试 / 失败提示路径
-            throw new TimeoutException("下载停滞超过 45 秒，看门狗已断开当前连接");
+            throw new TimeoutException($"下载停滞超过 {stallTimeoutMs / 1000} 秒，看门狗已断开当前连接");
         }
         finally
         {
@@ -1172,24 +1234,77 @@ public class LauncherService : IDisposable
     /// </summary>
     public IReadOnlyList<string> GetInstalledVersions(string? root = null)
     {
+        return GetInstalledVersionEntries(root).Select(e => e.Name).ToList();
+    }
+
+    /// <summary>v0.15.2：版本条目（分目录管理用）—— 名称 + 所在目录信息 + 尺寸 / 修改时间。</summary>
+    public sealed record InstalledVersionEntry(
+        string Name, string FolderName, string FolderPath, string JsonPath,
+        long SizeMb, DateTime LastWrite);
+
+    /// <summary>
+    /// v0.15.2：扫描已装版本（含分目录嵌套，对齐 PCL 版本管理）——
+    /// 一层 versions/{id}/{id}.json + 二层 versions/{目录}/{id}/{id}.json。
+    /// 返回条目带所在目录 / 目录大小 / 最后修改时间，供版本管理页分组与信息展示。
+    /// </summary>
+    public IReadOnlyList<InstalledVersionEntry> GetInstalledVersionEntries(string? root = null)
+    {
         var gameRoot = root ?? AppSettings.Instance.GameRoot;
         var dir = Path.Combine(gameRoot, "versions");
-        if (!Directory.Exists(dir)) return Array.Empty<string>();
+        if (!Directory.Exists(dir)) return Array.Empty<InstalledVersionEntry>();
         var hiddenBases = VersionInfo.GetHiddenBaseVersions(gameRoot);
-        return Directory.GetDirectories(dir)
-            .Where(d => Directory.GetFiles(d, "*.json").Length > 0)
-            .Select(Path.GetFileName)
-            .Where(n => n != null)
-            .Cast<string>()
-            .Where(n => !hiddenBases.Contains(n))
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+        var entries = new List<InstalledVersionEntry>();
+
+        void AddFromDir(string id, string versionDir, string folderName, string folderPath)
+        {
+            if (hiddenBases.Contains(id)) return;
+            long sizeMb;
+            DateTime lastWrite;
+            try
+            {
+                var size = new DirectoryInfo(versionDir).EnumerateFiles("*", SearchOption.AllDirectories)
+                    .Sum(f => f.Length);
+                sizeMb = size / (1024 * 1024);
+                lastWrite = Directory.GetLastWriteTime(versionDir);
+            }
+            catch { sizeMb = 0; lastWrite = default; }
+            entries.Add(new InstalledVersionEntry(id, folderName, folderPath,
+                Path.Combine(versionDir, id + ".json"), sizeMb, lastWrite));
+        }
+
+        foreach (var d in Directory.GetDirectories(dir))
+        {
+            var name = Path.GetFileName(d);
+            if (name == null) continue;
+            if (Directory.GetFiles(d, name + ".json").Length > 0)
+                AddFromDir(name, d, "", ""); // 一层结构（根目录版本）
+            // 二层嵌套（分目录管理）
+            foreach (var e in NestedVersionLoader.GetNestedVersionEntries(dir)
+                         .Where(x => x.FolderPath == d))
+            {
+                var versionDir = Path.Combine(e.FolderPath, e.Id);
+                AddFromDir(e.Id, versionDir, e.FolderName, e.FolderPath);
+            }
+        }
+        return entries
+            .OrderBy(e => e.FolderName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
     public void DeleteVersion(string versionName)
     {
-        var dir = Path.Combine(AppSettings.Instance.GameRoot, "versions", versionName);
-        if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        // v0.15.2：兼容分目录版本 —— 先找根目录版本目录，不存在再扫二层嵌套
+        var rootDir = Path.Combine(AppSettings.Instance.GameRoot, "versions", versionName);
+        string? dirToDelete = Directory.Exists(rootDir)
+            ? rootDir
+            : NestedVersionLoader.GetNestedVersionEntries(
+                    Path.Combine(AppSettings.Instance.GameRoot, "versions"))
+                .Where(e => e.Id == versionName)
+                .Select(e => Path.Combine(e.FolderPath, e.Id))
+                .FirstOrDefault();
+        if (dirToDelete != null && Directory.Exists(dirToDelete))
+            Directory.Delete(dirToDelete, true);
         VerifyStamp.Invalidate(AppSettings.Instance.GameRoot, versionName);
         // v0.1.6：版本独立设置一并清理
         VersionSettingsStore.Delete(versionName);

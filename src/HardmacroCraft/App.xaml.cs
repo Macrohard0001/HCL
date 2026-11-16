@@ -110,6 +110,13 @@ public partial class App : Application
             new MouseWheelEventHandler(OnScrollViewerPreviewMouseWheel),
             handledEventsToo: true);
 
+        // v0.15.2：原生触控支持 —— 为所有 ScrollViewer 开启 WPF 原生拖拽平移
+        // （PanningMode，触屏 / 触控板手势直接生效，带惯性减速），无需逐页设置。
+        EventManager.RegisterClassHandler(typeof(ScrollViewer),
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler(OnScrollViewerLoadedForTouch),
+            handledEventsToo: true);
+
         Services.BootLogger.Info($"应用语言 {AppSettings.Instance.Language} ...");
         ApplyLanguage(AppSettings.Instance.Language);
         // 主题在窗口创建前应用（深/浅/跟随系统），窗口内的所有 DynamicResource 颜色会随之统一
@@ -117,10 +124,45 @@ public partial class App : Application
         ApplyTheme(AppSettings.Instance.Theme, attachWatcher: false);
         Services.BootLogger.Info("主题应用完成，创建主窗口 ...");
 
-        var win = new MainWindow();
-        MainWindow = win;
-        win.Show();
+        // v0.15.2：主窗口创建防护 —— XAML 解析失败（如个别系统 urlmon MIME 组件异常
+        // 影响资源图片加载）不再裸崩，给出可操作的提示并落盘 crash.log
+        Window win;
+        try
+        {
+            win = new MainWindow();
+            MainWindow = win;
+            win.Show();
+        }
+        catch (Exception ex)
+        {
+            Services.BootLogger.Error("主窗口创建失败: " + Services.BootLogger.Format(ex));
+            try
+            {
+                File.AppendAllText(Path.Combine(AppSettings.ConfigDir, "crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {Services.BootLogger.Format(ex)}{Environment.NewLine}");
+            }
+            catch { }
+            MessageBox.Show(
+                "启动器界面初始化失败：" + ex.Message +
+                "\n\n常见原因：系统图形 / MIME 组件异常。请更新 Windows 后重试；" +
+                "若反复出现，请把 config/crash.log 反馈给开发者。",
+                "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
         Services.BootLogger.Info("主窗口已显示，启动完成");
+    }
+
+    /// <summary>v0.15.2：原生触控 —— ScrollViewer 加载时开启竖向拖拽平移（惯性减速对齐系统）。
+    /// PanningMode 默认 None，触屏用户此前只能拖滚动条；开启后触摸直接平移内容。</summary>
+    private static void OnScrollViewerLoadedForTouch(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+        if (sv.PanningMode == PanningMode.None)
+        {
+            sv.PanningMode = PanningMode.VerticalOnly;
+            sv.PanningDeceleration = 0.006; // 默认 0.001 太滑，接近系统默认手感
+        }
     }
 
     /// <summary>
@@ -135,13 +177,17 @@ public partial class App : Application
 
         var sv = (ScrollViewer)sender;
 
+        // 触控板惯性产生的小步长：交给默认链路（SmoothScroll 的目标式动画对
+        // 高频小步长反而迟钝），仅处理常规滚轮格（±120 倍数）
+        if (e.Delta == 0 || Math.Abs(e.Delta) % 120 != 0) return;
+
         // 隧道路由（根→叶）：若鼠标位置与本滚动器之间还有更内层的 ScrollViewer，
         // 交给它处理（它先滚，滚不动才轮到我）
         if (HasInnerScrollViewer(sv, e.OriginalSource as DependencyObject)) return;
 
-        // v1.8.0：每格固定像素步长（±120/格 → 100px），对齐主流启动器 / 浏览器手感；
-        // 旧值 40px 页面滚动太短，而列表又是按条目计偏移导致一格翻底（见 LogicalDelta）
-        const double WheelPxPerNotch = 100.0;
+        // v0.15.2：每格滚动长度 100px → 66px（≈3 行文本）—— 侧栏 / 详情页等较矮容器
+        // 此前一格接近半屏，方向感混乱；66px 对齐浏览器 / PCL 的常规步长
+        const double WheelPxPerNotch = 66.0;
         var deltaPx = e.Delta / 120.0 * WheelPxPerNotch;
 
         // 本层滚不动：内容不足一屏，或已滚到对应方向的边界
@@ -263,6 +309,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // v0.15.2：退出前先取消全部运行中任务 —— 此前直接 Dispose 服务，后台下载 /
+        // 安装任务撞上已释放的 HttpClient 抛 ObjectDisposedException，
+        // 经 UnhandledException 升级为「致命错误」（crash.log 2026-11-09 即此因）
+        try { DownloadTaskService.Instance.CancelAllActive("启动器正在退出"); }
+        catch (Exception ex) { Services.BootLogger.Error("退出取消任务失败: " + ex.Message); }
         // 退出时保存设置：config/ 只读等异常不阻止正常退出
         try { AppSettings.Instance.Save(); }
         catch (Exception ex) { Services.BootLogger.Error("退出时保存设置失败: " + ex.Message); }

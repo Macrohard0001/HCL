@@ -14,11 +14,11 @@ public static class VersionIconProvider
 {
     public static ImageSource? LoaderIcon(McLoaderKind k) => k switch
     {
-        McLoaderKind.NeoForge => Load("NeoForge.png"),
-        McLoaderKind.Forge => Load("Anvil.png"),
-        McLoaderKind.Fabric => Load("Fabric.png"),
-        McLoaderKind.LegacyFabric => Load("Fabric.png"),
-        McLoaderKind.Quilt => Load("Quilt.png"),
+        McLoaderKind.NeoForge => Load("NeoForge.jpg"),
+        McLoaderKind.Forge => Load("Anvil.jpg"),
+        McLoaderKind.Fabric => Load("Fabric.jpg"),
+        McLoaderKind.LegacyFabric => Load("Fabric.jpg"),
+        McLoaderKind.Quilt => Load("Quilt.jpg"),
         _ => null,
     };
 
@@ -105,7 +105,7 @@ public static class VersionIconProvider
         var loaderIcon = LoaderIcon(desc.Loader);
         if (loaderIcon != null) return (loaderIcon, null, null);
         // 纯净版（含本启动器安装 / 其他启动器创建 / 无标记）一律原版草方块
-        return (Load("grass.png"), null, null);
+        return (Load("grass.jpg"), null, null);
     }
 }
 
@@ -122,10 +122,45 @@ public sealed class VersionItemViewModel
     public System.Windows.Visibility BadgeVis =>
         Badge != null ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
 
+    // v0.15.2：分目录版本管理 —— 所在目录 / 大小 / 修改时间（PCL 版本管理页同款信息位）
+    /// <summary>版本所在目录名（根目录 versions/ 直属 = ""）；分组标题用。</summary>
+    public string FolderName { get; }
+    /// <summary>版本目录完整路径（根目录直属为 null）。</summary>
+    public string? FolderPath { get; }
+    /// <summary>版本目录大小（MB，读取失败为 0）。</summary>
+    public long SizeMb { get; }
+    /// <summary>版本目录最后修改时间（近似「最后安装 / 更新」时间；未知为 default）。</summary>
+    public DateTime LastWrite { get; }
+    /// <summary>分组标题（版本管理页列表头）。</summary>
+    public string GroupHeader => string.IsNullOrEmpty(FolderName) ? "默认目录" : "目录：" + FolderName;
+    /// <summary>信息行（PCL 式副信息：目录 · 大小 · 时间）。</summary>
+    public string InfoLine
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(FolderName))
+                parts.Add("versions/" + FolderName + "/");
+            if (SizeMb > 0) parts.Add(SizeMb + " MB");
+            if (LastWrite != default) parts.Add("更新于 " + LastWrite.ToString("yyyy-MM-dd HH:mm"));
+            return string.Join(" · ", parts);
+        }
+    }
+
     public VersionItemViewModel(string name, VersionInfo.VersionDescriptor desc, string subtitle)
+        : this(name, desc, subtitle, "", null, 0, default)
+    {
+    }
+
+    public VersionItemViewModel(string name, VersionInfo.VersionDescriptor desc, string subtitle,
+        string folderName, string? folderPath, long sizeMb, DateTime lastWrite)
     {
         Name = name;
         Subtitle = subtitle;
+        FolderName = folderName ?? "";
+        FolderPath = folderPath;
+        SizeMb = sizeMb;
+        LastWrite = lastWrite;
         (Icon, Badge, BadgeBrush) = VersionIconProvider.DescribeIcon(desc, name);
     }
 }

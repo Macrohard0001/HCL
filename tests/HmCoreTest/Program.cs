@@ -1817,8 +1817,8 @@ try
         SkinService.PicksAlexDefault("6ab43178-89fd-4905-97f6-0f67d9d76fd9") == SkinService.PicksAlexDefault("6ab4317889fd490597f60f67d9d76fd9"));
     Check("非法 uuid → Steve 兜底不抛异常", !SkinService.PicksAlexDefault("不是uuid"));
     Check("DefaultFacePath 对应资源存在",
-        SkinService.DefaultFacePath("6ab4317889fd490597f60f67d9d76fd9") == "/Assets/alex.png"
-        && SkinService.DefaultFacePath("c06f89064c8a49119c29ea1dbd1aab82") == "/Assets/steve.png");
+        SkinService.DefaultFacePath("6ab4317889fd490597f60f67d9d76fd9") == "/Assets/alex.jpg"
+        && SkinService.DefaultFacePath("c06f89064c8a49119c29ea1dbd1aab82") == "/Assets/steve.jpg");
 
     // 29.2 StripHtml：CF 详情 HTML → 纯文本
     var html = "<h1>标题</h1><p>第一段 &amp; 说明</p><script>evil()</script><style>.x{}</style><br/>第二行<b>加粗</b>&nbsp;结尾";
@@ -2607,6 +2607,66 @@ try
     Check("OptiFine 命名", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
     Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
 
+    // 35.6 v0.15.2 分目录版本扫描（NestedVersionLoader 纯文件系统逻辑）
+    var verRoot = Path.Combine(Path.GetTempPath(), "hcl-test-vers-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(Path.Combine(verRoot, "1.20.1"));                    // 一层结构（目录名=id，应跳过）
+    File.WriteAllText(Path.Combine(verRoot, "1.20.1", "1.20.1.json"), "{}");
+    var isoFolder = Path.Combine(verRoot, " isolation 整合包");                    // 二层嵌套
+    Directory.CreateDirectory(Path.Combine(isoFolder, "1.20.1-Forge_47.2.0"));
+    File.WriteAllText(Path.Combine(isoFolder, "1.20.1-Forge_47.2.0", "1.20.1-Forge_47.2.0.json"), "{}");
+    Directory.CreateDirectory(Path.Combine(verRoot, "empty"));
+    var nested = LauncherService.NestedVersionLoader.GetNestedVersionEntries(verRoot);
+    Check("分目录扫描：只发现二层嵌套版本", nested.Count == 1
+        && nested[0].Id == "1.20.1-Forge_47.2.0"
+        && nested[0].FolderName.Trim() == "isolation 整合包",
+        string.Join("|", nested.Select(n => n.Id)));
+    Check("分目录扫描：空根目录安全", LauncherService.NestedVersionLoader.GetNestedVersionEntries(null).Count == 0);
+
+    // 35.7 v0.15.2 DownloadEngine 读停滞超时（纯逻辑）
+    var stallMs = DownloadEngine.ReadStallTimeoutMs;
+    Check("读停滞超时常量 30s", stallMs == 30_000);
+    var slowStream = new SlowStream(0); // 永不返回数据
+    var sw = Stopwatch.StartNew();
+    var threw = false;
+    try { _ = await DownloadEngine.ReadWithStallTimeoutAsync(slowStream, new byte[16], default, 200); }
+    catch (TimeoutException) { threw = true; }
+    Check("读停滞：挂流流 200ms 内抛 TimeoutException", threw && sw.ElapsedMilliseconds < 5000);
+    var okStream = new SlowStream(5);
+    var buf2 = new byte[16];
+    var n = await DownloadEngine.ReadWithStallTimeoutAsync(okStream, buf2, default, 2000);
+    Check("读停滞：正常流返回数据", n > 0);
+    Check("读停滞：外层取消不被吞", await CancelledReadThrowsAsync());
+
+    static async Task<bool> CancelledReadThrowsAsync()
+    {
+        using var cts = new CancellationTokenSource(50);
+        var stream = new SlowStream(0);
+        try
+        {
+            _ = await DownloadEngine.ReadWithStallTimeoutAsync(stream, new byte[16], cts.Token, 10_000);
+            return false;
+        }
+        catch (OperationCanceledException) { return true; }
+        catch (TimeoutException) { return false; } // 外层取消先于停滞超时 → 必须抛取消
+    }
+
+    // 35.8 v0.15.2 任务重试 / 退出取消
+    var rTask = DownloadTaskService.Instance.StartCancellableKeyedWithRetry("test-retry",
+        "重试测试", "", () => { });
+    Check("重试回调已登记", rTask.RetryAction != null);
+    DownloadTaskService.Instance.Fail(rTask, "测试失败");
+    Check("失败态保留重试回调", rTask.Status == "failed" && rTask.RetryAction != null);
+    var r2 = DownloadTaskService.Instance.StartCancellableKeyed("test-retry", "重试测试2", "");
+    Check("同 Key 失败后重开新任务（活跃态）", r2 != rTask && r2.IsActive);
+    var c1 = DownloadTaskService.Instance.StartCancellable("退出取消1", "");
+    var c2 = DownloadTaskService.Instance.StartCancellable("退出取消2", "");
+    DownloadTaskService.Instance.CancelAllActive("启动器正在退出");
+    Check("CancelAllActive：运行中任务全部取消", !c1.IsActive && !c2.IsActive && c1.CancelRequested && c2.CancelRequested);
+
+    // 35.9 v0.15.2 内存口径统一（清理收益 = 专用工作集口径）
+    var (wsB, wsA, _, _, _) = MemoryManager.OptimizeNowDetailed();
+    Check("内存清理：口径为专用工作集（≤ 完整工作集）",
+        wsB > 0 && wsA > 0 && MemoryManager.PrivateWorkingSetMb <= MemoryManager.WorkingSetMb);
     // 34.5 v0.15.1 下载停滞看门狗（纯逻辑判定）
     var now = Environment.TickCount64;
     Check("看门狗：刚有进展不触发", !LauncherService.IsStalled(now, now) && !LauncherService.IsStalled(now - 40_000, now));
@@ -2778,3 +2838,35 @@ class InterceptingHandler : HttpMessageHandler
         => _reply(request, cancellationToken);
 }
 
+
+/// <summary>v0.15.2 测试辅助流：delayMs=0 模拟挂流（等待取消），>0 延迟后返回数据。</summary>
+internal class SlowStream : Stream
+{
+    private readonly int _delayMs;
+    public SlowStream(int delayMs) => _delayMs = delayMs;
+
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => 0; set => throw new NotSupportedException(); }
+    public override void Flush() { }
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        if (_delayMs == 0)
+        {
+            // 模拟服务器挂流：永不返回数据，仅在取消时抛出（与网络流一致）
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return 0;
+        }
+        await Task.Delay(_delayMs, cancellationToken);
+        var n = Math.Min(buffer.Length, 8);
+        buffer.Span[..n].Fill(0xAB);
+        return n;
+    }
+}

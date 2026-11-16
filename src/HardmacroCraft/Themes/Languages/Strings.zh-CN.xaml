@@ -463,7 +463,7 @@
     <sys:String x:Key="S.Task.DetailCopy">复制日志</sys:String>
     <sys:String x:Key="S.Task.ClickHint">点击任务卡片可查看任务详情与进度日志。</sys:String>
     <sys:String x:Key="S.Set.MemCleanNow">立即清理内存</sys:String>
-    <sys:String x:Key="S.Set.MemCleanDone">已回收内存：物理工作集 {0} MB → {1} MB · 托管堆 {2} MB → {3} MB</sys:String>
+    <sys:String x:Key="S.Set.MemCleanDone">已回收内存：专用工作集 {0} MB → {1} MB（任务管理器同口径） · 托管堆 {2} MB → {3} MB</sys:String>
     <sys:String x:Key="S.Set.WinModeDefault">默认（1280×720）</sys:String>
     <sys:String x:Key="S.Set.WinModeMatch">与启动器窗口大小一致</sys:String>
     <sys:String x:Key="S.Set.WinModeCustom">自定义宽高</sys:String>
@@ -670,4 +670,7 @@
     <sys:String x:Key="S.Dl.LoaderTipLatest">推荐 {0}（最新版本，兼容与稳定性修复最全）</sys:String>
     <sys:String x:Key="S.Dl.LoaderTipOldest">最早支持的版本（较旧，不建议日常使用）</sys:String>
     <sys:String x:Key="S.Dl.CompatRecommend">，推荐 {0}（最早 {1}）</sys:String>
+    <!-- ==================== v0.15.2：任务重试 / 路径浏览 ==================== -->
+    <sys:String x:Key="S.Task.Retry">重试</sys:String>
+    <sys:String x:Key="S.Common.Browse">浏览</sys:String>
 </ResourceDictionary>

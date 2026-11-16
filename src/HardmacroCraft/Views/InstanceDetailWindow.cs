@@ -51,11 +51,11 @@ public static class InstanceDetailWindow
         {
             var desc = VersionInfo.Describe(AppSettings.Instance.GameRoot, inst.Version);
             icon.Source = VersionIconProvider.DescribeIcon(desc).Icon
-                ?? new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/grass.png"));
+                ?? new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/grass.jpg"));
         }
         catch
         {
-            icon.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/grass.png"));
+            icon.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/grass.jpg"));
         }
         RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.NearestNeighbor);
         head.Children.Add(icon);

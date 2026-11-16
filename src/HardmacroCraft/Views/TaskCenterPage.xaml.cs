@@ -146,6 +146,7 @@ public partial class TaskCenterPage : Page
         Grid.SetColumn(badge, 1);
 
         // fix7：可取消任务的「取消」按钮（PCL/HMCL 同款），替代状态徽章的位置
+        // v0.15.2：失败任务若登记了重试回调 → 显示「重试」按钮（PCL 同款）
         if (t.CanCancel)
         {
             var cancel = new Wpf.Ui.Controls.Button
@@ -158,6 +159,26 @@ public partial class TaskCenterPage : Page
             cancel.Click += (_, _) => t.RequestCancel();
             Grid.SetColumn(cancel, 1);
             head.Children.Add(cancel);
+        }
+        else if (t.Status == "failed" && t.RetryAction != null)
+        {
+            var retry = new Wpf.Ui.Controls.Button
+            {
+                Content = App.Current.TryFindResource("S.Task.Retry") as string ?? "重试",
+                MinHeight = 28,
+                Padding = new Thickness(10, 2, 10, 2),
+                Appearance = Wpf.Ui.Controls.ControlAppearance.Primary,
+            };
+            retry.Click += (_, _) =>
+            {
+                try { t.RetryAction!.Invoke(); }
+                catch (Exception ex)
+                {
+                    t.AppendLog("重试失败：" + ex.Message);
+                }
+            };
+            Grid.SetColumn(retry, 1);
+            head.Children.Add(retry);
         }
         else
         {

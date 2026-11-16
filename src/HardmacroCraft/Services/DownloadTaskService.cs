@@ -45,6 +45,11 @@ public class DownloadTaskService
         /// 卡片长时间停在「运行中」让用户以为取消卡住了）。</summary>
         public bool CancelRequested { get; internal set; }
 
+        /// <summary>v0.15.2：失败重试回调（PCL 同款「重试」）—— 登记方提供重新执行本任务
+        /// 的闭包；任务中心对失败卡片显示「重试」按钮，点击后调用（null 不显示）。
+        /// 回调内部由业务方自行重新登记 / 复用任务并切换回运行态。</summary>
+        public Action? RetryAction { get; internal set; }
+
         public bool IsActive => Status == "running";
         /// <summary>任务是否可以取消（运行中且登记了取消源）。</summary>
         public bool CanCancel => IsActive && Cts != null;
@@ -183,6 +188,39 @@ public class DownloadTaskService
         var item = StartKeyed(key, title, detail);
         item.Cts = new CancellationTokenSource();
         return item;
+    }
+
+    /// <summary>
+    /// v0.15.2：登记可取消任务并携带失败重试回调 —— 任务中心失败卡片显示「重试」。
+    /// retry 闭包内应重新走业务方自己的登记 / 执行流程（内部复用同 Key 任务）。
+    /// </summary>
+    public TaskItem StartCancellableKeyedWithRetry(string? key, string title, string detail, Action retry)
+    {
+        var item = StartCancellableKeyed(key, title, detail);
+        item.RetryAction = retry;
+        return item;
+    }
+
+    /// <summary>
+    /// v0.15.2：取消全部运行中任务（启动器退出时调用）—— 避免后台任务撞上已释放的
+    /// HttpClient / 服务对象抛未处理异常升级为致命错误。不等待业务收尾（进程即将退出）。
+    /// </summary>
+    public void CancelAllActive(string reason = "用户取消")
+    {
+        List<TaskItem> snapshot;
+        lock (_lock) snapshot = _tasks.Where(t => t.IsActive).ToList();
+        foreach (var t in snapshot)
+        {
+            try
+            {
+                t.AppendLog("任务已取消：" + reason);
+                t.RequestCancel();
+                // 直接落取消态：退出路径没有业务方捕获 OCE 后收尾（进程即将结束），
+                // 仅 RequestCancel 会让卡片永远停在「运行中」
+                if (t.IsActive) Cancel(t, reason);
+            }
+            catch { /* 单个任务取消失败不影响其余 */ }
+        }
     }
 
     /// <summary>取任务绑定的取消令牌（不可取消任务返回 default）。</summary>
