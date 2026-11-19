@@ -269,22 +269,40 @@ public partial class App : Application
         var backdrop = metro
             ? Wpf.Ui.Controls.WindowBackdropType.None
             : Wpf.Ui.Controls.WindowBackdropType.Mica;
-        switch (theme)
+
+        // v0.15.6：有存活窗口（运行中热切）时绝不全量重建样式集 —— WPF 遍历视觉树
+        // 换隐式样式时旧模板链的动画以 NaN 为目标值求值会崩（v0.15.5 crash.log）。
+        // 运行中 Metro 只同位换深浅色变体；Fluent 交给 Wpf.Ui 原地更新；风格切换必须重启
+        var hasWindows = Current is not null && Current.Windows.Count > 0;
+
+        if (!metro || !hasWindows)
         {
-            case "light":
-                ApplicationThemeManager.Apply(ApplicationTheme.Light, backdrop);
-                break;
-            case "system":
-                ApplicationThemeManager.ApplySystemTheme();
-                break;
-            default: // dark
-                ApplicationThemeManager.Apply(ApplicationTheme.Dark, backdrop);
-                break;
+            switch (theme)
+            {
+                case "light":
+                    ApplicationThemeManager.Apply(ApplicationTheme.Light, backdrop);
+                    break;
+                case "system":
+                    ApplicationThemeManager.ApplySystemTheme();
+                    break;
+                default: // dark
+                    ApplicationThemeManager.Apply(ApplicationTheme.Dark, backdrop);
+                    break;
+            }
         }
 
-        // v0.15.5：Metro 模式全局重建合并字典（Wpf.Ui 隐式样式集退位，MahApps 接管）；
-        // Fluent 模式恢复出厂组合。Apply 每次重建主题字典，故每次 Apply 后整体重挂
-        ApplyMetroOverlay(metro, theme);
+        if (metro && !hasWindows)
+        {
+            // 启动期（无窗口，树尚未建立）：MahApps 全局接管 —— 整体重建合并字典是安全的
+            ApplyMetroOverlay(true, theme);
+        }
+        else if (metro)
+        {
+            // 运行中（Metro）：样式集不动，只同位替换深浅色变体字典（隐式样式对象不变）
+            SwapMetroVariant(theme);
+        }
+        // Fluent：Wpf.Ui 原地更新它缓存的主题字典即可 —— 出厂组合保持 App.xaml 原样，
+        // 不做任何字典手术（v0.15.5 的启动期重建反而会切断 Wpf.Ui 的缓存引用）
 
         // v0.15.4：Win11 圆角窗体是 Fluent 的标志 —— Metro 模式下关掉 DWM 圆角，
         // 切回 Fluent 恢复 Round（仅 Wpf.Ui 窗体支持该属性）
@@ -310,15 +328,6 @@ public partial class App : Application
         }
     }
 
-    // v0.15.5：Wpf.Ui 主题字典被监听器切换时（跟随系统 + OS 深浅色变化），
-    // 全局字典随之按新深浅色重挂（Metro 的 MahApps 变体 / Fluent 的主题字典）
-    private static void OnWpfUiThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
-    {
-        if (!string.Equals(AppSettings.Instance.ThemeStyle, "metro", StringComparison.OrdinalIgnoreCase))
-            return;
-        ApplyMetroOverlay(true, currentApplicationTheme == ApplicationTheme.Dark ? "dark" : "light");
-    }
-
     // Wpf.Ui 主字典 = ui:ControlsDictionary（含标准控件隐式 Fluent 样式 + 全部基建）
     private const string WpfUiMasterDict =
         "pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml";
@@ -339,14 +348,18 @@ public partial class App : Application
         "pack://application:,,,/Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle.xaml",
     };
 
-    /// <summary>
-    /// v0.15.5：全局字典切换（v0.15.4 只叠加几个样式、两套设计语言混排，
-    /// 用户反馈「更不对」—— 本版整体重建 Application.Resources 合并字典）。
-    /// on=false（Fluent）：恢复 App.xaml 出厂组合（Wpf.Ui 主题字典 + 主字典）。
-    /// on=true（Metro）：Wpf.Ui 基建子集（不含标准控件隐式样式）+ MahApps 全套
-    /// （主题画刷 + 全部标准控件隐式样式）+ Metro.xaml 经典蓝/直角压轴覆盖。
-    /// theme 决定 Dark/Light 变体（含跟随系统，经 ThemeChanged 事件重挂）。
-    /// </summary>
+    // v0.15.6：OS 深浅色变化（跟随系统监听）——
+    // Fluent：Wpf.Ui 已原地更新其字典，无需干预；Metro：只同位换深浅色变体；
+    // 启动期（无窗口）什么都不做，ApplyTheme 稍后整体重建。绝不在运行中全量重建。
+    private static void OnWpfUiThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
+    {
+        if (!string.Equals(AppSettings.Instance.ThemeStyle, "metro", StringComparison.OrdinalIgnoreCase))
+            return;
+        if (Current is null || Current.Windows.Count == 0)
+            return;
+        SwapMetroVariant(currentApplicationTheme == ApplicationTheme.Dark ? "dark" : "light");
+    }
+
     public static void ApplyMetroOverlay(bool on, string theme)
     {
         var appTheme = ApplicationThemeManager.GetAppTheme();
@@ -356,7 +369,11 @@ public partial class App : Application
 
         var resources = Current.Resources;
         var md = resources.MergedDictionaries;
+        try
+        {
         // 移除既有全套主题相关字典（语言字典不受影响）
+        // v0.15.6：RemoveAt 同样触发 OnMergedDictionariesChanged → 全树失效遍历，
+        // 必须连同 Add 一起包进 try/catch（v0.15.5 只包了 Add，RemoveAt 裸奔）
         var prefixes = new[]
         {
             "Themes/Metro.",
@@ -385,8 +402,6 @@ public partial class App : Application
             md.Add(new ResourceDictionary { Source = new Uri(uri) });
         }
 
-        try
-        {
             if (!on)
             {
                 // Fluent：出厂组合（Wpf.Ui 主题字典 + 主字典，隐式样式全量回归）
@@ -409,8 +424,71 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            // 兜底：字典变更引发的资源失效遍历里任何控件抛错都不许带崩应用
             Services.BootLogger.Error("Metro 全局字典切换失败: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// v0.15.6：Metro 模式下运行中切换深浅色 —— 只把 MahApps / Wpf.Ui 的主题字典
+    /// 同位替换为另一变体（隐式样式对象不变，无模板交换，热切换安全）。
+    /// </summary>
+    private static void SwapMetroVariant(string theme)
+    {
+        try
+        {
+            // 跟随系统时用 WPF 已解析的系统主题，未知取浅色（Win10 默认）
+            var dark = theme switch
+            {
+                "dark" => true,
+                "light" => false,
+                _ => ApplicationThemeManager.GetSystemTheme() == Wpf.Ui.Appearance.SystemTheme.Dark,
+            };
+            var variant = dark ? "Dark.xaml" : "Light.xaml";
+            var md = Current.Resources.MergedDictionaries;
+            SwapThemeDictInPlace(md, "Wpf.Ui;component/Resources/Theme/",
+                WpfUiThemeDictPrefix + variant);
+            SwapThemeDictInPlace(md, "MahApps.Metro;component/Styles/Themes/",
+                $"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}");
+        }
+        catch (Exception ex)
+        {
+            Services.BootLogger.Error("Metro 深浅色变体切换失败: " + ex.Message);
+        }
+    }
+
+    /// <summary>在合并字典列表里把含 contains 的主题字典原地换成 newSource（保持索引位置）。</summary>
+    private static void SwapThemeDictInPlace(System.Collections.ObjectModel.Collection<ResourceDictionary> md,
+        string contains, string newSource)
+    {
+        for (var i = 0; i < md.Count; i++)
+        {
+            var src = md[i].Source?.OriginalString;
+            if (src == null || !src.Contains(contains)) continue;
+            if (src.EndsWith(newSource, StringComparison.OrdinalIgnoreCase)) return; // 已是目标变体
+            md.RemoveAt(i); // 同位替换，保持字典查找顺序稳定
+            md.Insert(i, new ResourceDictionary { Source = new Uri(newSource) });
+            return;
+        }
+    }
+
+    /// <summary>v0.15.6：重启应用（当前进程退出，拉起新进程读取已保存的设置）。</summary>
+    public static void RestartApplication()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exe))
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe)
+                {
+                    UseShellExecute = true,
+                });
+        }
+        catch (Exception ex)
+        {
+            Services.BootLogger.Error("重启应用失败: " + ex.Message);
+        }
+        Current.Shutdown();
     }
 
 

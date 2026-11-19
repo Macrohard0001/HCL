@@ -215,13 +215,26 @@ public partial class SettingsPage : Page
     {
         if (_applyingTheme) return;
         if (CmbThemeStyle.SelectedItem is not ComboBoxItem item || item.Tag is not string style) return;
-        if (AppSettings.Instance.ThemeStyle == style) return;
+        var oldStyle = AppSettings.Instance.ThemeStyle;
+        if (oldStyle == style) return;
         AppSettings.Instance.ThemeStyle = style;
         AppSettings.Instance.Save();
-        App.ApplyTheme(AppSettings.Instance.Theme); // 重新应用：云母开关 + 覆盖层挂载
+        // v0.15.6：运行中热切全局样式集会在模板交换时崩溃（旧模板动画 NaN 目标值，
+        // 见 v0.15.5 crash.log）—— 必须重启生效，询问立即重启或稍后
+        var result = System.Windows.MessageBox.Show(
+            "主题风格切换需要重建全局资源字典，重启应用后生效。\n\n立即重启吗？",
+            "主题风格", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (result == MessageBoxResult.Yes)
+        {
+            App.RestartApplication(); // 保存后拉起新进程读取设置
+            return;
+        }
+        // 稍后重启：本次会话沿用当前风格，回退设置与下拉回显（新风格下次启动生效）
+        AppSettings.Instance.ThemeStyle = oldStyle;
+        AppSettings.Instance.Save();
         _applyingTheme = true;
-        foreach (ComboBoxItem i in CmbTheme.Items) // ApplyTheme 会重建主题字典，同步回显深浅色选择
-            if ((string)i.Tag == AppSettings.Instance.Theme) { CmbTheme.SelectedItem = i; break; }
+        foreach (ComboBoxItem i in CmbThemeStyle.Items)
+            if ((string)i.Tag == oldStyle) { CmbThemeStyle.SelectedItem = i; break; }
         _applyingTheme = false;
     }
 

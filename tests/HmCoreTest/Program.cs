@@ -2659,6 +2659,24 @@ try
         && appText.Contains("MahApps.Metro;component/Styles/Themes/")
         && appText.Contains("DefaultTextBoxScrollViewerStyle.xaml"));
 
+    // v0.15.6 崩溃修复：运行中禁止全量重建（NaN 动画崩溃），风格切换走重启流程
+    Check("v0.15.6：运行中只同位换深浅色变体（SwapMetroVariant）",
+        appText.Contains("private static void SwapMetroVariant(string theme)")
+        && appText.Contains("SwapThemeDictInPlace"));
+    Check("v0.15.6：全量重建仅限启动期（无窗口守卫）",
+        appText.Contains("Current.Windows.Count > 0")
+        && appText.Contains("Current.Windows.Count == 0"));
+    Check("v0.15.6：字典变异整体 try/catch 兜底",
+        appText.Contains("Metro 全局字典切换失败"));
+    Check("v0.15.6：重启流程（RestartApplication）",
+        appText.Contains("public static void RestartApplication()")
+        && appText.Contains("Environment.ProcessPath"));
+    var settingsText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
+    Check("v0.15.6：设置页风格切换走重启询问，不再热切",
+        settingsText.Contains("App.RestartApplication()")
+        && settingsText.Contains("立即重启吗")
+        && !settingsText.Contains("App.ApplyTheme(AppSettings.Instance.Theme); // 重新应用"));
+
     // 35.6 v0.15.2 分目录版本扫描（NestedVersionLoader 纯文件系统逻辑）
     var verRoot = Path.Combine(Path.GetTempPath(), "hcl-test-vers-" + Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(Path.Combine(verRoot, "1.20.1"));                    // 一层结构（目录名=id，应跳过）
