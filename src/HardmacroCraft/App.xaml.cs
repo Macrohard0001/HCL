@@ -260,7 +260,12 @@ public partial class App : Application
     /// </summary>
     public static void ApplyTheme(string theme, bool attachWatcher = true)
     {
-        const Wpf.Ui.Controls.WindowBackdropType backdrop = Wpf.Ui.Controls.WindowBackdropType.Mica;
+        // v0.15.3：主题风格与深浅色正交叠加 ——
+        // metro（Win10 怀旧）关闭云母，窗体用主题实色底（Win10 式不透明），叠加直角 + 经典蓝覆盖层
+        var metro = string.Equals(AppSettings.Instance.ThemeStyle, "metro", StringComparison.OrdinalIgnoreCase);
+        var backdrop = metro
+            ? Wpf.Ui.Controls.WindowBackdropType.None
+            : Wpf.Ui.Controls.WindowBackdropType.Mica;
         switch (theme)
         {
             case "light":
@@ -274,6 +279,10 @@ public partial class App : Application
                 break;
         }
 
+        // v0.15.3：metro 覆盖层（直角 + 经典 Win10 强调色）必须在主题字典之后叠加，
+        // 合并字典后位优先 —— Apply 每次重建主题字典，所以每次 Apply 后重新挂载
+        ApplyMetroOverlay(metro);
+
         // 跟随系统时挂上监听器：Windows 深浅色变化时启动器实时跟随
         var win = Current?.MainWindow;
         if (win != null)
@@ -285,6 +294,35 @@ public partial class App : Application
                     SystemThemeWatcher.Watch(win, backdrop, true);
             }
             catch { /* 忽略监听器异常，主题本身已应用 */ }
+        }
+    }
+
+    /// <summary>
+    /// v0.15.3：Metro（Win10 怀旧）主题覆盖层的挂载 / 移除。
+    /// 叠加在主题字典之后（后位优先）：直角 + 经典 Win10 强调色覆盖 Fluent 圆角 / 现代强调色；
+    /// 切回 Fluent 时移除覆盖层，恢复原状。深浅色不受影响（正交叠加）。
+    /// </summary>
+    public static void ApplyMetroOverlay(bool on)
+    {
+        var resources = Current.Resources;
+        for (var i = resources.MergedDictionaries.Count - 1; i >= 0; i--)
+        {
+            var d = resources.MergedDictionaries[i];
+            if (d.Source != null && d.Source.OriginalString.Contains("Themes/Metro.xaml"))
+                resources.MergedDictionaries.RemoveAt(i);
+        }
+        if (!on) return;
+        try
+        {
+            resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                // 绝对 pack URI：编译后的 BAML 资源（与语言字典同一策略）
+                Source = new Uri("pack://application:,,,/Themes/Metro.xaml")
+            });
+        }
+        catch (Exception ex)
+        {
+            Services.BootLogger.Error("Metro 主题覆盖层加载失败: " + ex.Message);
         }
     }
 

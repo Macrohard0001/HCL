@@ -35,9 +35,17 @@ public partial class MainWindow : FluentWindow
             // 默认落在启动页
             try { RootNavigation.Navigate(typeof(Views.HomePage)); } catch { }
             // 主题设置为"跟随系统"时挂上监听：Windows 深浅色切换时启动器实时跟随
+            // v0.15.3：Metro（Win10 怀旧）风格下监听器保持无云母（None），
+            // 否则系统深浅色切换会把 Mica 拉回来
             if (AppSettings.Instance.Theme == "system")
             {
-                try { Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.Mica, true); }
+                try
+                {
+                    var backdrop = AppSettings.Instance.ThemeStyle == "metro"
+                        ? Wpf.Ui.Controls.WindowBackdropType.None
+                        : Wpf.Ui.Controls.WindowBackdropType.Mica;
+                    Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this, backdrop, true);
+                }
                 catch { }
             }
         };

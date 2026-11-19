@@ -65,6 +65,9 @@ public class AppSettings
     public string LastModLoader { get; set; } = "any";
     /// <summary>主题：dark / light / system（跟随 Windows 深浅色）。fix6 起新装默认跟随系统。</summary>
     public string Theme { get; set; } = "system";
+    /// <summary>v0.15.3：主题风格（与深浅色正交叠加）——
+    /// "fluent"（默认，Win11 云母 / 圆角）/ "metro"（Win10 怀旧：直角 + 经典蓝 #0078D7 + 不透明窗体）。</summary>
+    public string ThemeStyle { get; set; } = "fluent";
     /// <summary>最近启动的版本（主页快捷启动，最新在前，最多 6 个）。</summary>
     public List<string> RecentVersions { get; set; } = new();
     /// <summary>关闭时窗口是否处于最大化（记忆窗口状态，尺寸始终默认 960×540）。</summary>

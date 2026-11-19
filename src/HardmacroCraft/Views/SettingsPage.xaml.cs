@@ -81,6 +81,8 @@ public partial class SettingsPage : Page
             _applyingTheme = true;
             foreach (ComboBoxItem i in CmbTheme.Items)
                 if ((string)i.Tag == AppSettings.Instance.Theme) { CmbTheme.SelectedItem = i; break; }
+            foreach (ComboBoxItem i in CmbThemeStyle.Items)
+                if ((string)i.Tag == AppSettings.Instance.ThemeStyle) { CmbThemeStyle.SelectedItem = i; break; }
             _applyingTheme = false;
         };
         // v0.1.12：每次进入设置页都重启内存读数定时器（Loaded/Unloaded 随导航反复触发，
@@ -207,6 +209,22 @@ public partial class SettingsPage : Page
     }
 
     /// <summary>主题切换：即时应用并持久化，所有 DynamicResource 颜色（含字体）随之变化。</summary>
+    // v0.15.3：主题风格切换（Fluent Win11 / Metro Win10 怀旧）——
+    // 保存后整体重应用主题（含云母开关与 Metro 覆盖层挂载 / 移除），深浅色保持不变
+    private void CmbThemeStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_applyingTheme) return;
+        if (CmbThemeStyle.SelectedItem is not ComboBoxItem item || item.Tag is not string style) return;
+        if (AppSettings.Instance.ThemeStyle == style) return;
+        AppSettings.Instance.ThemeStyle = style;
+        AppSettings.Instance.Save();
+        App.ApplyTheme(AppSettings.Instance.Theme); // 重新应用：云母开关 + 覆盖层挂载
+        _applyingTheme = true;
+        foreach (ComboBoxItem i in CmbTheme.Items) // ApplyTheme 会重建主题字典，同步回显深浅色选择
+            if ((string)i.Tag == AppSettings.Instance.Theme) { CmbTheme.SelectedItem = i; break; }
+        _applyingTheme = false;
+    }
+
     private void CmbTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_applyingTheme) return;

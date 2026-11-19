@@ -371,6 +371,9 @@
     <sys:String x:Key="S.Set.ThemeDark">深色</sys:String>
     <sys:String x:Key="S.Set.ThemeLight">浅色</sys:String>
     <sys:String x:Key="S.Set.ThemeSystem">跟随系统</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyle">主题风格</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyleFluent">Fluent（Win11 · 云母圆角）</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyleMetro">Metro（Win10 怀旧 · 直角经典蓝）</sys:String>
     <sys:String x:Key="S.Set.Behavior">启动行为</sys:String>
     <sys:String x:Key="S.Set.GameRoot">游戏目录（.minecraft）</sys:String>
     <sys:String x:Key="S.Set.GameRootHint">默认位于启动器同目录，随目录一起携带。</sys:String>

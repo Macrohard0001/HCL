@@ -371,6 +371,9 @@
     <sys:String x:Key="S.Set.ThemeDark">Dark</sys:String>
     <sys:String x:Key="S.Set.ThemeLight">Light</sys:String>
     <sys:String x:Key="S.Set.ThemeSystem">Follow system</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyle">Theme style</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyleFluent">Fluent (Win11 · Mica, rounded)</sys:String>
+    <sys:String x:Key="S.Set.ThemeStyleMetro">Metro (Win10 · square, classic blue)</sys:String>
     <sys:String x:Key="S.Set.Behavior">Launch behavior</sys:String>
     <sys:String x:Key="S.Set.GameRoot">Game directory (.minecraft)</sys:String>
     <sys:String x:Key="S.Set.GameRootHint">Defaults to the launcher folder so it travels with your installation.</sys:String>

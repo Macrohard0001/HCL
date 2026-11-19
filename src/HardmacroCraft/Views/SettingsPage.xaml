@@ -38,6 +38,14 @@
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeLight}" Tag="light" />
                             <ComboBoxItem Content="{DynamicResource S.Set.ThemeSystem}" Tag="system" />
                         </ComboBox>
+                        <!-- v0.15.3：主题风格（Fluent Win11 / Metro Win10 怀旧），与深浅色正交叠加 -->
+                        <TextBlock Text="{DynamicResource S.Set.ThemeStyle}" FontWeight="Medium"
+                                   VerticalAlignment="Center" Margin="24,0,12,0" />
+                        <ComboBox x:Name="CmbThemeStyle" MinHeight="30" MinWidth="200"
+                                  SelectionChanged="CmbThemeStyle_SelectionChanged">
+                            <ComboBoxItem Content="{DynamicResource S.Set.ThemeStyleFluent}" Tag="fluent" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.ThemeStyleMetro}" Tag="metro" />
+                        </ComboBox>
                         <TextBlock Text="{DynamicResource S.Set.Language}" FontWeight="Medium"
                                    VerticalAlignment="Center" Margin="24,0,12,0" />
                         <ComboBox x:Name="CmbLanguage" MinHeight="30" MinWidth="140">
