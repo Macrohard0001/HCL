@@ -282,8 +282,8 @@ public partial class App : Application
                 break;
         }
 
-        // v0.15.4：metro 覆盖层（MahApps + 直角 + 经典蓝）必须在主题字典之后叠加，
-        // 合并字典后位优先 —— Apply 每次重建主题字典，所以每次 Apply 后重新挂载
+        // v0.15.5：Metro 模式全局重建合并字典（Wpf.Ui 隐式样式集退位，MahApps 接管）；
+        // Fluent 模式恢复出厂组合。Apply 每次重建主题字典，故每次 Apply 后整体重挂
         ApplyMetroOverlay(metro, theme);
 
         // v0.15.4：Win11 圆角窗体是 Fluent 的标志 —— Metro 模式下关掉 DWM 圆角，
@@ -310,8 +310,8 @@ public partial class App : Application
         }
     }
 
-    // v0.15.4：Wpf.Ui 主题字典被监听器切换时（跟随系统 + OS 深浅色变化），
-    // Metro 覆盖层的 MahApps 深浅色变体随之重挂，保持两侧一致
+    // v0.15.5：Wpf.Ui 主题字典被监听器切换时（跟随系统 + OS 深浅色变化），
+    // 全局字典随之按新深浅色重挂（Metro 的 MahApps 变体 / Fluent 的主题字典）
     private static void OnWpfUiThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
     {
         if (!string.Equals(AppSettings.Instance.ThemeStyle, "metro", StringComparison.OrdinalIgnoreCase))
@@ -319,40 +319,101 @@ public partial class App : Application
         ApplyMetroOverlay(true, currentApplicationTheme == ApplicationTheme.Dark ? "dark" : "light");
     }
 
+    // Wpf.Ui 主字典 = ui:ControlsDictionary（含标准控件隐式 Fluent 样式 + 全部基建）
+    private const string WpfUiMasterDict =
+        "pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml";
+    private const string WpfUiThemeDictPrefix =
+        "pack://application:,,,/Wpf.Ui;component/Resources/Theme/";
+    // Wpf.Ui 基建子集（Metro 模式下代替主字典，供 ui: 自定义控件默认模板渲染；
+    // 不含 Controls/*.xaml —— 标准控件的隐式样式全部让位给 MahApps）
+    private static readonly string[] WpfUiInfraDicts =
+    {
+        "pack://application:,,,/Wpf.Ui;component/Resources/Variables.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/Fonts.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/Typography.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/StaticColors.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/Accent.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/Palette.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultContextMenu.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultFocusVisualStyle.xaml",
+        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle.xaml",
+    };
+
     /// <summary>
-    /// v0.15.4：Metro（Win10 怀旧）主题覆盖层的挂载 / 移除。
-    /// MahApps.Metro 接管标准控件隐式样式（真 Metro 库），叠加 Wpf.Ui 侧直角 + 经典蓝覆盖；
-    /// theme 决定 MahApps / 覆盖层的深浅色变体（与深浅色设置正交联动，含跟随系统）。
-    /// 叠加在主题字典之后（后位优先）；切回 Fluent 时移除覆盖层，恢复原状。
+    /// v0.15.5：全局字典切换（v0.15.4 只叠加几个样式、两套设计语言混排，
+    /// 用户反馈「更不对」—— 本版整体重建 Application.Resources 合并字典）。
+    /// on=false（Fluent）：恢复 App.xaml 出厂组合（Wpf.Ui 主题字典 + 主字典）。
+    /// on=true（Metro）：Wpf.Ui 基建子集（不含标准控件隐式样式）+ MahApps 全套
+    /// （主题画刷 + 全部标准控件隐式样式）+ Metro.xaml 经典蓝/直角压轴覆盖。
+    /// theme 决定 Dark/Light 变体（含跟随系统，经 ThemeChanged 事件重挂）。
     /// </summary>
     public static void ApplyMetroOverlay(bool on, string theme)
     {
-        var resources = Current.Resources;
-        for (var i = resources.MergedDictionaries.Count - 1; i >= 0; i--)
-        {
-            var d = resources.MergedDictionaries[i];
-            if (d.Source != null && d.Source.OriginalString.Contains("Themes/Metro."))
-                resources.MergedDictionaries.RemoveAt(i);
-        }
-        if (!on) return;
-        // 深浅色变体：跟随系统时 Wpf.Ui 已解析出实际主题（ApplySystemTheme 会写
-        // AppTheme），未知则取浅色（Win10 默认）
         var appTheme = ApplicationThemeManager.GetAppTheme();
         var dark = theme == "dark"
             || (theme != "light" && appTheme == ApplicationTheme.Dark);
+        var variant = dark ? "Dark" : "Light";
+
+        var resources = Current.Resources;
+        var md = resources.MergedDictionaries;
+        // 移除既有全套主题相关字典（语言字典不受影响）
+        var prefixes = new[]
+        {
+            "Themes/Metro.",
+            "Wpf.Ui;component/Resources/Wpf.Ui.xaml",
+            "Wpf.Ui;component/Resources/Theme/",
+            "Wpf.Ui;component/Resources/Variables",
+            "Wpf.Ui;component/Resources/Fonts",
+            "Wpf.Ui;component/Resources/Typography",
+            "Wpf.Ui;component/Resources/StaticColors",
+            "Wpf.Ui;component/Resources/Accent",
+            "Wpf.Ui;component/Resources/Palette",
+            "Wpf.Ui;component/Resources/DefaultContextMenu",
+            "Wpf.Ui;component/Resources/DefaultFocusVisualStyle",
+            "Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle",
+            "MahApps.Metro;component/Styles/",
+        };
+        for (var i = md.Count - 1; i >= 0; i--)
+        {
+            var src = md[i].Source?.OriginalString;
+            if (src != null && prefixes.Any(p => src.Contains(p)))
+                md.RemoveAt(i);
+        }
+
+        void Add(string uri)
+        {
+            md.Add(new ResourceDictionary { Source = new Uri(uri) });
+        }
+
         try
         {
-            resources.MergedDictionaries.Add(new ResourceDictionary
+            if (!on)
             {
-                // 绝对 pack URI：编译后的 BAML 资源（与语言字典同一策略）
-                Source = new Uri($"pack://application:,,,/Themes/Metro.{(dark ? "Dark" : "Light")}.xaml")
-            });
+                // Fluent：出厂组合（Wpf.Ui 主题字典 + 主字典，隐式样式全量回归）
+                Add(WpfUiThemeDictPrefix + variant + ".xaml");
+                Add(WpfUiMasterDict);
+                return;
+            }
+
+            // Metro：1) Wpf.Ui 基建子集（ui: 自定义控件默认模板仍可渲染）
+            foreach (var d in WpfUiInfraDicts)
+                Add(d);
+            Add(WpfUiThemeDictPrefix + variant + ".xaml");
+
+            // 2) MahApps 全局接管：全部标准控件隐式样式 + MahApps 主题画刷
+            Add($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml");
+            Add("pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml");
+
+            // 3) 压轴覆盖（后位优先）：直角 + 经典 Win10 蓝
+            Add("pack://application:,,,/Themes/Metro.xaml");
         }
         catch (Exception ex)
         {
-            Services.BootLogger.Error("Metro 主题覆盖层加载失败: " + ex.Message);
+            Services.BootLogger.Error("Metro 全局字典切换失败: " + ex.Message);
         }
     }
+
+
 
     public static void ApplyLanguage(string lang)
     {

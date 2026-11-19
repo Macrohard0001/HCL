@@ -2607,7 +2607,7 @@ try
     Check("OptiFine 命名", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
     Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
 
-    // 36.1 v0.15.4 主题风格（MahApps Metro / Fluent）：设置持久化 + 覆盖层字典内容
+    // 36.1 v0.15.5 主题风格（MahApps 全局接管 / Fluent）：设置持久化 + 覆盖层字典内容
     Check("ThemeStyle 默认 fluent", AppSettings.Instance.ThemeStyle == "fluent");
     AppSettings.Instance.ThemeStyle = "metro";
     AppSettings.Instance.Save();
@@ -2632,32 +2632,32 @@ try
     }
 
     var projText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "HardmacroCraft.csproj")));
-    Check("MahApps.Metro 已引用（v0.15.4 真 Metro 库）",
+    Check("MahApps.Metro 已引用（v0.15.4+ 真 Metro 库）",
         projText.Contains("MahApps.Metro") && projText.Contains("2.4.10"));
 
-    string? XamlVal(System.Xml.Linq.XDocument doc, string key) => doc.Descendants()
+    var metroPath = FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Metro.xaml"));
+    Check("Metro.xaml 压轴覆盖层存在", File.Exists(metroPath), metroPath);
+    var metroDoc = System.Xml.Linq.XDocument.Load(metroPath);
+    string? XamlVal(string key) => metroDoc.Descendants()
         .FirstOrDefault(e => e.Attributes().Any(a => a.Name.LocalName == "Key" && (string?)a == key))?.Value;
-    void CheckMetroVariant(string file, string mahAppsTheme)
-    {
-        var path = FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", file));
-        Check($"{file} 存在", File.Exists(path), path);
-        var doc = System.Xml.Linq.XDocument.Load(path);
-        var sources = doc.Descendants()
-            .Where(d => d.Name.LocalName == "ResourceDictionary")
-            .Select(d => (string?)d.Attribute("Source")).Where(x => x != null).ToList()!;
-        Check($"{file}：合并 MahApps {mahAppsTheme} 主题 + 隐式控件样式",
-            sources.Any(x => x!.Contains("MahApps.Metro;component/Styles/Themes/" + mahAppsTheme))
-            && sources.Any(x => x!.Contains("MahApps.Metro;component/Styles/Controls.xaml")));
-        Check($"{file}：Wpf.Ui 侧直角", XamlVal(doc, "ControlCornerRadius") == "0,0,0,0"
-            && XamlVal(doc, "PopupCornerRadius") == "0,0,0,0");
-        Check($"{file}：经典 Win10 强调色 #0078D7",
-            XamlVal(doc, "SystemAccentColor") == "#FF0078D7"
-            && XamlVal(doc, "SystemAccentColorPrimary") == "#FF0063B1");
-    }
-    CheckMetroVariant("Metro.Dark.xaml", "Dark.xaml");
-    CheckMetroVariant("Metro.Light.xaml", "Light.xaml");
-    Check("旧手绘 Metro.xaml 已移除", !File.Exists(Path.Combine(
-        FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes")), "Metro.xaml")));
+    Check("Metro：Wpf.Ui 侧直角", XamlVal("ControlCornerRadius") == "0,0,0,0"
+        && XamlVal("PopupCornerRadius") == "0,0,0,0");
+    Check("Metro：Wpf.Ui 侧经典 Win10 蓝", XamlVal("SystemAccentColor") == "#FF0078D7"
+        && XamlVal("SystemAccentColorPrimary") == "#FF0063B1");
+    // 画刷键的颜色在 Color 属性里，与 Color 元素（取 .Value）分开取
+    string? XamlAttr(string key, string attr) => metroDoc.Descendants()
+        .Where(e => e.Attributes().Any(a => a.Name.LocalName == "Key" && (string?)a == key))
+        .Select(e => (string?)e.Attribute(attr)).FirstOrDefault();
+    Check("Metro：MahApps 侧 Blue 方案钉死", XamlVal("MahApps.Colors.AccentBase") == "#FF0078D7"
+        && XamlAttr("MahApps.Brushes.Accent", "Color") == "#CC0078D7");
+
+    // v0.15.5 全局切换管线：App 代码必须整体重建合并字典（而非只叠加）
+    var appText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
+    Check("全局切换：含 Wpf.Ui 主字典移除与基建子集 + MahApps 全套",
+        appText.Contains("Resources/Wpf.Ui.xaml")
+        && appText.Contains("MahApps.Metro;component/Styles/Controls.xaml")
+        && appText.Contains("MahApps.Metro;component/Styles/Themes/")
+        && appText.Contains("DefaultTextBoxScrollViewerStyle.xaml"));
 
     // 35.6 v0.15.2 分目录版本扫描（NestedVersionLoader 纯文件系统逻辑）
     var verRoot = Path.Combine(Path.GetTempPath(), "hcl-test-vers-" + Guid.NewGuid().ToString("N"));
