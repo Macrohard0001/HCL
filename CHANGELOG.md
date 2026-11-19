@@ -4,6 +4,22 @@
 
 ---
 
+## v0.15.4
+
+**主题风格重做：接入 MahApps.Metro（真 Metro 库）替换手绘覆盖层**
+
+- v0.15.3 的手绘覆盖层只压了圆角与强调色，视觉仍偏 Win11 —— 本版换真库方案：
+  - **MahApps.Metro 2.4.10**（WPF 生态事实标准的 Metro 库）隐式样式接管全部
+    标准控件：ComboBox(67) / ListBox(17) / CheckBox(16) / ProgressBar(5) 等
+    105 处换成 MahApps 的 Win8/Win10 式平面直角样式；
+  - Wpf.Ui 侧 87 处派生控件（ui:Button / ui:TextBox / NumberBox / PasswordBox）
+    按第三方库无法作用于派生类型的 WPF 规则，继续走资源覆盖（直角 + 经典蓝 #0078D7）；
+  - **关闭 Win11 DWM 圆角窗体**（DoNotRound），切回 Fluent 恢复 Round。
+- 深浅色正交联动：Metro.Dark.xaml / Metro.Light.xaml 双变体，跟随系统时经
+  Wpf.Ui 主题变化事件同步重挂（SystemThemeWatcher 只切 Wpf.Ui 字典，MahApps 侧需自行跟进）。
+- 云母关闭 + MahApps 主题实色底，窗体观感对齐 Win10。
+- 测试 +6（MahApps 引用 / 双变体字典合并断言 / 直角与经典蓝）→ **657 全绿**。
+
 ## v0.15.3
 
 **主题风格设置：Fluent（Win11）/ Metro（Win10 怀旧），与深浅色正交叠加**

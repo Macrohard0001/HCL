@@ -37,6 +37,17 @@ public partial class MainWindow : FluentWindow
             // 主题设置为"跟随系统"时挂上监听：Windows 深浅色切换时启动器实时跟随
             // v0.15.3：Metro（Win10 怀旧）风格下监听器保持无云母（None），
             // 否则系统深浅色切换会把 Mica 拉回来
+            // v0.15.4：Metro 模式关闭 Win11 DWM 圆角窗体（ApplyTheme 在窗口创建前运行，
+            // 那时拿不到窗口，所以这里补设；Fluent 恢复 Round）
+            try
+            {
+                if (this is Wpf.Ui.Controls.FluentWindow uiWin)
+                    uiWin.WindowCornerPreference = AppSettings.Instance.ThemeStyle == "metro"
+                        ? Wpf.Ui.Controls.WindowCornerPreference.DoNotRound
+                        : Wpf.Ui.Controls.WindowCornerPreference.Round;
+            }
+            catch { }
+
             if (AppSettings.Instance.Theme == "system")
             {
                 try

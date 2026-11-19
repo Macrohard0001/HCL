@@ -2607,7 +2607,7 @@ try
     Check("OptiFine 命名", VersionNaming.DefaultName("1.20.1", "optifine", "1.20.1 HD U I7") == "1.20.1-OptiFine_HD_U_I7");
     Check("TrimLoader 纯函数", VersionNaming.TrimLoader(" 0.16.9+build.3 ") == "0.16.9.3");
 
-    // 36.1 v0.15.3 主题风格（Metro / Fluent）：设置持久化 + 覆盖层字典内容
+    // 36.1 v0.15.4 主题风格（MahApps Metro / Fluent）：设置持久化 + 覆盖层字典内容
     Check("ThemeStyle 默认 fluent", AppSettings.Instance.ThemeStyle == "fluent");
     AppSettings.Instance.ThemeStyle = "metro";
     AppSettings.Instance.Save();
@@ -2630,16 +2630,34 @@ try
         }
         return Path.Combine(AppContext.BaseDirectory, rel);
     }
-    var metroXamlPath = FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Metro.xaml"));
-    Check("Metro.xaml 存在", File.Exists(metroXamlPath), metroXamlPath);
-    var metroDoc = System.Xml.Linq.XDocument.Load(metroXamlPath);
-    string? GetVal(string key) => metroDoc.Descendants()
+
+    var projText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "HardmacroCraft.csproj")));
+    Check("MahApps.Metro 已引用（v0.15.4 真 Metro 库）",
+        projText.Contains("MahApps.Metro") && projText.Contains("2.4.10"));
+
+    string? XamlVal(System.Xml.Linq.XDocument doc, string key) => doc.Descendants()
         .FirstOrDefault(e => e.Attributes().Any(a => a.Name.LocalName == "Key" && (string?)a == key))?.Value;
-    Check("Metro：控件直角（ControlCornerRadius=0）", GetVal("ControlCornerRadius") == "0,0,0,0");
-    Check("Metro：弹层直角（PopupCornerRadius=0）", GetVal("PopupCornerRadius") == "0,0,0,0");
-    Check("Metro：经典 Win10 强调色 #0078D7",
-        GetVal("SystemAccentColor") == "#FF0078D7"
-        && GetVal("SystemAccentColorPrimary") == "#FF0063B1");
+    void CheckMetroVariant(string file, string mahAppsTheme)
+    {
+        var path = FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", file));
+        Check($"{file} 存在", File.Exists(path), path);
+        var doc = System.Xml.Linq.XDocument.Load(path);
+        var sources = doc.Descendants()
+            .Where(d => d.Name.LocalName == "ResourceDictionary")
+            .Select(d => (string?)d.Attribute("Source")).Where(x => x != null).ToList()!;
+        Check($"{file}：合并 MahApps {mahAppsTheme} 主题 + 隐式控件样式",
+            sources.Any(x => x!.Contains("MahApps.Metro;component/Styles/Themes/" + mahAppsTheme))
+            && sources.Any(x => x!.Contains("MahApps.Metro;component/Styles/Controls.xaml")));
+        Check($"{file}：Wpf.Ui 侧直角", XamlVal(doc, "ControlCornerRadius") == "0,0,0,0"
+            && XamlVal(doc, "PopupCornerRadius") == "0,0,0,0");
+        Check($"{file}：经典 Win10 强调色 #0078D7",
+            XamlVal(doc, "SystemAccentColor") == "#FF0078D7"
+            && XamlVal(doc, "SystemAccentColorPrimary") == "#FF0063B1");
+    }
+    CheckMetroVariant("Metro.Dark.xaml", "Dark.xaml");
+    CheckMetroVariant("Metro.Light.xaml", "Light.xaml");
+    Check("旧手绘 Metro.xaml 已移除", !File.Exists(Path.Combine(
+        FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes")), "Metro.xaml")));
 
     // 35.6 v0.15.2 分目录版本扫描（NestedVersionLoader 纯文件系统逻辑）
     var verRoot = Path.Combine(Path.GetTempPath(), "hcl-test-vers-" + Guid.NewGuid().ToString("N"));

@@ -122,6 +122,9 @@ public partial class App : Application
         // 主题在窗口创建前应用（深/浅/跟随系统），窗口内的所有 DynamicResource 颜色会随之统一
         Services.BootLogger.Info($"应用主题 {AppSettings.Instance.Theme} ...");
         ApplyTheme(AppSettings.Instance.Theme, attachWatcher: false);
+        // v0.15.4：Metro 模式下跟随系统的深浅色监听（SystemThemeWatcher 内部只切
+        // Wpf.Ui 主题字典）不会重挂 MahApps 覆盖层 —— 监听主题变化事件同步变体
+        ApplicationThemeManager.Changed += OnWpfUiThemeChanged;
         Services.BootLogger.Info("主题应用完成，创建主窗口 ...");
 
         // v0.15.2：主窗口创建防护 —— XAML 解析失败（如个别系统 urlmon MIME 组件异常
@@ -279,9 +282,19 @@ public partial class App : Application
                 break;
         }
 
-        // v0.15.3：metro 覆盖层（直角 + 经典 Win10 强调色）必须在主题字典之后叠加，
+        // v0.15.4：metro 覆盖层（MahApps + 直角 + 经典蓝）必须在主题字典之后叠加，
         // 合并字典后位优先 —— Apply 每次重建主题字典，所以每次 Apply 后重新挂载
-        ApplyMetroOverlay(metro);
+        ApplyMetroOverlay(metro, theme);
+
+        // v0.15.4：Win11 圆角窗体是 Fluent 的标志 —— Metro 模式下关掉 DWM 圆角，
+        // 切回 Fluent 恢复 Round（仅 Wpf.Ui 窗体支持该属性）
+        if (Current?.MainWindow is Wpf.Ui.Controls.FluentWindow uiWin)
+        {
+            try { uiWin.WindowCornerPreference = metro
+                ? Wpf.Ui.Controls.WindowCornerPreference.DoNotRound
+                : Wpf.Ui.Controls.WindowCornerPreference.Round; }
+            catch { /* 平台不支持 DWM 角偏好时忽略 */ }
+        }
 
         // 跟随系统时挂上监听器：Windows 深浅色变化时启动器实时跟随
         var win = Current?.MainWindow;
@@ -297,27 +310,42 @@ public partial class App : Application
         }
     }
 
+    // v0.15.4：Wpf.Ui 主题字典被监听器切换时（跟随系统 + OS 深浅色变化），
+    // Metro 覆盖层的 MahApps 深浅色变体随之重挂，保持两侧一致
+    private static void OnWpfUiThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
+    {
+        if (!string.Equals(AppSettings.Instance.ThemeStyle, "metro", StringComparison.OrdinalIgnoreCase))
+            return;
+        ApplyMetroOverlay(true, currentApplicationTheme == ApplicationTheme.Dark ? "dark" : "light");
+    }
+
     /// <summary>
-    /// v0.15.3：Metro（Win10 怀旧）主题覆盖层的挂载 / 移除。
-    /// 叠加在主题字典之后（后位优先）：直角 + 经典 Win10 强调色覆盖 Fluent 圆角 / 现代强调色；
-    /// 切回 Fluent 时移除覆盖层，恢复原状。深浅色不受影响（正交叠加）。
+    /// v0.15.4：Metro（Win10 怀旧）主题覆盖层的挂载 / 移除。
+    /// MahApps.Metro 接管标准控件隐式样式（真 Metro 库），叠加 Wpf.Ui 侧直角 + 经典蓝覆盖；
+    /// theme 决定 MahApps / 覆盖层的深浅色变体（与深浅色设置正交联动，含跟随系统）。
+    /// 叠加在主题字典之后（后位优先）；切回 Fluent 时移除覆盖层，恢复原状。
     /// </summary>
-    public static void ApplyMetroOverlay(bool on)
+    public static void ApplyMetroOverlay(bool on, string theme)
     {
         var resources = Current.Resources;
         for (var i = resources.MergedDictionaries.Count - 1; i >= 0; i--)
         {
             var d = resources.MergedDictionaries[i];
-            if (d.Source != null && d.Source.OriginalString.Contains("Themes/Metro.xaml"))
+            if (d.Source != null && d.Source.OriginalString.Contains("Themes/Metro."))
                 resources.MergedDictionaries.RemoveAt(i);
         }
         if (!on) return;
+        // 深浅色变体：跟随系统时 Wpf.Ui 已解析出实际主题（ApplySystemTheme 会写
+        // AppTheme），未知则取浅色（Win10 默认）
+        var appTheme = ApplicationThemeManager.GetAppTheme();
+        var dark = theme == "dark"
+            || (theme != "light" && appTheme == ApplicationTheme.Dark);
         try
         {
             resources.MergedDictionaries.Add(new ResourceDictionary
             {
                 // 绝对 pack URI：编译后的 BAML 资源（与语言字典同一策略）
-                Source = new Uri("pack://application:,,,/Themes/Metro.xaml")
+                Source = new Uri($"pack://application:,,,/Themes/Metro.{(dark ? "Dark" : "Light")}.xaml")
             });
         }
         catch (Exception ex)
