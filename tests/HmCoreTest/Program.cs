@@ -2652,12 +2652,14 @@ try
         && XamlAttr("MahApps.Brushes.Accent", "Color") == "#CC0078D7");
 
     // v0.15.5 全局切换管线：App 代码必须整体重建合并字典（而非只叠加）
+    // v0.15.7 修正：主字典必须保留（Wpf.Ui 无 Generic.xaml，ui: 控件模板唯一来源）
     var appText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
-    Check("全局切换：含 Wpf.Ui 主字典移除与基建子集 + MahApps 全套",
+    Check("全局切换：主字典保留 + MahApps 全套后位压制",
         appText.Contains("Resources/Wpf.Ui.xaml")
         && appText.Contains("MahApps.Metro;component/Styles/Controls.xaml")
         && appText.Contains("MahApps.Metro;component/Styles/Themes/")
-        && appText.Contains("DefaultTextBoxScrollViewerStyle.xaml"));
+        && appText.Contains("Add(WpfUiMasterDict)")
+        && !appText.Contains("WpfUiInfraDicts"));
 
     // v0.15.6 崩溃修复：运行中禁止全量重建（NaN 动画崩溃），风格切换走重启流程
     Check("v0.15.6：运行中只同位换深浅色变体（SwapMetroVariant）",
@@ -2674,8 +2676,20 @@ try
     var settingsText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
     Check("v0.15.6：设置页风格切换走重启询问，不再热切",
         settingsText.Contains("App.RestartApplication()")
-        && settingsText.Contains("立即重启吗")
         && !settingsText.Contains("App.ApplyTheme(AppSettings.Instance.Theme); // 重新应用"));
+    // v0.15.7：重启弹窗用 Wpf.Ui ContentDialog（样式统一），宿主 RootContentDialog
+    Check("v0.15.7：重启弹窗为 ContentDialog 并挂 RootContentDialog 宿主",
+        settingsText.Contains("ContentDialog")
+        && settingsText.Contains("ShowAsync")
+        && settingsText.Contains("RootContentDialog"));
+    Check("v0.15.7：MainWindow 含对话框宿主 RootContentDialog",
+        File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MainWindow.xaml")))
+            .Contains("RootContentDialog"));
+    Check("v0.15.7：弹窗文案双语词条就位",
+        File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
+            .Contains("S.Settings.RestartConfirm")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")))
+            .Contains("S.Settings.RestartConfirm"));
 
     // 35.6 v0.15.2 分目录版本扫描（NestedVersionLoader 纯文件系统逻辑）
     var verRoot = Path.Combine(Path.GetTempPath(), "hcl-test-vers-" + Guid.NewGuid().ToString("N"));

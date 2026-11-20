@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using HardmacroCraft.Services;
@@ -211,7 +212,7 @@ public partial class SettingsPage : Page
     /// <summary>主题切换：即时应用并持久化，所有 DynamicResource 颜色（含字体）随之变化。</summary>
     // v0.15.3：主题风格切换（Fluent Win11 / Metro Win10 怀旧）——
     // 保存后整体重应用主题（含云母开关与 Metro 覆盖层挂载 / 移除），深浅色保持不变
-    private void CmbThemeStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void CmbThemeStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_applyingTheme) return;
         if (CmbThemeStyle.SelectedItem is not ComboBoxItem item || item.Tag is not string style) return;
@@ -221,10 +222,8 @@ public partial class SettingsPage : Page
         AppSettings.Instance.Save();
         // v0.15.6：运行中热切全局样式集会在模板交换时崩溃（旧模板动画 NaN 目标值，
         // 见 v0.15.5 crash.log）—— 必须重启生效，询问立即重启或稍后
-        var result = System.Windows.MessageBox.Show(
-            "主题风格切换需要重建全局资源字典，重启应用后生效。\n\n立即重启吗？",
-            "主题风格", MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (result == MessageBoxResult.Yes)
+        var result = await ShowRestartDialogAsync();
+        if (result == Wpf.Ui.Controls.ContentDialogResult.Primary)
         {
             App.RestartApplication(); // 保存后拉起新进程读取设置
             return;
@@ -236,6 +235,35 @@ public partial class SettingsPage : Page
         foreach (ComboBoxItem i in CmbThemeStyle.Items)
             if ((string)i.Tag == oldStyle) { CmbThemeStyle.SelectedItem = i; break; }
         _applyingTheme = false;
+    }
+
+    /// <summary>
+    /// v0.15.7：重启确认弹窗 —— Wpf.Ui ContentDialog（宿主为 MainWindow 的
+    /// RootContentDialog），与全局主题样式统一；找不到宿主时退回 Win32 MessageBox。
+    /// </summary>
+    private async Task<Wpf.Ui.Controls.ContentDialogResult> ShowRestartDialogAsync()
+    {
+        var message = (string?)TryFindResource("S.Settings.RestartConfirm") ?? "主题风格切换需要重建全局资源字典，重启应用后生效。";
+        var presenter = Window.GetWindow(this)?.FindName("RootContentDialog") as System.Windows.Controls.ContentPresenter;
+        if (presenter is null)
+        {
+            var mb = System.Windows.MessageBox.Show(
+                message + "\n\n立即重启吗？", "主题风格",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            return mb == MessageBoxResult.Yes
+                ? Wpf.Ui.Controls.ContentDialogResult.Primary
+                : Wpf.Ui.Controls.ContentDialogResult.None;
+        }
+        var dialog = new Wpf.Ui.Controls.ContentDialog
+        {
+            Title = (string?)TryFindResource("S.Settings.ThemeStyle") ?? "主题风格",
+            Content = message,
+            PrimaryButtonText = (string?)TryFindResource("S.Settings.RestartNow") ?? "立即重启",
+            CloseButtonText = (string?)TryFindResource("S.Common.Later") ?? "稍后",
+            DefaultButton = Wpf.Ui.Controls.ContentDialogButton.Primary,
+            DialogHost = presenter,
+        };
+        return await dialog.ShowAsync();
     }
 
     private void CmbTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -261,6 +261,10 @@
     <sys:String x:Key="S.Mod.BatchDone">批量安装完成：{0} 成功，{1} 失败。</sys:String>
     <sys:String x:Key="S.Mod.BatchNoCompat">没有与所选版本兼容的文件</sys:String>
     <sys:String x:Key="S.Mod.TaskTitle">Mod 下载：{0}</sys:String>
+    <sys:String x:Key="S.Common.Later">稍后</sys:String>
+    <sys:String x:Key="S.Settings.RestartNow">立即重启</sys:String>
+    <sys:String x:Key="S.Settings.ThemeStyle">主题风格</sys:String>
+    <sys:String x:Key="S.Settings.RestartConfirm">主题风格切换需要重建全局资源字典，重启应用后生效。</sys:String>
     <sys:String x:Key="S.Common.Confirm">确定</sys:String>
     <sys:String x:Key="S.Prompt.Empty">内容不能为空。</sys:String>
     <sys:String x:Key="S.Mod.Searching">正在搜索...</sys:String>

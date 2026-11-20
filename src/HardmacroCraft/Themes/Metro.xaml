@@ -5,18 +5,16 @@
     Fluent 样式）仍在场，两套设计语言混排反而更乱。本版改为全局切换——
     App.ApplyMetroOverlay 整体重建 Application.Resources 合并字典：
 
-      Metro 模式全局字典（按序）：
-      1. Wpf.Ui 基建子集：Variables / Fonts / Typography / StaticColors /
-         Accent / Palette / DefaultContextMenu / DefaultFocusVisualStyle /
-         DefaultTextBoxScrollViewerStyle + Theme/Dark|Light.xaml
-         —— ui: 派生控件（FluentWindow / NavigationView / TitleBar / SymbolIcon /
-         NumberBox 等自定义控件）的默认模板（generic.xaml）据此渲染；
-         注意：不含 Resources/Wpf.Ui.xaml 主字典，即不含它对标准控件的
-         隐式 Fluent 样式 —— 标准控件全部交给 MahApps。
+      Metro 模式全局字典（按序，v0.15.7 修正）：
+      1. Wpf.Ui 主题字典 Theme/Dark|Light.xaml + 主字典 Resources/Wpf.Ui.xaml
+         —— 库内没有 Themes/Generic.xaml，ui: 派生控件（FluentWindow /
+         NavigationView / TitleBar / SymbolIcon / NumberBox 等）的默认模板
+         只存在于主字典；v0.15.5/0.15.6 移除主字典导致整窗无模板渲染（空白）。
+         主字典对标准控件的隐式样式由第 2 层后位压制。
       2. MahApps.Metro：Styles/Themes/Dark|Light.xaml（主题画刷）+
          Styles/Controls.xaml（全部标准控件的全局隐式样式，Win8/Win10 式
-         平面直角）。
-      3. 本字典（后位压轴）：Wpf.Ui 侧直角 + 经典 Win10 蓝 #0078D7；
+         平面直角；合并字典后位优先，压制主字典的标准控件隐式样式）。
+      3. 本字典（最后压轴）：Wpf.Ui 侧直角 + 经典 Win10 蓝 #0078D7；
          MahApps 侧显式钉死 Blue 方案（其默认即 #0078D7，这里写死防止默认漂移）。
 
       Fluent 模式：恢复 App.xaml 出厂组合（Theme/Dark|Light.xaml + Wpf.Ui.xaml）。

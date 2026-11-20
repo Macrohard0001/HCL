@@ -261,6 +261,10 @@
     <sys:String x:Key="S.Mod.BatchDone">Batch install finished: {0} succeeded, {1} failed.</sys:String>
     <sys:String x:Key="S.Mod.BatchNoCompat">No file compatible with the selected version</sys:String>
     <sys:String x:Key="S.Mod.TaskTitle">Mod download: {0}</sys:String>
+    <sys:String x:Key="S.Common.Later">Later</sys:String>
+    <sys:String x:Key="S.Settings.RestartNow">Restart now</sys:String>
+    <sys:String x:Key="S.Settings.ThemeStyle">Theme style</sys:String>
+    <sys:String x:Key="S.Settings.RestartConfirm">Switching the theme style rebuilds the global resource dictionaries and takes effect after a restart.</sys:String>
     <sys:String x:Key="S.Common.Confirm">OK</sys:String>
     <sys:String x:Key="S.Prompt.Empty">Content cannot be empty.</sys:String>
     <sys:String x:Key="S.Mod.Searching">Searching...</sys:String>

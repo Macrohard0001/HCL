@@ -81,5 +81,11 @@
                                        TargetPageType="{x:Type views:AboutPage}" />
             </ui:NavigationView.FooterMenuItems>
         </ui:NavigationView>
+
+        <!-- v0.15.7：Wpf.Ui ContentDialog 宿主（覆盖整窗，替代 Win32 MessageBox，
+             弹窗样式与全局主题统一） -->
+        <ContentPresenter x:Name="RootContentDialog"
+                          Grid.Row="0" Grid.RowSpan="2"
+                          Panel.ZIndex="1" />
     </Grid>
 </ui:FluentWindow>

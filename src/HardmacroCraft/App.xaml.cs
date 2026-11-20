@@ -333,21 +333,6 @@ public partial class App : Application
         "pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml";
     private const string WpfUiThemeDictPrefix =
         "pack://application:,,,/Wpf.Ui;component/Resources/Theme/";
-    // Wpf.Ui 基建子集（Metro 模式下代替主字典，供 ui: 自定义控件默认模板渲染；
-    // 不含 Controls/*.xaml —— 标准控件的隐式样式全部让位给 MahApps）
-    private static readonly string[] WpfUiInfraDicts =
-    {
-        "pack://application:,,,/Wpf.Ui;component/Resources/Variables.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/Fonts.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/Typography.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/StaticColors.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/Accent.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/Palette.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultContextMenu.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultFocusVisualStyle.xaml",
-        "pack://application:,,,/Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle.xaml",
-    };
-
     // v0.15.6：OS 深浅色变化（跟随系统监听）——
     // Fluent：Wpf.Ui 已原地更新其字典，无需干预；Metro：只同位换深浅色变体；
     // 启动期（无窗口）什么都不做，ApplyTheme 稍后整体重建。绝不在运行中全量重建。
@@ -360,6 +345,14 @@ public partial class App : Application
         SwapMetroVariant(currentApplicationTheme == ApplicationTheme.Dark ? "dark" : "light");
     }
 
+    /// <summary>
+    /// v0.15.7：全局字典切换（Metro ↔ Fluent）—— 仅允许启动期（无窗口）调用。
+    /// on=false（Fluent）：恢复 App.xaml 出厂组合（Wpf.Ui 主题字典 + 主字典）。
+    /// on=true（Metro）：Wpf.Ui 主题字典 + 主字典（ui: 自定义控件模板必需，
+    /// 库内无 Generic.xaml）→ MahApps 全套（后位压制主字典对标准控件的隐式样式）
+    /// → Metro.xaml 经典蓝/直角压轴覆盖。
+    /// theme 决定 Dark/Light 变体（含跟随系统，经 ThemeChanged 事件重挂）。
+    /// </summary>
     public static void ApplyMetroOverlay(bool on, string theme)
     {
         var appTheme = ApplicationThemeManager.GetAppTheme();
@@ -410,10 +403,13 @@ public partial class App : Application
                 return;
             }
 
-            // Metro：1) Wpf.Ui 基建子集（ui: 自定义控件默认模板仍可渲染）
-            foreach (var d in WpfUiInfraDicts)
-                Add(d);
+            // Metro：1) Wpf.Ui 主题字典 + 主字典整体保留。Wpf.Ui 库内没有
+            // Themes/Generic.xaml，ui: 自定义控件（FluentWindow / NavigationView /
+            // TitleBar / SymbolIcon / NumberBox 等）的默认模板只存在于主字典；
+            // v0.15.5/0.15.6 移除它导致整窗无模板渲染（一片空白，v0.15.7 已证）。
+            // 主字典对标准控件的隐式样式会被后面的 MahApps 压制（后位优先）。
             Add(WpfUiThemeDictPrefix + variant + ".xaml");
+            Add(WpfUiMasterDict);
 
             // 2) MahApps 全局接管：全部标准控件隐式样式 + MahApps 主题画刷
             Add($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml");
