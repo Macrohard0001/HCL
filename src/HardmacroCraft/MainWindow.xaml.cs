@@ -32,8 +32,11 @@ public partial class MainWindow : FluentWindow
         };
         Loaded += (_, _) =>
         {
-            // 默认落在启动页
-            try { RootNavigation.Navigate(typeof(Views.HomePage)); } catch { }
+            // 默认落在启动页（v0.15.8：导航失败必须落日志 —— 静默吞掉会让
+            // 内容区无提示留白，排查时无从下手）
+            try { RootNavigation.Navigate(typeof(Views.HomePage)); }
+            catch (Exception navEx)
+            { Services.BootLogger.Error("首页导航失败: " + Services.BootLogger.Format(navEx)); }
             // 主题设置为"跟随系统"时挂上监听：Windows 深浅色切换时启动器实时跟随
             // v0.15.3：Metro（Win10 怀旧）风格下监听器保持无云母（None），
             // 否则系统深浅色切换会把 Mica 拉回来
@@ -80,7 +83,9 @@ public partial class MainWindow : FluentWindow
         {
             if (e.Key != System.Windows.Input.Key.Escape) return;
             if (currentPage is Views.HomePage) return; // 已在主页，无操作
-            try { RootNavigation.Navigate(typeof(Views.HomePage)); e.Handled = true; } catch { }
+            try { RootNavigation.Navigate(typeof(Views.HomePage)); e.Handled = true; }
+            catch (Exception navEx)
+            { Services.BootLogger.Error("Esc 返回主页导航失败: " + Services.BootLogger.Format(navEx)); }
         };
     }
 

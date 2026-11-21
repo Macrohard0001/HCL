@@ -2658,7 +2658,7 @@ try
         appText.Contains("Resources/Wpf.Ui.xaml")
         && appText.Contains("MahApps.Metro;component/Styles/Controls.xaml")
         && appText.Contains("MahApps.Metro;component/Styles/Themes/")
-        && appText.Contains("Add(WpfUiMasterDict)")
+        && appText.Contains("AddChecked(WpfUiMasterDict, loadedDicts)")
         && !appText.Contains("WpfUiInfraDicts"));
 
     // v0.15.6 崩溃修复：运行中禁止全量重建（NaN 动画崩溃），风格切换走重启流程
@@ -2685,6 +2685,23 @@ try
     Check("v0.15.7：MainWindow 含对话框宿主 RootContentDialog",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MainWindow.xaml")))
             .Contains("RootContentDialog"));
+    // v0.15.8：自愈 + 诊断 —— 逐字典强校验加载，主字典失败回退 Fluent（绝不空白）
+    Check("v0.15.8：逐字典强校验加载（AddChecked 强制解析 BAML）",
+        appText.Contains("void AddChecked(string uri, List<string> loaded)")
+        && appText.Contains("_ = d.Keys.Count"));
+    Check("v0.15.8：主字典失败自动回退 Fluent（可见性优先）",
+        appText.Contains("Metro 核心字典加载失败，回退 Fluent 出厂组合")
+        && appText.Contains("ApplyMetroOverlay(false, theme);\n                    return;"));
+    Check("v0.15.8：组合清单与启动诊断落 boot.log",
+        appText.Contains("Metro 组合完成: ")
+        && appText.Contains("Fluent 组合完成: ")
+        && appText.Contains("启动字典组合落日志") && appText.Contains("字典组合: {dictDump}"));
+    var mainText = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MainWindow.xaml.cs")));
+    Check("v0.15.8：导航失败不再静默吞掉",
+        mainText.Contains("首页导航失败")
+        && mainText.Contains("Esc 返回主页导航失败"));
+    Check("v0.15.8：ContentDialog 异常兜底回退 MessageBox",
+        settingsText.Contains("ContentDialog 显示失败，退回 MessageBox"));
     Check("v0.15.7：弹窗文案双语词条就位",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Settings.RestartConfirm")

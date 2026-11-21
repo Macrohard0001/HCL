@@ -263,7 +263,23 @@ public partial class SettingsPage : Page
             DefaultButton = Wpf.Ui.Controls.ContentDialogButton.Primary,
             DialogHost = presenter,
         };
-        return await dialog.ShowAsync();
+        try
+        {
+            return await dialog.ShowAsync();
+        }
+        catch (Exception dialogEx)
+        {
+            // v0.15.8：主题化弹窗失败（个别环境模板解析异常）不能阻塞重启流程，
+            // 退回 Win32 MessageBox（样式欠佳但功能保底），异常落 boot.log
+            Services.BootLogger.Error("ContentDialog 显示失败，退回 MessageBox: "
+                + Services.BootLogger.Format(dialogEx));
+            var mb = System.Windows.MessageBox.Show(
+                message + "\n\n立即重启吗？", "主题风格",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            return mb == MessageBoxResult.Yes
+                ? Wpf.Ui.Controls.ContentDialogResult.Primary
+                : Wpf.Ui.Controls.ContentDialogResult.None;
+        }
     }
 
     private void CmbTheme_SelectionChanged(object sender, SelectionChangedEventArgs e)

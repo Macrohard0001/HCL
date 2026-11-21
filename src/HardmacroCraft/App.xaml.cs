@@ -125,7 +125,12 @@ public partial class App : Application
         // v0.15.4：Metro 模式下跟随系统的深浅色监听（SystemThemeWatcher 内部只切
         // Wpf.Ui 主题字典）不会重挂 MahApps 覆盖层 —— 监听主题变化事件同步变体
         ApplicationThemeManager.Changed += OnWpfUiThemeChanged;
-        Services.BootLogger.Info("主题应用完成，创建主窗口 ...");
+        // v0.15.8：启动字典组合落日志 —— 用户机上报"空白"时 boot.log 直接给出
+        // 当时实际生效的合并字典清单（v0.15.7 及以前这里是无日志盲区）
+        var dictDump = string.Join(" | ",
+            Current.Resources.MergedDictionaries.Select(d => d.Source?.OriginalString ?? "<内联>"));
+        Services.BootLogger.Info($"主题应用完成（ThemeStyle={AppSettings.Instance.ThemeStyle}），字典组合: {dictDump}");
+        Services.BootLogger.Info("创建主窗口 ...");
 
         // v0.15.2：主窗口创建防护 —— XAML 解析失败（如个别系统 urlmon MIME 组件异常
         // 影响资源图片加载）不再裸崩，给出可操作的提示并落盘 crash.log
@@ -390,39 +395,84 @@ public partial class App : Application
                 md.RemoveAt(i);
         }
 
-        void Add(string uri)
-        {
-            md.Add(new ResourceDictionary { Source = new Uri(uri) });
-        }
-
-            if (!on)
-            {
-                // Fluent：出厂组合（Wpf.Ui 主题字典 + 主字典，隐式样式全量回归）
-                Add(WpfUiThemeDictPrefix + variant + ".xaml");
-                Add(WpfUiMasterDict);
-                return;
-            }
-
-            // Metro：1) Wpf.Ui 主题字典 + 主字典整体保留。Wpf.Ui 库内没有
-            // Themes/Generic.xaml，ui: 自定义控件（FluentWindow / NavigationView /
-            // TitleBar / SymbolIcon / NumberBox 等）的默认模板只存在于主字典；
-            // v0.15.5/0.15.6 移除它导致整窗无模板渲染（一片空白，v0.15.7 已证）。
-            // 主字典对标准控件的隐式样式会被后面的 MahApps 压制（后位优先）。
-            Add(WpfUiThemeDictPrefix + variant + ".xaml");
-            Add(WpfUiMasterDict);
-
-            // 2) MahApps 全局接管：全部标准控件隐式样式 + MahApps 主题画刷
-            Add($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml");
-            Add("pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml");
-
-            // 3) 压轴覆盖（后位优先）：直角 + 经典 Win10 蓝
-            Add("pack://application:,,,/Themes/Metro.xaml");
         }
         catch (Exception ex)
         {
-            // 兜底：字典变更引发的资源失效遍历里任何控件抛错都不许带崩应用
-            Services.BootLogger.Error("Metro 全局字典切换失败: " + ex.Message);
+            // 兜底：RemoveAt 同样触发 OnMergedDictionariesChanged → 全树失效遍历
+            Services.BootLogger.Error("Metro 全局字典切换失败(移除段): " + ex.Message);
+            return;
         }
+
+        // v0.15.8：逐字典强校验加载 —— ResourceDictionary.Source 是延迟解析，
+            // BAML 解析异常原本要到窗口创建解析样式时才炸（v0.15.7 用户机上表现为
+            // 整窗空白且日志里查不到是哪个字典）。这里强制立即解析（含嵌套合并字典），
+            // 哪个字典坏了在加载点一步一 log；主字典挂掉自动回退 Fluent，绝不空白。
+            void AddChecked(string uri, List<string> loaded)
+            {
+                try
+                {
+                    var d = new ResourceDictionary { Source = new Uri(uri) };
+                    _ = d.Keys.Count; // 强制立即解析 BAML，异常在加载点暴露
+                    md.Add(d);
+                    loaded.Add(uri);
+                }
+                catch (Exception ex)
+                {
+                    Services.BootLogger.Error($"字典加载失败 [{uri}]: " + Services.BootLogger.Format(ex));
+                    throw;
+                }
+            }
+
+            var loadedDicts = new List<string>();
+            try
+            {
+                if (!on)
+                {
+                    // Fluent：出厂组合（Wpf.Ui 主题字典 + 主字典，隐式样式全量回归）
+                    AddChecked(WpfUiThemeDictPrefix + variant + ".xaml", loadedDicts);
+                    AddChecked(WpfUiMasterDict, loadedDicts);
+                    Services.BootLogger.Info("Fluent 组合完成: " + string.Join(" | ", loadedDicts));
+                    return;
+                }
+
+                // Metro：1) Wpf.Ui 主题字典 + 主字典整体保留。Wpf.Ui 库内没有
+                // Themes/Generic.xaml，ui: 自定义控件（FluentWindow / NavigationView /
+                // TitleBar / SymbolIcon / NumberBox 等）的默认模板只存在于主字典；
+                // 主字典对标准控件的隐式样式会被后面的 MahApps 压制（后位优先）。
+                // 主字典是 ui: 控件模板的唯一来源 —— 它挂掉则 Metro 必然空白，回退 Fluent。
+                try
+                {
+                    AddChecked(WpfUiThemeDictPrefix + variant + ".xaml", loadedDicts);
+                    AddChecked(WpfUiMasterDict, loadedDicts);
+                }
+                catch
+                {
+                    Services.BootLogger.Error("Metro 核心字典加载失败，回退 Fluent 出厂组合（可见性优先）");
+                    ApplyMetroOverlay(false, theme);
+                    return;
+                }
+
+                // 2) MahApps 全局接管：全部标准控件隐式样式 + MahApps 主题画刷
+                // 3) 压轴覆盖（后位优先）：直角 + 经典 Win10 蓝
+                try
+                {
+                    AddChecked($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml", loadedDicts);
+                    AddChecked("pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml", loadedDicts);
+                    AddChecked("pack://application:,,,/Themes/Metro.xaml", loadedDicts);
+                }
+                catch
+                {
+                    // 增强层挂掉只影响样式接管程度，不致空白 —— 保留 Wpf.Ui 基础组合
+                    Services.BootLogger.Error("Metro 增强字典（MahApps/覆盖层）加载失败，保留 Wpf.Ui 基础组合");
+                    return;
+                }
+                Services.BootLogger.Info("Metro 组合完成: " + string.Join(" | ", loadedDicts));
+            }
+            catch (Exception ex)
+            {
+                // 兜底：字典变更引发的资源失效遍历里任何控件抛错都不许带崩应用
+                Services.BootLogger.Error("Metro 全局字典切换失败: " + ex.Message);
+            }
     }
 
     /// <summary>
