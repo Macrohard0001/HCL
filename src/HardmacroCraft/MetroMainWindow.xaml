@@ -204,6 +204,14 @@
                                        Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
                         </DockPanel>
                     </ListBoxItem>
+                    <!-- v0.15.10：种子工具（史莱姆挂机点查询） -->
+                    <ListBoxItem Tag="{x:Type views:ToolsPage}">
+                        <DockPanel Height="40" Margin="4,0">
+                            <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE90F;" FontSize="16" VerticalAlignment="Center" />
+                            <TextBlock Text="{DynamicResource S.Nav.Tools}" VerticalAlignment="Center"
+                                       Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
+                        </DockPanel>
+                    </ListBoxItem>
                     <ListBoxItem Tag="{x:Type views:TaskCenterPage}">
                         <DockPanel Height="40" Margin="4,0">
                             <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE9D5;" FontSize="16" VerticalAlignment="Center" />

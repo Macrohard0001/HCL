@@ -701,4 +701,16 @@
     <sys:String x:Key="S.Multi.RelayPending">中转服务器尚未配置：当前支持同一局域网内的房间发现与直连；服务器配置后这里会自动开放公网房间。</sys:String>
     <sys:String x:Key="S.Multi.RelayReady">中转服务器已配置，公网房间即将可用。</sys:String>
     <sys:String x:Key="S.Mig.None">常见启动器目录里没有发现可导入的版本 —— 可用「扫描自定义文件夹」选择其他启动器的 .minecraft 目录，或 Prism 系启动器的 instances 目录。</sys:String>
+    <sys:String x:Key="S.Nav.Tools">工具</sys:String>
+    <sys:String x:Key="S.Tool.Title">工具</sys:String>
+    <sys:String x:Key="S.Tool.Hint">纯本地计算的小工具，不需要读取你的世界存档。</sys:String>
+    <sys:String x:Key="S.Tool.SlimeTitle">史莱姆挂机点查询</sys:String>
+    <sys:String x:Key="S.Tool.SlimeHint">输入世界种子（游戏内 /seed 输出的数字），整片预览史莱姆区块分布（绿=史莱姆区块），并推荐连片全绿的中心作挂机塔位置。史莱姆区块按原版算法判定，与游戏内实际生成一致（主世界、非超平坦）。</sys:String>
+    <sys:String x:Key="S.Tool.SeedPlaceholder">世界种子（/seed 输出的数字）</sys:String>
+    <sys:String x:Key="S.Tool.RangePlaceholder">半径（区块，≤64）</sys:String>
+    <sys:String x:Key="S.Tool.Generate">生成地图</sys:String>
+    <sys:String x:Key="S.Tool.InvalidSeed">种子无效：请输入 64 位整数（/seed 输出的数字，可为负）</sys:String>
+    <sys:String x:Key="S.Tool.Stats">史莱姆区块 {0} 个 / 共 {1} 个（{2}%）</sys:String>
+    <sys:String x:Key="S.Tool.Best">最佳挂机点：区块 ({0}, {1})，{2}×{2} 全绿连片，方块坐标 ({3}, {4})——挂机层 Y&lt;40 有效</sys:String>
+    <sys:String x:Key="S.Tool.BestNone">范围内没有 2×2 连片的史莱姆区块——可扩大半径再试。</sys:String>
 </ResourceDictionary>

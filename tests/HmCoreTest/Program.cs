@@ -2739,6 +2739,22 @@ try
             .Contains("S.Multi.Title")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")))
             .Contains("S.Mig.Title"));
+    // ===== v0.15.10：种子工具（史莱姆挂机点查询） =====
+    var slimeFinder = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "SlimeChunkFinder.cs")));
+    Check("v0.15.10：史莱姆算法为原版公式（常量 + int 回绕 + Java Random 复刻）",
+        slimeFinder.Contains("4987142") && slimeFinder.Contains("5947611")
+        && slimeFinder.Contains("4392871") && slimeFinder.Contains("389711")
+        && slimeFinder.Contains("987234911") && slimeFinder.Contains("0x5DEECE66D")
+        && slimeFinder.Contains("(long)(chunkX * chunkX * 4987142)")
+        && slimeFinder.Contains("BestFarmSpot"));
+    var toolsXaml = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    Check("v0.15.10：工具页注册 + 双壳导航 + 词条",
+        File.Exists(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")))
+        && toolsXaml.Contains("SlimeTitle")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MainWindow.xaml"))).Contains("ToolsPage")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml"))).Contains("ToolsPage")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
+            .Contains("S.Tool.Generate"));
     Check("v0.15.7：弹窗文案双语词条就位",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Settings.RestartConfirm")

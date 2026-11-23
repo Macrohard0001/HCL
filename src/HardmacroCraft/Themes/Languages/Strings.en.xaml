@@ -701,4 +701,16 @@
     <sys:String x:Key="S.Multi.RelayPending">Relay server not configured yet: LAN room discovery and direct connections work now; internet rooms will open automatically once the server is configured.</sys:String>
     <sys:String x:Key="S.Multi.RelayReady">Relay server configured; internet rooms will be available shortly.</sys:String>
     <sys:String x:Key="S.Mig.None">No importable versions found in common launcher folders — use "Scan custom folder" to pick another launcher's .minecraft folder or a Prism-style instances folder.</sys:String>
+    <sys:String x:Key="S.Nav.Tools">Tools</sys:String>
+    <sys:String x:Key="S.Tool.Title">Tools</sys:String>
+    <sys:String x:Key="S.Tool.Hint">Small locally-computed utilities; no world save access needed.</sys:String>
+    <sys:String x:Key="S.Tool.SlimeTitle">Slime farm spot finder</sys:String>
+    <sys:String x:Key="S.Tool.SlimeHint">Enter your world seed (the number from /seed) to preview slime chunk distribution (green = slime chunk) and get a connected all-green center recommended for your farm. Chunks are checked with the vanilla algorithm — matches in-game spawning (Overworld, non-superflat).</sys:String>
+    <sys:String x:Key="S.Tool.SeedPlaceholder">World seed (number from /seed)</sys:String>
+    <sys:String x:Key="S.Tool.RangePlaceholder">Radius (chunks, ≤64)</sys:String>
+    <sys:String x:Key="S.Tool.Generate">Generate map</sys:String>
+    <sys:String x:Key="S.Tool.InvalidSeed">Invalid seed: enter a 64-bit integer (from /seed, may be negative)</sys:String>
+    <sys:String x:Key="S.Tool.Stats">{0} slime chunks / {1} total ({2}%)</sys:String>
+    <sys:String x:Key="S.Tool.Best">Best farm spot: chunk ({0}, {1}), {2}×{2} all-green, block coords ({3}, {4}) — spawning works below Y=40</sys:String>
+    <sys:String x:Key="S.Tool.BestNone">No 2×2 all-green cluster in range — try a larger radius.</sys:String>
 </ResourceDictionary>

@@ -75,6 +75,10 @@
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Multiplayer}"
                                        Icon="{ui:SymbolIcon Globe24}"
                                        TargetPageType="{x:Type views:MultiplayerPage}" />
+                <!-- v0.15.10：种子工具（史莱姆挂机点查询） -->
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Tools}"
+                                       Icon="{ui:SymbolIcon Wrench24}"
+                                       TargetPageType="{x:Type views:ToolsPage}" />
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Settings}"

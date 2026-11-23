@@ -1,0 +1,49 @@
+<!--
+    v0.15.10：种子工具页（第一步：史莱姆挂机点查询）。
+    输入世界种子 → 按原版算法整片预览史莱姆区块（WriteableBitmap 网格），
+    统计占比并推荐 3×3 / 2×2 全绿连片中心作挂机塔位置。
+    纯本地计算，无需读取世界文件。样式复用全局 HmPageTitle / HmCard / HmHint。
+-->
+<Page x:Class="HardmacroCraft.Views.ToolsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource HmScrollViewer}">
+        <StackPanel Margin="24,12,24,16" MaxWidth="760">
+
+            <TextBlock Text="{DynamicResource S.Tool.Title}" Style="{StaticResource HmPageTitle}" />
+            <TextBlock Text="{DynamicResource S.Tool.Hint}" Style="{StaticResource HmHint}"
+                       Margin="0,4,0,18" />
+
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.SlimeTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="{DynamicResource S.Tool.SlimeHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,12" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox x:Name="TxtSeed" Grid.Column="0" Height="34"
+                                    PlaceholderText="{DynamicResource S.Tool.SeedPlaceholder}" />
+                        <ui:TextBox x:Name="TxtRange" Grid.Column="2" Height="34"
+                                    PlaceholderText="{DynamicResource S.Tool.RangePlaceholder}" />
+                        <ui:Button x:Name="BtnGenerate" Grid.Column="4" Appearance="Primary" Height="34"
+                                   Padding="18,0" Content="{DynamicResource S.Tool.Generate}"
+                                   Click="BtnGenerate_Click" />
+                    </Grid>
+                    <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,10,0,0"
+                               TextWrapping="Wrap" />
+                    <Image x:Name="MapImage" MaxWidth="520" MaxHeight="520" Margin="0,12,0,0"
+                           HorizontalAlignment="Left" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
