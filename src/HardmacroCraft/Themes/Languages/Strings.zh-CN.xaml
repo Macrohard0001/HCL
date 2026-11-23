@@ -202,13 +202,6 @@
     <sys:String x:Key="S.Common.Canceled">已取消</sys:String>
 
     <!-- 整合包 -->
-    <sys:String x:Key="S.Mp.Title">整合包</sys:String>
-    <sys:String x:Key="S.Mp.Subtitle">搜索并一键安装 Modrinth 整合包（.mrpack），或从本地文件安装。整合包默认版本隔离，互不干扰。</sys:String>
-    <sys:String x:Key="S.Mp.SearchHint">搜索整合包，如：RPG、养老、科技…</sys:String>
-    <sys:String x:Key="S.Mp.Search">搜索</sys:String>
-    <sys:String x:Key="S.Mp.LocalInstall">从本地 .mrpack 安装</sys:String>
-    <sys:String x:Key="S.Mp.Output">任务进度与输出</sys:String>
-    <sys:String x:Key="S.Mp.Install">安装</sys:String>
 
     <!-- Mod 资源 -->
     <sys:String x:Key="S.Mod.Title">Mod 资源</sys:String>
@@ -602,10 +595,6 @@
     <sys:String x:Key="S.Task.SpeedLabel">下载速度</sys:String>
     <sys:String x:Key="S.Task.CurrentFile">正在下载</sys:String>
     <sys:String x:Key="S.Mod.LoadingRecommend">正在获取推荐内容...</sys:String>
-    <sys:String x:Key="S.Mp.Searching">正在搜索...</sys:String>
-    <sys:String x:Key="S.Mp.LoadingRecommend">正在获取推荐整合包...</sys:String>
-    <sys:String x:Key="S.Mp.TaskTitle">整合包下载：{0}</sys:String>
-    <sys:String x:Key="S.Mp.TaskInstall">安装整合包：{0}</sys:String>
     <sys:String x:Key="S.Sh.Subtitle">从 Modrinth 搜索与下载光影包（默认显示推荐内容），安装到所选版本的 shaderpacks 目录。</sys:String>
     <sys:String x:Key="S.Sh.SearchHint">搜索光影包</sys:String>
     <sys:String x:Key="S.Sh.VersionTip">光影包安装到该版本的 shaderpacks 目录</sys:String>
@@ -680,4 +669,36 @@
     <!-- ==================== v0.15.2：任务重试 / 路径浏览 ==================== -->
     <sys:String x:Key="S.Task.Retry">重试</sys:String>
     <sys:String x:Key="S.Common.Browse">浏览</sys:String>
+    <sys:String x:Key="S.Nav.Multiplayer">联机</sys:String>
+    <sys:String x:Key="S.Ver.Import">导入外部版本</sys:String>
+    <sys:String x:Key="S.Mig.Title">从其他启动器导入版本</sys:String>
+    <sys:String x:Key="S.Mig.Found">发现 {0} 个可导入的版本。选中后点「导入所选」。</sys:String>
+    <sys:String x:Key="S.Mig.CustomFolder">扫描自定义文件夹</sys:String>
+    <sys:String x:Key="S.Mig.Import">导入所选</sys:String>
+    <sys:String x:Key="S.Mig.PickOne">请先在列表中选中一个版本。</sys:String>
+    <sys:String x:Key="S.Mig.Done">版本「{0}」导入完成（实例数据已随版本并入）。</sys:String>
+    <sys:String x:Key="S.Mig.DataSkipped">版本「{0}」导入完成。\n\n注意：当前未开启版本隔离，存档 / 模组等数据未并入（避免污染共享目录）；如需连同数据导入，请先在版本设置中开启隔离。</sys:String>
+    <sys:String x:Key="S.Multi.Title">联机</sys:String>
+    <sys:String x:Key="S.Multi.Hint">和身边的朋友一起玩：本机世界「对局域网开放」后在这里生成房间码，同网好友的启动器会自动发现房间。加入 = 复制地址 → Minecraft「直接连接」。</sys:String>
+    <sys:String x:Key="S.Multi.HostTitle">开放本机世界</sys:String>
+    <sys:String x:Key="S.Multi.HostHint">在 Minecraft 中打开世界 → Esc →「对局域网开放」，把聊天栏给出的端口号填到这里。</sys:String>
+    <sys:String x:Key="S.Multi.RoomNamePlaceholder">房间名（如：和朋友的生存档）</sys:String>
+    <sys:String x:Key="S.Multi.PortPlaceholder">局域网端口</sys:String>
+    <sys:String x:Key="S.Multi.HostOpen">开放房间</sys:String>
+    <sys:String x:Key="S.Multi.HostClose">关闭房间</sys:String>
+    <sys:String x:Key="S.Multi.Hosting">房间已开放：房间码 {code}，端口 {port}（同网好友的启动器将自动发现）</sys:String>
+    <sys:String x:Key="S.Multi.PortInvalid">端口无效：请填入 1024 - 65535 的数字</sys:String>
+    <sys:String x:Key="S.Multi.HostFailed">开放失败：发现端口被占用（可能有另一个启动器实例正在运行）</sys:String>
+    <sys:String x:Key="S.Multi.JoinTitle">加入房间</sys:String>
+    <sys:String x:Key="S.Multi.JoinHint">输入 5 位房间码（自动查局域网房间）或 地址:端口（公网 / 直连），复制后在 Minecraft 多人游戏 →「直接连接」粘贴。</sys:String>
+    <sys:String x:Key="S.Multi.JoinPlaceholder">房间码 或 地址:端口</sys:String>
+    <sys:String x:Key="S.Multi.Copy">复制地址</sys:String>
+    <sys:String x:Key="S.Multi.Copied">已复制 {address}，去 Minecraft「直接连接」粘贴即可</sys:String>
+    <sys:String x:Key="S.Multi.ResolveFailed">未找到该房间码对应的房间（确认与房主在同一局域网，或直接输入 地址:端口）</sys:String>
+    <sys:String x:Key="S.Multi.RoomsTitle">局域网房间</sys:String>
+    <sys:String x:Key="S.Multi.Empty">暂未发现房间 —— 同一局域网内有人开放房间后会自动出现在这里。</sys:String>
+    <sys:String x:Key="S.Multi.RelayTitle">公网互通（中转）</sys:String>
+    <sys:String x:Key="S.Multi.RelayPending">中转服务器尚未配置：当前支持同一局域网内的房间发现与直连；服务器配置后这里会自动开放公网房间。</sys:String>
+    <sys:String x:Key="S.Multi.RelayReady">中转服务器已配置，公网房间即将可用。</sys:String>
+    <sys:String x:Key="S.Mig.None">常见启动器目录里没有发现可导入的版本 —— 可用「扫描自定义文件夹」选择其他启动器的 .minecraft 目录，或 Prism 系启动器的 instances 目录。</sys:String>
 </ResourceDictionary>

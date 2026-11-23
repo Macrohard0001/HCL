@@ -71,6 +71,10 @@
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Instances}"
                                        Icon="{ui:SymbolIcon Games24}"
                                        TargetPageType="{x:Type views:InstancesPage}" />
+                <!-- v0.15.9：联机（LAN 发现 + 房间码 + 中转预留） -->
+                <ui:NavigationViewItem Content="{DynamicResource S.Nav.Multiplayer}"
+                                       Icon="{ui:SymbolIcon Globe24}"
+                                       TargetPageType="{x:Type views:MultiplayerPage}" />
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItem Content="{DynamicResource S.Nav.Settings}"

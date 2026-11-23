@@ -126,6 +126,10 @@ public class AppSettings
     public bool ExitLauncherOnGameExit { get; set; }
     /// <summary>主页「快速进服」上次使用的服务器地址（host:port，fix6，PCL 同款记忆）。</summary>
     public string LastQuickServer { get; set; } = "";
+
+    // v0.15.9：联机（P2P / 中转）—— 中转服务器地址（host:port），
+    // 服务端就绪后填入；为空时仅支持局域网发现 + 直连
+    public string RelayEndpoint { get; set; } = "";
     /// <summary>
     /// 跳过初始屏幕（fix7，PCL 同款可选）：启动前把 options.txt 的 onboardAccessibility
     /// 写为 false，首次运行不再显示欢迎 / 引导界面。

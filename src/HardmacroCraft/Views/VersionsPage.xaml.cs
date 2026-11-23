@@ -94,6 +94,10 @@ public partial class VersionsPage : Page
 
     private void BtnRefresh_Click(object sender, RoutedEventArgs e) => Refresh();
 
+    /// <summary>v0.15.9：从其他启动器导入版本（扫描常见目录 / 自定义文件夹）。</summary>
+    private void BtnImport_Click(object sender, RoutedEventArgs e)
+        => MigrationWindow.Show(Window.GetWindow(this), _ => Refresh());
+
     private string? SelectedVersion => (LstVersions.SelectedItem as VersionItemViewModel)?.Name;
 
     private bool EnsureSelected()

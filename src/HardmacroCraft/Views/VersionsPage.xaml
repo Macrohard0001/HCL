@@ -56,6 +56,9 @@
                            Icon="{ui:SymbolIcon Settings24}" Click="BtnSettings_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.Refresh}" MinHeight="32" Margin="0,0,8,8"
                            Icon="{ui:SymbolIcon ArrowClockwise24}" Click="BtnRefresh_Click" />
+                <!-- v0.15.9：从其他启动器导入版本（实用功能） -->
+                <ui:Button Content="{DynamicResource S.Ver.Import}" MinHeight="32" Margin="0,0,8,8"
+                           Icon="{ui:SymbolIcon ArrowImport24}" Click="BtnImport_Click" />
                 <ui:Button Content="{DynamicResource S.Ver.Delete}" MinHeight="32" Margin="0,0,0,8"
                            Appearance="Danger" Icon="{ui:SymbolIcon Delete24}" Click="BtnDelete_Click" />
             </WrapPanel>

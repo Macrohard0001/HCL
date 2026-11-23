@@ -109,8 +109,14 @@ public partial class MainWindow : FluentWindow
                     EnsureScrollable(FindPaneDescendants<System.Windows.Controls.ScrollViewer>(RootNavigation, presenter));
                     // 窗格内的 ListView（自带模板 ScrollViewer，Auto 即可滚动）
                     foreach (var lv in FindPaneDescendants<System.Windows.Controls.ListView>(RootNavigation, presenter))
+                    {
                         System.Windows.Controls.ScrollViewer.SetVerticalScrollBarVisibility(lv,
                             System.Windows.Controls.ScrollBarVisibility.Auto);
+                        // v0.15.9：侧栏滚轮修复 —— 全局滚轮处理器按像素步长（66px/格）
+                        // 计算，而窗格 ListView 默认逻辑滚动（单位 = 条目），66px 会被
+                        // 当成 66 个条目 → 滚动跳动 / 失效。统一转像素滚动。
+                        lv.SetValue(System.Windows.Controls.ScrollViewer.CanContentScrollProperty, false);
+                    }
                 }
                 catch { /* 模板未实例化时静默跳过（下轮重试） */ }
             }), i == 0 ? System.Windows.Threading.DispatcherPriority.Loaded

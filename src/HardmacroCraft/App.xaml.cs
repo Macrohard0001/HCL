@@ -137,7 +137,8 @@ public partial class App : Application
         Window win;
         try
         {
-            win = new MainWindow();
+            // v0.15.9：双壳 —— Metro（Win10 怀旧）模式用 MahApps 壳，其余用 Fluent 壳
+            win = AppSettings.Instance.ThemeStyle == "metro" ? new MetroMainWindow() : new MainWindow();
             MainWindow = win;
             win.Show();
         }
@@ -387,6 +388,7 @@ public partial class App : Application
             "Wpf.Ui;component/Resources/DefaultFocusVisualStyle",
             "Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle",
             "MahApps.Metro;component/Styles/",
+            "Themes/MetroSkin.",
         };
         for (var i = md.Count - 1; i >= 0; i--)
         {
@@ -458,6 +460,9 @@ public partial class App : Application
                 {
                     AddChecked($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml", loadedDicts);
                     AddChecked("pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml", loadedDicts);
+                    // v0.15.9：Metro 皮肤 —— Win10 经典填色压住 Wpf.Ui 主题字典的
+                    // WinUI 半透明填充键（ui: 控件保留模板，外观变 Metro 实底）
+                    AddChecked($"pack://application:,,,/Themes/MetroSkin.{variant}.xaml", loadedDicts);
                     AddChecked("pack://application:,,,/Themes/Metro.xaml", loadedDicts);
                 }
                 catch
@@ -496,6 +501,9 @@ public partial class App : Application
                 WpfUiThemeDictPrefix + variant);
             SwapThemeDictInPlace(md, "MahApps.Metro;component/Styles/Themes/",
                 $"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}");
+            // v0.15.9：Metro 皮肤变体同步切换（MetroSkin.Light / MetroSkin.Dark）
+            SwapThemeDictInPlace(md, "Themes/MetroSkin.",
+                $"pack://application:,,,/Themes/MetroSkin.{variant}");
         }
         catch (Exception ex)
         {

@@ -1,0 +1,123 @@
+<!--
+    v0.15.9：联机页 —— P2P 风格联机入口。
+    - 开放本机世界：填 Minecraft「对局域网开放」给出的端口 → 生成房间码，
+      UDP 广播信标，同网启动器自动发现；
+    - 加入房间：房间码或 host:port 解析为直接连接地址，一键复制；
+    - 局域网房间列表：自动发现 / 自动过期（3 个信标周期）；
+    - 中转（公网互通）预留：RelayEndpoint 服务端就绪后接入。
+    样式复用全局 HmPageTitle / HmCard / HmHint（Metro / Fluent 双主题自适应）。
+-->
+<Page x:Class="HardmacroCraft.Views.MultiplayerPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource HmScrollViewer}">
+        <StackPanel Margin="24,12,24,16" MaxWidth="760">
+
+            <TextBlock Text="{DynamicResource S.Multi.Title}" Style="{StaticResource HmPageTitle}" />
+            <TextBlock Text="{DynamicResource S.Multi.Hint}" Style="{StaticResource HmHint}"
+                       Margin="0,4,0,18" />
+
+            <!-- 开放本机世界 -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Multi.HostTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="{DynamicResource S.Multi.HostHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,12" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="150" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox x:Name="TxtRoomName" Grid.Column="0"
+                                    PlaceholderText="{DynamicResource S.Multi.RoomNamePlaceholder}"
+                                    Height="34" />
+                        <ui:TextBox x:Name="TxtGamePort" Grid.Column="2"
+                                    PlaceholderText="{DynamicResource S.Multi.PortPlaceholder}"
+                                    Height="34" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ui:Button x:Name="BtnHost" Appearance="Primary"
+                                   Content="{DynamicResource S.Multi.HostOpen}" Height="34" Padding="18,0"
+                                   Click="BtnHost_Click" />
+                        <TextBlock x:Name="TxtHostStatus" VerticalAlignment="Center" Margin="14,0,0,0"
+                                   Style="{StaticResource HmHint}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 加入房间 -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Multi.JoinTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="{DynamicResource S.Multi.JoinHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,12" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox x:Name="TxtJoinTarget" Grid.Column="0"
+                                    PlaceholderText="{DynamicResource S.Multi.JoinPlaceholder}"
+                                    Height="34" />
+                        <ui:Button x:Name="BtnCopy" Grid.Column="2"
+                                   Content="{DynamicResource S.Multi.Copy}" Height="34" Padding="18,0"
+                                   Click="BtnCopy_Click" />
+                    </Grid>
+                    <TextBlock x:Name="TxtJoinStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- 局域网房间列表 -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Multi.RoomsTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <ListBox x:Name="RoomList" Style="{StaticResource HmListBox}"
+                             MinHeight="52" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding RoomName}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <TextBlock FontSize="12" Opacity="0.75"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                            <Run Text="{Binding RoomCode, Mode=OneWay}" />
+                                            <Run Text="·" />
+                                            <Run Text="{Binding JoinAddress, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="1" Height="28" Padding="12,0" Margin="8,0,0,0"
+                                               Content="{DynamicResource S.Multi.Copy}"
+                                               Tag="{Binding}" Click="BtnRoomCopy_Click" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock x:Name="TxtRoomsEmpty" Text="{DynamicResource S.Multi.Empty}"
+                               Style="{StaticResource HmHint}" Margin="4,10,0,2" />
+                </StackPanel>
+            </Border>
+
+            <!-- 中转（公网互通）状态 -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Multi.RelayTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <TextBlock x:Name="TxtRelay" Style="{StaticResource HmHint}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

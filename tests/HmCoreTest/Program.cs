@@ -2702,6 +2702,43 @@ try
         && mainText.Contains("Esc 返回主页导航失败"));
     Check("v0.15.8：ContentDialog 异常兜底回退 MessageBox",
         settingsText.Contains("ContentDialog 显示失败，退回 MessageBox"));
+    // ===== v0.15.9：Metro 全 UI 换装（双壳 + 皮肤） / 联机 / 滚轮 / 版本导入 =====
+    var metroMainXaml = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml")));
+    var metroMainCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml.cs")));
+    Check("v0.15.9：双壳 —— App 按设置选壳（MetroWindow / FluentWindow）",
+        appText.Contains("new MetroMainWindow()") && appText.Contains("new MainWindow()"));
+    Check("v0.15.9：Metro 壳为 MahApps MetroWindow + 自绘导航 + 页面缓存",
+        metroMainXaml.Contains("MetroWindow") && metroMainXaml.Contains("DynamicResource S.Nav.Home")
+        && metroMainCs.Contains("Navigate(typeof(Views.HomePage))") && metroMainCs.Contains("_pages.TryGetValue"));
+    Check("v0.15.9：Metro 皮肤变体接入组合与深浅色切换",
+        appText.Contains("MetroSkin.{variant}.xaml")
+        && appText.Contains("Themes/MetroSkin.")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml")))
+            .Contains("x:Key=\"ButtonBackground\"")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml")))
+            .Contains("x:Key=\"ButtonBackground\""));
+    var mpService = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "MultiplayerService.cs")));
+    Check("v0.15.9：联机服务 —— LAN 发现 + 房间码 + 中转预留",
+        mpService.Contains("DiscoveryPort = 44490") && mpService.Contains("StartHosting")
+        && mpService.Contains("StartDiscovery") && mpService.Contains("RelayConfigured"));
+    Check("v0.15.9：联机页 + 双壳导航入口 + 中转配置字段",
+        File.Exists(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "MultiplayerPage.xaml")))
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MainWindow.xaml"))).Contains("MultiplayerPage")
+        && metroMainXaml.Contains("MultiplayerPage")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "AppSettings.cs"))).Contains("RelayEndpoint"));
+    Check("v0.15.9：侧栏滚轮修复 —— 窗格 ListView 转像素滚动",
+        mainText.Contains("CanContentScrollProperty, false"));
+    var mig = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "LauncherMigrationService.cs")));
+    Check("v0.15.9：外部版本导入 —— 扫描 + 复制导入 + 数据并入",
+        mig.Contains("BuiltinRoots") && mig.Contains("ScanFolder") && mig.Contains("Import")
+        && mig.Contains("mmc-pack.json")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "VersionsPage.xaml")))
+            .Contains("S.Ver.Import"));
+    Check("v0.15.9：联机与导入双语词条就位",
+        File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
+            .Contains("S.Multi.Title")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")))
+            .Contains("S.Mig.Title"));
     Check("v0.15.7：弹窗文案双语词条就位",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Settings.RestartConfirm")

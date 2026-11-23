@@ -202,13 +202,6 @@
     <sys:String x:Key="S.Common.Canceled">Canceled</sys:String>
 
     <!-- Modpacks -->
-    <sys:String x:Key="S.Mp.Title">Modpacks</sys:String>
-    <sys:String x:Key="S.Mp.Subtitle">Search &amp; install Modrinth modpacks (.mrpack) in one click, or install from a local file. Modpacks are version-isolated by default.</sys:String>
-    <sys:String x:Key="S.Mp.SearchHint">Search modpacks, e.g. RPG, skyblock, tech…</sys:String>
-    <sys:String x:Key="S.Mp.Search">Search</sys:String>
-    <sys:String x:Key="S.Mp.LocalInstall">Install local .mrpack</sys:String>
-    <sys:String x:Key="S.Mp.Output">Task progress &amp; output</sys:String>
-    <sys:String x:Key="S.Mp.Install">Install</sys:String>
 
     <!-- Mods -->
     <sys:String x:Key="S.Mod.Title">Mods</sys:String>
@@ -602,10 +595,6 @@
     <sys:String x:Key="S.Task.SpeedLabel">Download speed</sys:String>
     <sys:String x:Key="S.Task.CurrentFile">Downloading</sys:String>
     <sys:String x:Key="S.Mod.LoadingRecommend">Loading recommended content...</sys:String>
-    <sys:String x:Key="S.Mp.Searching">Searching...</sys:String>
-    <sys:String x:Key="S.Mp.LoadingRecommend">Loading recommended modpacks...</sys:String>
-    <sys:String x:Key="S.Mp.TaskTitle">Modpack download: {0}</sys:String>
-    <sys:String x:Key="S.Mp.TaskInstall">Install modpack: {0}</sys:String>
     <sys:String x:Key="S.Sh.Subtitle">Search and download shader packs from Modrinth (recommended content shown by default), installed into the selected version's shaderpacks folder.</sys:String>
     <sys:String x:Key="S.Sh.SearchHint">Search shader packs</sys:String>
     <sys:String x:Key="S.Sh.VersionTip">Shader packs are installed into this version's shaderpacks folder</sys:String>
@@ -680,4 +669,36 @@
     <!-- ==================== v0.15.2: task retry / path browse ==================== -->
     <sys:String x:Key="S.Task.Retry">Retry</sys:String>
     <sys:String x:Key="S.Common.Browse">Browse</sys:String>
+    <sys:String x:Key="S.Nav.Multiplayer">Multiplayer</sys:String>
+    <sys:String x:Key="S.Ver.Import">Import versions</sys:String>
+    <sys:String x:Key="S.Mig.Title">Import versions from other launchers</sys:String>
+    <sys:String x:Key="S.Mig.Found">Found {0} importable version(s). Select one and click "Import selected".</sys:String>
+    <sys:String x:Key="S.Mig.CustomFolder">Scan custom folder</sys:String>
+    <sys:String x:Key="S.Mig.Import">Import selected</sys:String>
+    <sys:String x:Key="S.Mig.PickOne">Select a version in the list first.</sys:String>
+    <sys:String x:Key="S.Mig.Done">Version "{0}" imported (instance data merged with the version).</sys:String>
+    <sys:String x:Key="S.Mig.DataSkipped">Version "{0}" imported.\n\nNote: version isolation is off, so saves / mods were not merged (to keep the shared directory clean); enable isolation in version settings to import data alongside.</sys:String>
+    <sys:String x:Key="S.Multi.Title">Multiplayer</sys:String>
+    <sys:String x:Key="S.Multi.Hint">Play together: open your world to LAN, generate a room code here, and friends on the same network will discover it automatically. To join: copy the address, then paste it into Minecraft "Direct Connection".</sys:String>
+    <sys:String x:Key="S.Multi.HostTitle">Host your world</sys:String>
+    <sys:String x:Key="S.Multi.HostHint">In Minecraft: open your world → Esc → "Open to LAN", then enter the port number from the chat here.</sys:String>
+    <sys:String x:Key="S.Multi.RoomNamePlaceholder">Room name (e.g. Survival with friends)</sys:String>
+    <sys:String x:Key="S.Multi.PortPlaceholder">LAN port</sys:String>
+    <sys:String x:Key="S.Multi.HostOpen">Host room</sys:String>
+    <sys:String x:Key="S.Multi.HostClose">Close room</sys:String>
+    <sys:String x:Key="S.Multi.Hosting">Room is open: code {code}, port {port} (launchers on the same network will discover it)</sys:String>
+    <sys:String x:Key="S.Multi.PortInvalid">Invalid port: enter a number between 1024 and 65535</sys:String>
+    <sys:String x:Key="S.Multi.HostFailed">Failed to host: discovery port is in use (another launcher instance may be running)</sys:String>
+    <sys:String x:Key="S.Multi.JoinTitle">Join a room</sys:String>
+    <sys:String x:Key="S.Multi.JoinHint">Enter a 5-character room code (looked up among LAN rooms) or address:port, copy it, then paste into Minecraft → "Direct Connection".</sys:String>
+    <sys:String x:Key="S.Multi.JoinPlaceholder">Room code or address:port</sys:String>
+    <sys:String x:Key="S.Multi.Copy">Copy address</sys:String>
+    <sys:String x:Key="S.Multi.Copied">Copied {address} — paste it into Minecraft "Direct Connection"</sys:String>
+    <sys:String x:Key="S.Multi.ResolveFailed">No LAN room matches this code (make sure you are on the same network, or enter address:port directly)</sys:String>
+    <sys:String x:Key="S.Multi.RoomsTitle">LAN rooms</sys:String>
+    <sys:String x:Key="S.Multi.Empty">No rooms found — rooms opened on your network will appear here automatically.</sys:String>
+    <sys:String x:Key="S.Multi.RelayTitle">Internet play (relay)</sys:String>
+    <sys:String x:Key="S.Multi.RelayPending">Relay server not configured yet: LAN room discovery and direct connections work now; internet rooms will open automatically once the server is configured.</sys:String>
+    <sys:String x:Key="S.Multi.RelayReady">Relay server configured; internet rooms will be available shortly.</sys:String>
+    <sys:String x:Key="S.Mig.None">No importable versions found in common launcher folders — use "Scan custom folder" to pick another launcher's .minecraft folder or a Prism-style instances folder.</sys:String>
 </ResourceDictionary>
