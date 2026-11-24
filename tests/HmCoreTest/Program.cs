@@ -2759,6 +2759,16 @@ try
     Check("v0.15.12：JournalOwnership 枚举名正确（Owns 不存在，真名 OwnsJournal）",
         metroMainXaml.Contains("JournalOwnership=\"OwnsJournal\"")
         && !metroMainXaml.Contains("JournalOwnership=\"Owns\""));
+    // ===== v0.15.13：Metro 标题栏 Win10 化 + 导航强调条 =====
+    Check("v0.15.13：Metro 标题栏正常大小写 + 白底黑字跟随主题（灰底白大写出厂默认已废）",
+        metroMainXaml.Contains("TitleCharacterCasing=\"Normal\"")
+        && metroMainXaml.Contains("TitleBarHeight=\"32\"")
+        && metroMainXaml.Contains("WindowTitleBrush=\"{DynamicResource ApplicationBackgroundBrush}\"")
+        && metroMainXaml.Contains("NonActiveWindowTitleBrush=\"{DynamicResource ApplicationBackgroundBrush}\"")
+        && metroMainXaml.Contains("TitleForeground=\"{DynamicResource TextFillColorPrimaryBrush}\""));
+    Check("v0.15.13：导航选中项 Win10 式强调条（3px 经典蓝圆头竖条）",
+        metroMainXaml.Contains("x:Name=\"SelPill\"")
+        && metroMainXaml.Contains("Background=\"{DynamicResource SystemAccentColorBrush}\""));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

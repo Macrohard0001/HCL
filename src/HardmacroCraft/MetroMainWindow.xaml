@@ -1,6 +1,10 @@
 <!--
     v0.15.9：Metro（Win10 怀旧）主窗口壳 —— 双壳方案之二。
 
+    v0.15.13：标题栏 Win10 化（MahApps 出厂默认是灰底 + 白色全大写标题，
+    TitleCharacterCasing=Normal + 白底黑字跟随主题 + TitleBarHeight=32）；
+    导航选中项加 Win10 NavigationView 式 3px 经典蓝强调条。
+
     ThemeStyle=metro 时 App.OnStartup 用本壳替代 Fluent 壳（MainWindow）：
     - 窗框改用 MahApps MetroWindow（Win10 式方形标题栏 + 系统按钮，不再有
       Wpf.Ui 的 Win11 Mica 窗框）；MahApps 自带 Themes/generic.xaml，
@@ -21,6 +25,11 @@
                  MinWidth="900" MinHeight="520"
                  WindowStartupLocation="CenterScreen"
                  ShowTitleBar="True"
+                 TitleCharacterCasing="Normal"
+                 TitleBarHeight="32"
+                 WindowTitleBrush="{DynamicResource ApplicationBackgroundBrush}"
+                 NonActiveWindowTitleBrush="{DynamicResource ApplicationBackgroundBrush}"
+                 TitleForeground="{DynamicResource TextFillColorPrimaryBrush}"
                  WindowTransitionsEnabled="False"
                  Icon="pack://application:,,,/Assets/icon.jpg"
                  Background="{DynamicResource ApplicationBackgroundBrush}">
@@ -38,7 +47,14 @@
                     <ControlTemplate TargetType="ListBoxItem">
                         <Border x:Name="Root" Background="{TemplateBinding Background}"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
+                            <Grid>
+                                <!-- Win10 NavigationView 式选中强调条（3px 圆头竖条，经典蓝） -->
+                                <Border x:Name="SelPill" Width="3" Height="20" HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" CornerRadius="1.5"
+                                        Background="{DynamicResource SystemAccentColorBrush}"
+                                        Visibility="Collapsed" />
+                                <ContentPresenter />
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -48,6 +64,7 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Root" Property="Background"
                                         Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                <Setter TargetName="SelPill" Property="Visibility" Value="Visible" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

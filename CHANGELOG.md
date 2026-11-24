@@ -2,6 +2,19 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.15.13
+
+**Metro 标题栏 Win10 化 + 导航强调条（用户实测 v0.15.12 截图反馈：灰底白色全大写标题栏不像 Win10）**
+
+- **标题栏**：MahApps MetroWindow 出厂默认是灰底 + 白色全大写标题——本次改对齐 Win10 度量：
+  `TitleCharacterCasing=Normal`（正常大小写，出厂默认 Upper 是全大写根因）、
+  标题栏白底黑字跟随深浅色（`WindowTitleBrush` / `TitleForeground` 绑定主题画刷，
+  非活动窗口同位处理）、`TitleBarHeight=32`。属性名全部经 MahApps.Metro 2.4.10
+  程序集字符串考古实锤后才动手（吸取 v0.15.12 枚举名教训）。
+- **导航强调条**：侧栏选中项在灰底之上补 Win10 NavigationView 式 3px 经典蓝圆头竖条
+  （`SystemAccentColorBrush` = #0078D7），悬停/选中底色不变。
+- 回归测试 680→682（+2：标题栏属性断言、强调条断言），构建全绿。
+
 ## v0.15.12（热修二连）
 
 **修复 v0.15.11 自身引入的 XAML 解析崩溃 + MahApps 主题字典 404**
