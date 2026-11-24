@@ -253,7 +253,7 @@
              crash.log 2026-11-24，布局循环重抛 + 逐次弹窗 = 报错弹窗风暴） -->
         <Frame x:Name="PageHost" Grid.Column="1"
                NavigationUIVisibility="Hidden"
-               JournalOwnership="Owns"
+               JournalOwnership="OwnsJournal"
                Focusable="False" />
     </Grid>
 </mah:MetroWindow>

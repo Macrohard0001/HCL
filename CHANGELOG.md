@@ -2,6 +2,22 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.15.12（热修二连）
+
+**修复 v0.15.11 自身引入的 XAML 解析崩溃 + MahApps 主题字典 404**
+
+- **崩溃**：v0.15.11 我把页面宿主 Frame 的 `JournalOwnership` 写成
+  `"Owns"` —— 该枚举没有这个成员（真名 `OwnsJournal`），Metro 模式一启动
+  InitializeComponent 就抛 XamlParseException，界面打不开（用户机日志
+  2026-11-24 12:57）。风暴断路器按设计自愈成了 Fluent，但 Metro 恢复失败。
+- **字典 404**：MahApps 2.4.x 主题字典必须带颜色段（程序集资源实测只有
+  `styles/themes/light.blue.baml`，没有 `light.xaml`）——本次已改用
+  `Light.Blue / Dark.Blue`（经典 Win10 蓝，本来就该如此），Metro 模式的
+  MahApps 样式接管真正生效；启动期 / 运行中换肤两处路径同修。
+- 回归测试 678→680（+2：枚举名断言、主题字典路径断言），构建全绿。
+
+---
+
 ## v0.15.11（热修）
 
 **修复 Metro 模式「报错弹窗风暴」（v0.15.9 / v0.15.10 用户必须更新）**

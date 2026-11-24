@@ -2756,6 +2756,14 @@ try
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Tool.Generate"));
     // ===== v0.15.11：Metro 壳弹窗风暴热修 =====
+    Check("v0.15.12：JournalOwnership 枚举名正确（Owns 不存在，真名 OwnsJournal）",
+        metroMainXaml.Contains("JournalOwnership=\"OwnsJournal\"")
+        && !metroMainXaml.Contains("JournalOwnership=\"Owns\""));
+    Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
+        appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
+        && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant
+        && !appText.Contains("Styles/Themes/{variant}.xaml")
+        && !appText.Contains("Styles/Themes/{variant}\""));
     Check("v0.15.11：Metro 壳页面宿主为 Frame（Page 合法父级，事故根因修复）",
         metroMainXaml.Contains("<Frame x:Name=\"PageHost\"")
         && metroMainXaml.Contains("NavigationUIVisibility=\"Hidden\"")

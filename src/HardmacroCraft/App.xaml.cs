@@ -510,7 +510,9 @@ public partial class App : Application
                 // 3) 压轴覆盖（后位优先）：直角 + 经典 Win10 蓝
                 try
                 {
-                    AddChecked($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.xaml", loadedDicts);
+                    // MahApps 2.4.x 主题字典必须带颜色段（程序集资源实测只有 styles/themes/light.blue.baml，
+                    // 没有 light.xaml —— v0.15.11 用户机日志证实 404）。Blue = 经典 Win10 蓝
+                    AddChecked($"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{{variant}}.Blue.xaml", loadedDicts);
                     AddChecked("pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml", loadedDicts);
                     // v0.15.9：Metro 皮肤 —— Win10 经典填色压住 Wpf.Ui 主题字典的
                     // WinUI 半透明填充键（ui: 控件保留模板，外观变 Metro 实底）
@@ -552,7 +554,7 @@ public partial class App : Application
             SwapThemeDictInPlace(md, "Wpf.Ui;component/Resources/Theme/",
                 WpfUiThemeDictPrefix + variant);
             SwapThemeDictInPlace(md, "MahApps.Metro;component/Styles/Themes/",
-                $"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}");
+                $"pack://application:,,,/MahApps.Metro;component/Styles/Themes/{variant}.Blue");
             // v0.15.9：Metro 皮肤变体同步切换（MetroSkin.Light / MetroSkin.Dark）
             SwapThemeDictInPlace(md, "Themes/MetroSkin.",
                 $"pack://application:,,,/Themes/MetroSkin.{variant}");
