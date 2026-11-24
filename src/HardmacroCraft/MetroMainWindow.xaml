@@ -247,8 +247,13 @@
             </DockPanel>
         </Border>
 
-        <!-- 页面宿主（Page 缓存实例） -->
-        <ContentControl x:Name="PageHost" Grid.Column="1"
-                        Focusable="False" />
+        <!-- 页面宿主（Page 缓存实例）。必须是 Frame：WPF 规定 Page 的父级只能是
+             Window 或 Frame，ContentControl 承载会在布局时抛
+             "Page can have only Window or Frame as parent"（v0.15.9 事故根因，
+             crash.log 2026-11-24，布局循环重抛 + 逐次弹窗 = 报错弹窗风暴） -->
+        <Frame x:Name="PageHost" Grid.Column="1"
+               NavigationUIVisibility="Hidden"
+               JournalOwnership="Owns"
+               Focusable="False" />
     </Grid>
 </mah:MetroWindow>

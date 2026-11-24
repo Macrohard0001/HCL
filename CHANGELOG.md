@@ -2,6 +2,24 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.15.11（热修）
+
+**修复 Metro 模式「报错弹窗风暴」（v0.15.9 / v0.15.10 用户必须更新）**
+
+- **事故**：Metro 模式启动即陷入「一百万个报错弹窗」——根因是 Metro 壳用
+  ContentControl 承载页面，而 WPF 规定 Page 的父级只能是 Window 或 Frame，
+  布局每次测量都重抛 `InvalidOperationException: Page can have only Window or
+  Frame as parent`（crash.log 2026-11-24：同一异常 30 秒内 1210 次），调度器
+  又对每次异常都弹窗 → 无限弹窗循环。
+- **修复**：Metro 壳页面宿主改为 `Frame`（NavigationUIVisibility=Hidden，
+  页面缓存实例不变），Page 获得合法父级，Metro 模式恢复正常。
+- **防复发**：UI 异常风暴断路器——同一签名异常 60 秒内 ≥6 次即停止逐次
+  弹窗（继续落 crash.log），并对已知可自愈场景（Page 宿主类异常）自动把
+  界面风格回退为 Fluent，重启即恢复可用，不再需要手删配置。
+- 678 项自动化测试全绿（+2，含事故根因回归断言）。
+
+---
+
 ## v0.15.10
 
 **新增「工具」页：史莱姆挂机点查询（种子工具第一步）**

@@ -19,6 +19,71 @@ public partial class App : Application
     public static ModpackService Modpacks { get; private set; } = null!;
     public static string Language { get; private set; } = "zh-CN";
 
+    // ===== v0.15.11：UI 异常风暴断路器 =====
+    // 布局循环里的异常会被 WPF 无限重抛（crash.log 2026-11-24：同一异常 30 秒内
+    // 1210 次，每次都弹窗 → 「一百万个报错弹窗」）。同一签名异常在滑动窗口内
+    // 超阈值即停止弹窗（仍落日志）；已知可自愈的风暴原因直接回退配置。
+    private static readonly Dictionary<string, List<DateTime>> _exceptionStorm = new();
+    private static readonly object _stormLock = new();
+    private const int StormThreshold = 6;
+    private static readonly TimeSpan StormWindow = TimeSpan.FromSeconds(60);
+
+    private static void OnDispatcherException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs args)
+    {
+        var ex = args.Exception;
+        Services.BootLogger.Error("UI线程未处理异常: " + Services.BootLogger.Format(ex));
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(AppSettings.ConfigDir, "crash.log"),
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {Services.BootLogger.Format(ex)}{Environment.NewLine}");
+        }
+        catch { }
+
+        var signature = ex.GetType().FullName + "|" + ex.Message;
+        int repeats;
+        lock (_stormLock)
+        {
+            if (!_exceptionStorm.TryGetValue(signature, out var hits))
+                _exceptionStorm[signature] = hits = new List<DateTime>();
+            hits.RemoveAll(t => DateTime.Now - t > StormWindow);
+            hits.Add(DateTime.Now);
+            repeats = hits.Count;
+        }
+
+        if (repeats >= StormThreshold)
+        {
+            if (repeats == StormThreshold) // 风暴首达阈值：一次性处置 + 提示，此后静默兜底
+            {
+                Services.BootLogger.Error(
+                    $"异常风暴保护触发：同一异常 {StormWindow.TotalSeconds}s 内第 {repeats} 次，停止弹窗（仍记录 crash.log）");
+                // 已知自愈场景：Metro 壳页面宿主类异常 → 回退 Fluent，重启即恢复
+                var healed = false;
+                if (ex.Message.Contains("Page can have only Window or Frame"))
+                {
+                    try
+                    {
+                        AppSettings.Instance.ThemeStyle = "fluent";
+                        AppSettings.Instance.Save();
+                        Services.BootLogger.Error("已将界面风格回退为 Fluent，重启后恢复");
+                        healed = true;
+                    }
+                    catch { }
+                }
+                MessageBox.Show(
+                    "应用出现重复异常，已停止逐次弹窗（详情记录在 config/crash.log）。" +
+                    (healed ? "\n\n界面风格已自动回退为 Fluent，请重新启动。" : "\n\n若界面无法使用，请重新启动。"),
+                    "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            args.Handled = true;
+            return;
+        }
+
+        MessageBox.Show($"发生错误：{ex.Message}\n\n详细信息已记录到 config/crash.log",
+            "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Error);
+        args.Handled = true;
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -51,20 +116,7 @@ public partial class App : Application
             args.SetObserved(); // 防止它升级为进程崩溃；具体业务错误已在各任务内部处理
         };
         // 3) UI 线程未处理异常（弹窗提示而不是闪退）
-        DispatcherUnhandledException += (_, args) =>
-        {
-            Services.BootLogger.Error("UI线程未处理异常: " + Services.BootLogger.Format(args.Exception));
-            try
-            {
-                File.AppendAllText(
-                    Path.Combine(AppSettings.ConfigDir, "crash.log"),
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {Services.BootLogger.Format(args.Exception)}{Environment.NewLine}");
-            }
-            catch { }
-            MessageBox.Show($"发生错误：{args.Exception.Message}\n\n详细信息已记录到 config/crash.log",
-                "Hardmacro Craft Launcher", MessageBoxButton.OK, MessageBoxImage.Error);
-            args.Handled = true;
-        };
+        DispatcherUnhandledException += OnDispatcherException;
 
         Services.BootLogger.Info($"===== 启动 Hardmacro Craft Launcher v{Services.BootLogger.Version} =====");
         Services.BootLogger.Info($"进程: {Environment.ProcessPath} | .NET: {Environment.Version} | OS: {Environment.OSVersion.VersionString}");

@@ -2755,6 +2755,15 @@ try
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml"))).Contains("ToolsPage")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Tool.Generate"));
+    // ===== v0.15.11：Metro 壳弹窗风暴热修 =====
+    Check("v0.15.11：Metro 壳页面宿主为 Frame（Page 合法父级，事故根因修复）",
+        metroMainXaml.Contains("<Frame x:Name=\"PageHost\"")
+        && metroMainXaml.Contains("NavigationUIVisibility=\"Hidden\"")
+        && !metroMainXaml.Contains("<ContentControl x:Name=\"PageHost\""));
+    Check("v0.15.11：UI 异常风暴断路器（同签名 60s≥6 次停弹窗 + Metro 宿主异常自愈回退 Fluent）",
+        appText.Contains("OnDispatcherException") && appText.Contains("StormThreshold = 6")
+        && appText.Contains("Page can have only Window or Frame")
+        && appText.Contains("ThemeStyle = \"fluent\""));
     Check("v0.15.7：弹窗文案双语词条就位",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")))
             .Contains("S.Settings.RestartConfirm")
