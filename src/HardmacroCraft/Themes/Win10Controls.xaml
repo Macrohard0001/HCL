@@ -16,8 +16,8 @@
                     xmlns:ui="clr-namespace:Wpf.Ui.Controls;assembly=Wpf.Ui">
 
     <!-- ================= ui:Button（页面 74 处）+ 标准 Button ================= -->
-    <!-- 模板骨架：方角 1px 描边实底；Icon 演示器保留 Wpf.Ui SymbolIcon；Appearance 触发器换强调/危险/透明 -->
-    <ControlTemplate x:Key="Win10.Button.Template" TargetType="Button">
+    <!-- 模板骨架：方角 1px 描边实底；ui:Button 专属模板额外带 Icon 演示器（标准 Button 无 Icon 属性） -->
+    <ControlTemplate x:Key="Win10.UIButton.Template" TargetType="ui:Button">
         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="0"
                 SnapsToDevicePixels="True">
@@ -49,6 +49,31 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
+    <ControlTemplate x:Key="Win10.Button.Template" TargetType="Button">
+        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="0"
+                SnapsToDevicePixels="True">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}"
+                              RecognizesAccessKey="True" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushPointerOver}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushPressed}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundDisabled}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushDisabled}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
     <Style TargetType="ui:Button">
         <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
@@ -58,7 +83,7 @@
         <Setter Property="FontFamily" Value="Segoe UI" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Template" Value="{StaticResource Win10.Button.Template}" />
+        <Setter Property="Template" Value="{StaticResource Win10.UIButton.Template}" />
         <Style.Triggers>
             <Trigger Property="Appearance" Value="Primary">
                 <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}" />
@@ -155,7 +180,7 @@
 
     <!-- ================= TextBox / ui:TextBox（23+1 处） ================= -->
     <!-- 白/深底 1px 描边；焦点蓝描边；保留 PART_ContentHost 契约 + ui:TextBox 占位符 -->
-    <ControlTemplate x:Key="Win10.TextBox.Template" TargetType="TextBox">
+    <ControlTemplate x:Key="Win10.UITextBox.Template" TargetType="ui:TextBox">
         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="0" SnapsToDevicePixels="True">
@@ -194,7 +219,7 @@
         <Setter Property="FontFamily" Value="Segoe UI" />
         <Setter Property="SelectionBrush" Value="{DynamicResource SystemAccentColorBrush}" />
         <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-        <Setter Property="Template" Value="{StaticResource Win10.TextBox.Template}" />
+        <Setter Property="Template" Value="{StaticResource Win10.UITextBox.Template}" />
     </Style>
 
     <Style TargetType="TextBox">
