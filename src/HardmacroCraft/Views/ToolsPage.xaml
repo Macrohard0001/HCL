@@ -44,6 +44,38 @@
                            HorizontalAlignment="Left" Visibility="Collapsed" />
                 </StackPanel>
             </Border>
+
+            <!-- ===== v0.16.0：Horizon —— Rust 重制版 Minecraft（社区俗称"无损转译为 Rust"） =====
+                 出处备注：github.com/horizon-rust/horizon（LGPL-3.0）+ playhorizon.dev。
+                 官方称从零重写 + 281 套差分测试保证行为级无损，并无"转译器"；
+                 本卡片整合的是获取/管理 Horizon 启动器这一真实功能。 -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.HorizonTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,8" />
+                    <TextBlock Text="{DynamicResource S.Tool.HorizonHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,6" TextWrapping="Wrap" />
+                    <TextBlock Text="{DynamicResource S.Tool.HorizonRuntime}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,6" TextWrapping="Wrap" />
+                    <TextBlock Text="{DynamicResource S.Tool.HorizonSource}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,12" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnHorizonDetect" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.HorizonDetect}" Click="BtnHorizonDetect_Click" />
+                        <ui:Button x:Name="BtnHorizonDownload" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.HorizonDownload}" Click="BtnHorizonDownload_Click" />
+                        <ui:Button x:Name="BtnHorizonManual" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.HorizonManual}" Click="BtnHorizonManual_Click" />
+                        <ui:Button x:Name="BtnHorizonSite" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.HorizonSite}" Click="BtnHorizonSite_Click" />
+                    </WrapPanel>
+                    <ProgressBar x:Name="HorizonProgress" Height="4" Minimum="0" Maximum="100"
+                                 Margin="0,8,0,0" Visibility="Collapsed" />
+                    <TextBlock x:Name="TxtHorizonStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

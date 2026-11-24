@@ -17,6 +17,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/AuthlibService.cs" Link="Services/AuthlibService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/BootLogger.cs" Link="Services/BootLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/CrashHelper.cs" Link="Services/CrashHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/CrashAnalyzer.cs" Link="Services/CrashAnalyzer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/HorizonService.cs" Link="Services/HorizonService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/PlayTimeStore.cs" Link="Services/PlayTimeStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ProxyHelper.cs" Link="Services/ProxyHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/CurseForgeService.cs" Link="Services/CurseForgeService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/DownloadEngine.cs" Link="Services/DownloadEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/DownloadTaskService.cs" Link="Services/DownloadTaskService.cs" />

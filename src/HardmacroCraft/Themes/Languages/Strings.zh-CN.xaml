@@ -713,4 +713,37 @@
     <sys:String x:Key="S.Tool.Stats">史莱姆区块 {0} 个 / 共 {1} 个（{2}%）</sys:String>
     <sys:String x:Key="S.Tool.Best">最佳挂机点：区块 ({0}, {1})，{2}×{2} 全绿连片，方块坐标 ({3}, {4})——挂机层 Y&lt;40 有效</sys:String>
     <sys:String x:Key="S.Tool.BestNone">范围内没有 2×2 连片的史莱姆区块——可扩大半径再试。</sys:String>
+
+    <!-- ===== v0.16.0：Horizon（Rust 重制版 Minecraft，出处备注） ===== -->
+    <sys:String x:Key="S.Tool.HorizonTitle">Horizon —— Rust 重制版 Minecraft</sys:String>
+    <sys:String x:Key="S.Tool.HorizonHint">Horizon 是 Minecraft Java 26.3 的 Rust 从零重制（客户端 + 服务端 + 自带启动器）。社区俗称的“无损转译为 Rust”实为官方用 281 套差分测试保证的行为级无损——官方并无“转译器”，本页功能是帮你获取和管理 Horizon 启动器。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRuntime">运行时：无需 rustc/cargo。需已拥有正版 Minecraft Java 26.3 且用官方启动器跑过一次；Mojang Java 运行时由 Horizon 启动器自动安装。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonSource">出处：github.com/horizon-rust/horizon（LGPL-3.0）｜官网 playhorizon.dev</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDetect">检测本地安装</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDownload">应用内下载启动器</sys:String>
+    <sys:String x:Key="S.Tool.HorizonManual">浏览器手动下载</sys:String>
+    <sys:String x:Key="S.Tool.HorizonSite">打开官网</sys:String>
+    <sys:String x:Key="S.Tool.HorizonNotFound">未在常见位置检测到 Horizon 安装（找不到不代表没装，可手动确认）。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonFetching">正在获取最新版本信息…</sys:String>
+    <sys:String x:Key="S.Tool.HorizonNoAsset">最新版本未提供 Windows x64 安装包，请到发布页手动下载。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDone">下载完成：</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunIt">双击安装包完成安装后，由 Horizon 启动器安装游戏与 Java 运行时。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonFail">下载失败：</sys:String>
+    <sys:String x:Key="S.Tool.HorizonManualHint">建议改用「浏览器手动下载」，或检查代理/网络后重试。</sys:String>
+
+    <!-- ===== v0.16.0：网络代理 + 启动前/退出后命令 ===== -->
+    <sys:String x:Key="S.Set.ProxyTitle">网络代理</sys:String>
+    <sys:String x:Key="S.Set.ProxyHint">代理仅作用于启动器下载管线（Mojang / BMCLAPI / CurseForge / Modrinth 等），不代理登录流量。</sys:String>
+    <sys:String x:Key="S.Set.ProxyEnable">启用代理</sys:String>
+    <sys:String x:Key="S.Set.ProxyHostPh">代理主机，如 127.0.0.1</sys:String>
+    <sys:String x:Key="S.Set.ProxyPortPh">端口</sys:String>
+    <sys:String x:Key="S.Set.ProxyRestartHint">修改代理后需重启启动器生效。</sys:String>
+    <sys:String x:Key="S.Set.CmdTitle">启动前 / 退出后命令</sys:String>
+    <sys:String x:Key="S.Set.PreCmdHint">游戏进程启动前执行的命令（等待其完成后再启动游戏；Prism 同款）。</sys:String>
+    <sys:String x:Key="S.Set.PreCmdPh">例如：taskkill /im notepad.exe（任意 cmd 命令）</sys:String>
+    <sys:String x:Key="S.Set.PostCmdHint">游戏退出后执行的命令；%EXIT% 会被替换为游戏退出码。</sys:String>
+    <sys:String x:Key="S.Set.PostCmdPh">例如：echo 游戏已退出，退出码 %EXIT%</sys:String>
+
+    <!-- ===== v0.16.0：时长统计 ===== -->
+    <sys:String x:Key="S.Inst.Playtime">累计游玩</sys:String>
 </ResourceDictionary>

@@ -713,4 +713,37 @@
     <sys:String x:Key="S.Tool.Stats">{0} slime chunks / {1} total ({2}%)</sys:String>
     <sys:String x:Key="S.Tool.Best">Best farm spot: chunk ({0}, {1}), {2}×{2} all-green, block coords ({3}, {4}) — spawning works below Y=40</sys:String>
     <sys:String x:Key="S.Tool.BestNone">No 2×2 all-green cluster in range — try a larger radius.</sys:String>
+
+    <!-- ===== v0.16.0: Horizon (Rust rewrite of Minecraft, with source attribution) ===== -->
+    <sys:String x:Key="S.Tool.HorizonTitle">Horizon — Minecraft rewritten in Rust</sys:String>
+    <sys:String x:Key="S.Tool.HorizonHint">Horizon is a from-scratch Rust rewrite of Minecraft Java 26.3 (client + dedicated server + its own launcher). The community phrase "losslessly transpiled to Rust" actually refers to 281 differential test harnesses proving behavioral equivalence — there is no official "transpiler". This page just helps you fetch and manage the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRuntime">Runtime: no rustc/cargo needed. You must own Minecraft Java 26.3 and have run it once via the official launcher; the Mojang Java runtime is installed automatically by the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonSource">Source: github.com/horizon-rust/horizon (LGPL-3.0) | playhorizon.dev</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDetect">Detect local install</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDownload">Download in app</sys:String>
+    <sys:String x:Key="S.Tool.HorizonManual">Download in browser</sys:String>
+    <sys:String x:Key="S.Tool.HorizonSite">Open website</sys:String>
+    <sys:String x:Key="S.Tool.HorizonNotFound">No Horizon installation found in common locations (absence here does not mean it is not installed).</sys:String>
+    <sys:String x:Key="S.Tool.HorizonFetching">Fetching latest release info…</sys:String>
+    <sys:String x:Key="S.Tool.HorizonNoAsset">No Windows x64 setup in the latest release — please download from the releases page.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDone">Downloaded:</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunIt">Run the setup to install Horizon; the game and Java runtime are installed by the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonFail">Download failed:</sys:String>
+    <sys:String x:Key="S.Tool.HorizonManualHint">Try "Download in browser", or check proxy/network and retry.</sys:String>
+
+    <!-- ===== v0.16.0: proxy + pre/post commands ===== -->
+    <sys:String x:Key="S.Set.ProxyTitle">Network proxy</sys:String>
+    <sys:String x:Key="S.Set.ProxyHint">Applies to the launcher's download pipeline only (Mojang / BMCLAPI / CurseForge / Modrinth etc.), not to login traffic.</sys:String>
+    <sys:String x:Key="S.Set.ProxyEnable">Enable proxy</sys:String>
+    <sys:String x:Key="S.Set.ProxyHostPh">Proxy host, e.g. 127.0.0.1</sys:String>
+    <sys:String x:Key="S.Set.ProxyPortPh">Port</sys:String>
+    <sys:String x:Key="S.Set.ProxyRestartHint">Restart the launcher for proxy changes to take effect.</sys:String>
+    <sys:String x:Key="S.Set.CmdTitle">Pre-launch / post-exit commands</sys:String>
+    <sys:String x:Key="S.Set.PreCmdHint">Command executed before the game starts (waits until finished; Prism-style).</sys:String>
+    <sys:String x:Key="S.Set.PreCmdPh">e.g. taskkill /im notepad.exe (any cmd command)</sys:String>
+    <sys:String x:Key="S.Set.PostCmdHint">Command executed after the game exits; %EXIT% becomes the game exit code.</sys:String>
+    <sys:String x:Key="S.Set.PostCmdPh">e.g. echo game exited with %EXIT%</sys:String>
+
+    <!-- ===== v0.16.0: playtime ===== -->
+    <sys:String x:Key="S.Inst.Playtime">Total playtime</sys:String>
 </ResourceDictionary>

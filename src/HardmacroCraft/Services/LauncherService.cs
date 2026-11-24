@@ -79,6 +79,38 @@ public class LauncherService : IDisposable
             Mirror.Mode = AppSettings.Instance.EffectiveDownloadSource;
     }
 
+    /// <summary>
+    /// v0.16.0：执行自定义前/后命令（Prism 同款语义：启动前命令等待完成后游戏才启动，
+    /// 退出后命令在退出事件里跑）。经 cmd.exe 执行以支持管道/环境变量；%EXIT% 为游戏退出码。
+    /// 失败只记日志，不阻断启动/退出流程。
+    /// </summary>
+    private static void RunShellCommand(string? command, string tag, Action<string>? onLog)
+    {
+        if (string.IsNullOrWhiteSpace(command)) return;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("cmd.exe", "/c " + command)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using var p = System.Diagnostics.Process.Start(psi);
+            if (p is null) { onLog?.Invoke($"[{tag}] 命令未能启动: {command}"); return; }
+            var exited = p.WaitForExit(60_000);
+            var output = p.StandardOutput.ReadToEnd().Trim();
+            var errOut = p.StandardError.ReadToEnd().Trim();
+            onLog?.Invoke($"[{tag}] 命令{(exited ? "" : "（60 秒超时）")}执行{(exited ? $"完成，退出码 {p.ExitCode}" : "")}: {command}");
+            if (output.Length > 0) onLog?.Invoke($"[{tag}] 输出: {output[..Math.Min(output.Length, 400)]}");
+            if (errOut.Length > 0) onLog?.Invoke($"[{tag}] 错误输出: {errOut[..Math.Min(errOut.Length, 400)]}");
+        }
+        catch (Exception ex)
+        {
+            onLog?.Invoke($"[{tag}] 命令执行失败: {ex.Message}");
+        }
+    }
+
     public string RootPath => AppSettings.Instance.GameRoot;
 
     /// <summary>
@@ -187,8 +219,8 @@ public class LauncherService : IDisposable
         {
             try
             {
-                // BMCLAPI 不可达时直连 Mojang 官方清单
-                _directHttp ??= new HttpClient
+                // BMCLAPI 不可达时直连 Mojang 官方清单（v0.16.0：同样走代理出口）
+                _directHttp ??= new HttpClient(ProxyHelper.CreateDownloadHandler())
                 {
                     Timeout = TimeSpan.FromSeconds(30),
                 };
@@ -1037,6 +1069,26 @@ public class LauncherService : IDisposable
         }
         var process = await createTask; // 传播创建阶段的真实异常
         var wrapper = new ProcessWrapper(process);
+        // ===== v0.16.0：启动前命令（Prism 同款；线程池执行避免阻塞 UI 上下文，失败不阻断启动） =====
+        await System.Threading.Tasks.Task.Run(() => RunShellCommand(AppSettings.Instance.PreLaunchCommand, "启动前", onLog));
+        // v0.16.0：游戏时长统计（HMCL/PCL2 同款）——进程退出即落账 + 执行退出后命令
+        var startedUtc = DateTime.UtcNow;
+        wrapper.Exited += (_, _) =>
+        {
+            try
+            {
+                var secs = (DateTime.UtcNow - startedUtc).TotalSeconds;
+                PlayTimeStore.AddSession(versionName, secs);
+                onLog?.Invoke($"[统计] 本次游玩 {TimeSpan.FromSeconds(secs):hh\\:mm\\:ss}，已累计：{PlayTimeStore.Format(PlayTimeStore.GetTotalSeconds(versionName))}");
+            }
+            catch { /* 统计失败不影响退出流程 */ }
+            try
+            {
+                var code = wrapper.Process?.HasExited == true ? wrapper.Process.ExitCode : -1;
+                RunShellCommand(AppSettings.Instance.PostExitCommand.Replace("%EXIT%", code.ToString()), "退出后", onLog);
+            }
+            catch { /* 后命令异常不影响退出流程 */ }
+        };
         if (onLog != null)
         {
             wrapper.OutputReceived += (_, line) => onLog(line ?? "");

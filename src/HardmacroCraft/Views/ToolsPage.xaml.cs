@@ -76,4 +76,63 @@ public partial class ToolsPage : Page
                 ?? "范围内没有 2×2 连片的史莱姆区块（可扩大半径再试）");
         }
     }
+
+    // ===== v0.16.0：Horizon（Rust 重制版 Minecraft）=====
+    // 出处：github.com/horizon-rust/horizon（LGPL-3.0）+ playhorizon.dev。
+    // 官方无"转译器"——所谓"无损" = 281 套差分测试保证行为级无损；本页如实标注。
+
+    private static void OpenUrl(string url) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+
+    private void BtnHorizonDetect_Click(object sender, RoutedEventArgs e)
+    {
+        var dir = HorizonService.DetectInstall();
+        TxtHorizonStatus.Text = dir is null
+            ? (string?)TryFindResource("S.Tool.HorizonNotFound") ?? "未在常见位置检测到 Horizon 安装。"
+            : $"✓ {dir}";
+    }
+
+    private async void BtnHorizonDownload_Click(object sender, RoutedEventArgs e)
+    {
+        // 防重入：下载中再点无效
+        if (BtnHorizonDownload.IsEnabled == false) return;
+        BtnHorizonDownload.IsEnabled = false;
+        HorizonProgress.Visibility = Visibility.Visible;
+        HorizonProgress.IsIndeterminate = true;
+        try
+        {
+            TxtHorizonStatus.Text = (string?)TryFindResource("S.Tool.HorizonFetching") ?? "正在获取最新版本信息…";
+            var info = await HorizonService.FetchLatestAsync(App.LauncherService.Http);
+            if (info is null)
+            {
+                TxtHorizonStatus.Text = (string?)TryFindResource("S.Tool.HorizonNoAsset") ?? "未找到 Windows 安装包，请到发布页手动下载。";
+                return;
+            }
+            var mb = info.SizeBytes / 1024 / 1024;
+            TxtHorizonStatus.Text = $"Horizon {info.Version}：{info.AssetName}（约 {mb} MB）";
+            HorizonProgress.IsIndeterminate = false;
+            var progress = new Progress<long>(b =>
+            {
+                if (info.SizeBytes > 0) HorizonProgress.Value = 100d * b / info.SizeBytes;
+            });
+            var dest = await HorizonService.DownloadLauncherAsync(App.LauncherService.Http, info, progress);
+            HorizonProgress.Value = 100;
+            TxtHorizonStatus.Text = ((string?)TryFindResource("S.Tool.HorizonDone") ?? "下载完成：") + dest
+                + "\n" + ((string?)TryFindResource("S.Tool.HorizonRunIt") ?? "双击安装包安装 Horizon；运行需正版 Minecraft Java 26.3（官方启动器跑过一次），Java 运行时由 Horizon 自动安装。");
+            HorizonService.RevealInExplorer(dest);
+        }
+        catch (Exception ex)
+        {
+            TxtHorizonStatus.Text = ((string?)TryFindResource("S.Tool.HorizonFail") ?? "下载失败：") + ex.Message
+                + "\n" + ((string?)TryFindResource("S.Tool.HorizonManualHint") ?? "可用「浏览器手动下载」按钮到发布页下载。");
+        }
+        finally
+        {
+            BtnHorizonDownload.IsEnabled = true;
+        }
+    }
+
+    private void BtnHorizonManual_Click(object sender, RoutedEventArgs e) => OpenUrl(HorizonService.ReleasesUrl);
+
+    private void BtnHorizonSite_Click(object sender, RoutedEventArgs e) => OpenUrl(HorizonService.SiteUrl);
 }

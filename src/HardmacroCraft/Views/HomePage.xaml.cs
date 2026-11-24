@@ -874,6 +874,18 @@ public partial class HomePage : Page
                         (latest != null
                             ? $"，最新崩溃报告：{Path.GetFileName(latest)}"
                             : "，未在 crash-reports 目录找到崩溃报告"));
+                    // v0.16.0：崩溃智能分析（PCL2/HMCL 同类功能，本地规则匹配），
+                    // 诊断结论直接写进运行日志，用户不用自己去翻报告
+                    try
+                    {
+                        var diag = CrashAnalyzer.DiagnoseLatest(AppSettings.Instance.GameRoot);
+                        if (diag != null) Log(diag);
+                        else Log("[诊断] 常见规则未命中，可把完整报告反馈给社区求助。");
+                    }
+                    catch (Exception diagEx)
+                    {
+                        Log("[诊断] 崩溃分析失败: " + diagEx.Message);
+                    }
                     Log("[提示] 可点击日志区上方「崩溃报告」按钮查看完整报告。");
                 }
 

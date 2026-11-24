@@ -164,6 +164,26 @@ public class AppSettings
     /// </summary>
     public bool ModSetupBackup { get; set; } = true;
 
+    // ---- v0.16.0：代理（HMCL 同类功能；作用于启动器下载管线，改后需重启生效） ----
+    /// <summary>是否启用代理（http / socks5，由 ProxyType 决定）。</summary>
+    public bool ProxyEnabled { get; set; }
+    /// <summary>代理协议："http" 或 "socks5"。</summary>
+    public string ProxyType { get; set; } = "http";
+    /// <summary>代理主机（IP 或域名，不含端口）。</summary>
+    public string ProxyHost { get; set; } = "";
+    /// <summary>代理端口（1-65535）。</summary>
+    public int ProxyPort { get; set; }
+
+    // ---- v0.16.0：启动前 / 退出后命令（Prism Launcher 同类功能，全局生效） ----
+    /// <summary>游戏进程启动前执行的命令（%%IP%% 占位符不可用；留空不执行）。</summary>
+    public string PreLaunchCommand { get; set; } = "";
+    /// <summary>游戏进程退出后执行的命令（退出码经 %EXIT% 传入；留空不执行）。</summary>
+    public string PostExitCommand { get; set; } = "";
+
+    // ---- v0.16.0：Horizon（Rust 重制版 Minecraft）—— 下载文件缓存目录 ----
+    /// <summary>Horizon 启动器安装包等大文件下载目录（GameRoot 同级 downloads/）。</summary>
+    public string DownloadsDir { get; set; } = Path.Combine(AppDir, "downloads");
+
     // ---- 存取 ----
     public static AppSettings Instance { get; private set; } = new();
 

@@ -40,6 +40,15 @@ public partial class SettingsPage : Page
             ChkSmoothScroll.IsChecked = AppSettings.Instance.SmoothScrollLogs;
             // v0.1.12：一键配置 Mods 移除前备份
             ChkModSetupBackup.IsChecked = AppSettings.Instance.ModSetupBackup;
+            // v0.16.0：网络代理 + 启动前/退出后命令
+            ChkProxy.IsChecked = AppSettings.Instance.ProxyEnabled;
+            foreach (ComboBoxItem pi in CmbProxyType.Items)
+                if ((string)pi.Tag == AppSettings.Instance.ProxyType) { CmbProxyType.SelectedItem = pi; break; }
+            TxtProxyHost.Text = AppSettings.Instance.ProxyHost;
+            NumProxyPort.Value = AppSettings.Instance.ProxyPort is >= 1 and <= 65535
+                ? AppSettings.Instance.ProxyPort : null;
+            TxtPreCmd.Text = AppSettings.Instance.PreLaunchCommand;
+            TxtPostCmd.Text = AppSettings.Instance.PostExitCommand;
             // v0.1.11：界面刷新频率
             foreach (ComboBoxItem i in CmbUiRefresh.Items)
                 if ((string)i.Tag == AppSettings.Instance.UiRefreshMode) { CmbUiRefresh.SelectedItem = i; break; }
@@ -460,6 +469,14 @@ public partial class SettingsPage : Page
         s.SmoothScrollLogs = ChkSmoothScroll.IsChecked == true;
         // v0.1.12：一键配置 Mods 移除前备份
         s.ModSetupBackup = ChkModSetupBackup.IsChecked == true;
+        // v0.16.0：网络代理（下载管线作用，重启生效）+ 启动前/退出后命令
+        s.ProxyEnabled = ChkProxy.IsChecked == true;
+        s.ProxyType = CmbProxyType.SelectedItem is ComboBoxItem pt && pt.Tag is string pTag
+            ? pTag : "http";
+        s.ProxyHost = TxtProxyHost.Text.Trim();
+        s.ProxyPort = NumProxyPort.Value is >= 1 and <= 65535 ? (int)NumProxyPort.Value!.Value : 0;
+        s.PreLaunchCommand = TxtPreCmd.Text.Trim();
+        s.PostExitCommand = TxtPostCmd.Text.Trim();
         s.UiRefreshMode = CmbUiRefresh.SelectedItem is ComboBoxItem ur && ur.Tag is string urTag
             ? UiRefreshPolicy.Normalize(urTag) : UiRefreshPolicy.ModeAuto;
         s.UiRefreshFps = NumUiFps.Value is >= 1 and <= 240 ? (int)NumUiFps.Value!.Value : 30;

@@ -82,6 +82,10 @@
     <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#FF6B6B6B" />
     <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#FFABABAB" />
     <SolidColorBrush x:Key="ListBoxItemSelectedBackground" Color="#FF3A4E63" />
+    <!-- v0.16.0：Win10 滚动条（12px 扁平方角拇指） -->
+    <SolidColorBrush x:Key="ScrollBarThumbBackground" Color="#FF4B4B4B" />
+    <SolidColorBrush x:Key="ScrollBarThumbHover" Color="#FF6B6B6B" />
+    <SolidColorBrush x:Key="ScrollBarThumbPressed" Color="#FF909090" />
     <SolidColorBrush x:Key="DangerButtonBackground" Color="#FFE81123" />
     <SolidColorBrush x:Key="DangerButtonBackgroundPointerOver" Color="#FFF1707A" />
     <SolidColorBrush x:Key="DangerButtonBackgroundPressed" Color="#FFC50E1F" />

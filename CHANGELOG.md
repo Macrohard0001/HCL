@@ -2,6 +2,32 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.0
+
+**Horizon（Rust 重制版 Minecraft）整合 + 四项市面启动器实用功能 + Metro 观感收尾**
+
+### Horizon 整合（备注出处，工具页新卡片）
+
+- **出处**：[horizon-rust/horizon](https://github.com/horizon-rust/horizon)（Minecraft 26.3 rewritten in Rust，LGPL-3.0-or-later）｜官网 [playhorizon.dev](https://playhorizon.dev)。**澄清**：官方 README 明确称"从零重写"，并无"无损转译器"；社区流传的"无损转译为 Rust"实指其用 **281 套差分测试**对比 Rust 版与 Java 原版输出、保证行为级无损。本启动器整合的是**获取/管理 Horizon 启动器**这一真实功能，UI 内如实标注。
+- 工具页卡片：检测本地安装 / **应用内下载**启动器（复用 DownloadEngine：重试/续传/进度条）/ **浏览器手动下载**（发布页）/ 打开官网。
+- 运行时提示内置：无需 rustc/cargo；需正版 Minecraft Java 26.3（官方启动器跑过一次）；Java 运行时由 Horizon 启动器自动安装。
+
+### 实用功能（对照 PCL2/HMCL/BakaXL/Prism/Modrinth App 调研，取低成本高收益四项）
+
+- **崩溃智能分析**（PCL2/BakaXL 同类）：本地规则引擎（12 条：Java 版本不匹配/内存不足/Mixin 注入失败/模组缺失或重复/显卡驱动/权限拦截/网络失败/版本 JSON 损坏/存档损坏等），游戏异常退出时自动诊断最新崩溃报告 + latest.log，结论直接写进运行日志；纯本地匹配不上传。
+- **启动前/退出后命令**（Prism 同类）：全局设置，cmd.exe 执行，`%EXIT%` 占位传退出码；启动前命令等待完成（线程池，不卡 UI），失败不阻断启动。
+- **网络代理**（HMCL 同类）：HTTP/SOCKS5，作用于启动器下载管线（Mojang/BMCLAPI/CurseForge/Modrinth），v0.15.2 连接池调优保留；改后重启生效。
+- **游戏时长统计**（HMCL/PCL2 同类）：按版本累计，退出落账 `config/playtime.json`，实例详情窗口展示"累计游玩"。
+
+### Metro（Win10 怀旧风）观感收尾
+
+- **字体改微软雅黑**（用户指定）：换骨层全部字体 setter + Metro 壳 → `Microsoft YaHei UI, Microsoft YaHei, Segoe UI`（MDL2 图标字体不受影响）。
+- 换骨层补齐 Win10 规格：**ProgressBar**（4px 扁条经典蓝）、**Slider**（4px 轨道 + 14×14 方角蓝拇指）、**ScrollBar**（12px 扁平方角拇指，悬停加深，横竖双向），双变体滚动条画刷键齐备。
+
+### 质量
+
+- 回归测试 687 → **694 全绿**（+7：Horizon 出处与下载/崩溃分析/时长/代理/前后命令/字体与三模板断言）。
+
 ## v0.15.15
 
 **页面级换骨（v0.15.14 用户截图实证：换骨层没到达页面）**

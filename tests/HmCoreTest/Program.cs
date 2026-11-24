@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text.Json;
 using HardmacroCraft.Services;
 
@@ -2779,10 +2780,10 @@ try
         && win10Xaml.Contains("Win10.ComboBox.Editable.Template")
         && win10Xaml.Contains("IsEditable")
         && !win10Xaml.Contains("FillArea"));
-    Check("v0.15.14：换骨层 Metro 压轴挂载 + Fluent 可卸载 + 壳字体 Segoe UI",
+    Check("v0.15.14：换骨层 Metro 压轴挂载 + Fluent 可卸载（v0.16.0 壳字体改微软雅黑）",
         appText.Contains("Themes/Win10Controls.xaml")       // ApplyMetroOverlay 挂载
         && appText.Contains("Themes/Win10Controls.")        // 移除前缀（切回 Fluent 卸载）
-        && metroMainXaml.Contains("FontFamily=\"Segoe UI\""));
+        && metroMainXaml.Contains("FontFamily=\"Microsoft YaHei UI, Microsoft YaHei, Segoe UI\""));
     Check("v0.15.14：MetroSkin 双变体补齐换骨层画刷键（TextBox/ComboBox/列表选中/危险红）",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("TextBoxBorderBrushFocused")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("DangerButtonBackground")
@@ -2798,6 +2799,63 @@ try
         && metroMainCs.Contains("Themes/Win10Controls.xaml")
         && metroMainCs.Contains("NavList.SelectedIndex = 0")
         && metroMainCs.Contains("页面换骨层合并失败"));
+    // ===== v0.16.0：Horizon 整合（备注出处）+ 崩溃智能分析 + 前/后命令 + 代理 + 时长 + 微软雅黑 =====
+    string ReadSrc(params string[] parts) => File.ReadAllText(FindRepoFile(Path.Combine(new[] { "src", "HardmacroCraft" }.Concat(parts).ToArray())));
+    var horizonSvc = ReadSrc("Services", "HorizonService.cs");
+    var crashAnalyzer = ReadSrc("Services", "CrashAnalyzer.cs");
+    var playTime = ReadSrc("Services", "PlayTimeStore.cs");
+    var proxyHelper = ReadSrc("Services", "ProxyHelper.cs");
+    var toolsPageXaml = ReadSrc("Views", "ToolsPage.xaml");
+    var toolsPageCs = ReadSrc("Views", "ToolsPage.xaml.cs");
+    var settingsXaml = ReadSrc("Views", "SettingsPage.xaml");
+    var launcherSvc = ReadSrc("Services", "LauncherService.cs");
+    Check("v0.16.0：Horizon 整合带出处备注（horizon-rust/horizon + playhorizon.dev + LGPL + 差分测试澄清）",
+        horizonSvc.Contains("https://github.com/horizon-rust/horizon")
+        && horizonSvc.Contains("https://playhorizon.dev")
+        && horizonSvc.Contains("LGPL-3.0")
+        && horizonSvc.Contains("差分测试")
+        && toolsPageXaml.Contains("S.Tool.HorizonSource")
+        && toolsPageXaml.Contains("S.Tool.HorizonManual")
+        && toolsPageCs.Contains("HorizonService.DetectInstall")
+        && toolsPageCs.Contains("HorizonService.ReleasesUrl")
+        && toolsPageCs.Contains("HorizonService.SiteUrl"));
+    Check("v0.16.0：Horizon 运行时提示 + 应用内下载（DownloadEngine 复用）+ 手动下载入口",
+        horizonSvc.Contains("Java 运行时")
+        && horizonSvc.Contains("DownloadEngine.DownloadFileAsync")
+        && toolsPageXaml.Contains("S.Tool.HorizonRuntime")
+        && toolsPageCs.Contains("S.Tool.HorizonDone")
+        && toolsPageXaml.Contains("HorizonProgress"));
+    Check("v0.16.0：崩溃智能分析（本地规则引擎 + HomePage 异常退出自动诊断 + PCL2/HMCL 出处）",
+        crashAnalyzer.Contains("DiagnoseLatest")
+        && crashAnalyzer.Contains("UnsupportedClassVersionError")
+        && crashAnalyzer.Contains("OutOfMemory")
+        && crashAnalyzer.Contains("PCL2 / HMCL")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "HomePage.xaml.cs"))).Contains("CrashAnalyzer.DiagnoseLatest"));
+    Check("v0.16.0：游戏时长统计（config/playtime.json + 退出落账 + 实例详情展示）",
+        playTime.Contains("config\", \"playtime.json".Replace("config\", \"playtime.json", "playtime.json"))
+        && playTime.Contains("AddSession")
+        && launcherSvc.Contains("PlayTimeStore.AddSession")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "InstanceDetailWindow.cs"))).Contains("PlayTimeStore.Format"));
+    Check("v0.16.0：代理设置（ProxyHelper 双协议 + MirrorHttpHandler/直连回退接入 + 设置页 UI）",
+        proxyHelper.Contains("socks5")
+        && proxyHelper.Contains("MaxConnectionsPerServer = 128")   // v0.15.2 连接池调优未被丢弃
+        && launcherSvc.Contains("ProxyHelper.CreateDownloadHandler()")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "MirrorHttpHandler.cs"))).Contains("ProxyHelper.CreateDownloadHandler()")
+        && settingsXaml.Contains("ChkProxy") && settingsXaml.Contains("NumProxyPort"));
+    Check("v0.16.0：启动前/退出后命令（cmd.exe 执行 + %EXIT% 占位 + 设置页 UI + 语言键双语）",
+        launcherSvc.Contains("RunShellCommand")
+        && launcherSvc.Contains("%EXIT%")
+        && settingsXaml.Contains("TxtPreCmd") && settingsXaml.Contains("TxtPostCmd")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml"))).Contains("S.Set.ProxyTitle")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml"))).Contains("S.Set.ProxyTitle"));
+    Check("v0.16.0：Metro 字体微软雅黑 + Win10 模板补齐（ProgressBar/Slider/ScrollBar）+ 变体滚动条画刷",
+        win10Xaml.Contains("Microsoft YaHei UI, Microsoft YaHei, Segoe UI")
+        && win10Xaml.Contains("TargetType=\"ProgressBar\"")
+        && win10Xaml.Contains("TargetType=\"Slider\"")
+        && win10Xaml.Contains("TargetType=\"ScrollBar\"")
+        && !win10Xaml.Contains("Value=\"Segoe UI\" />".Replace("Value=\"Segoe UI\" />", "<Setter Property=\"FontFamily\" Value=\"Segoe UI\" />"))
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("ScrollBarThumbBackground")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("ScrollBarThumbBackground"));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

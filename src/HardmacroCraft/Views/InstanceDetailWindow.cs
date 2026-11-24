@@ -85,6 +85,9 @@ public static class InstanceDetailWindow
         var txtStarted = InfoRow(root, Row("S.Inst.StartedAt", "启动时间"));
         var txtElapsed = InfoRow(root, Row("S.Inst.Elapsed", "已运行"));
         var txtAlive = InfoRow(root, Row("S.Inst.ProcessAlive", "进程状态"));
+        // v0.16.0：累计游玩时长（PlayTimeStore，游戏退出时落账）
+        var txtPlaytime = InfoRow(root, Row("S.Inst.Playtime", "累计游玩"));
+        txtPlaytime.Text = PlayTimeStore.Format(PlayTimeStore.GetTotalSeconds(inst.Version));
 
         // 目录入口（WrapPanel：窗口过窄自动换行防溢出）
         root.Children.Add(GroupTitle(Row("S.Vs.GroupDirs", "目录")));

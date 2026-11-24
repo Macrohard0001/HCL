@@ -21,19 +21,7 @@ public class MirrorHttpHandler : DelegatingHandler
         ["maven.minecraftforge.net"] = ("bmclapi2.bangbang93.com", "/maven"),
     };
 
-    public MirrorHttpHandler() : base(new SocketsHttpHandler
-    {
-        UseCookies = false,
-        AutomaticDecompression = System.Net.DecompressionMethods.All,
-        // v0.15.2：连接池提速 —— 默认 PerServer=2 对 BMCLAPI 单域名批量下载是瓶颈
-        // （并行安装器 / 多线程引擎实际都在跟同一个镜像域名开连接），放宽到 128 并
-        // 启用连接复用保活，避免每文件新建 TCP+TLS 的握手开销
-        MaxConnectionsPerServer = 128,
-        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
-        EnableMultipleHttp2Connections = true,
-        ConnectTimeout = TimeSpan.FromSeconds(15),
-    })
+    public MirrorHttpHandler() : base(ProxyHelper.CreateDownloadHandler())
     {
     }
 
