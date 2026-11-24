@@ -441,6 +441,7 @@ public partial class App : Application
             "Wpf.Ui;component/Resources/DefaultTextBoxScrollViewerStyle",
             "MahApps.Metro;component/Styles/",
             "Themes/MetroSkin.",
+            "Themes/Win10Controls.",
         };
         for (var i = md.Count - 1; i >= 0; i--)
         {
@@ -518,6 +519,10 @@ public partial class App : Application
                     // WinUI 半透明填充键（ui: 控件保留模板，外观变 Metro 实底）
                     AddChecked($"pack://application:,,,/Themes/MetroSkin.{variant}.xaml", loadedDicts);
                     AddChecked("pack://application:,,,/Themes/Metro.xaml", loadedDicts);
+                    // v0.15.14：Win10 换骨层压轴 —— ui: 控件模板从 Wpf.Ui Win11 Fluent 形状
+                    // 整体重铸为 Win10 桌面规格（v0.15.13 用户反馈"还是不像"根因：
+                    // MetroSkin 只换色不换骨）。画刷全走 MetroSkin 变体键，热切换自动生效。
+                    AddChecked("pack://application:,,,/Themes/Win10Controls.xaml", loadedDicts);
                 }
                 catch
                 {

@@ -2,6 +2,23 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.15.14
+
+**Win10 换骨层（用户实测 v0.15.13 反馈"还是不像"的根治）**
+
+- **根因**：Metro 模式此前只把 ui: 控件**换色**（MetroSkin 压住 Wpf.Ui 填充键），
+  模板骨仍是 Wpf.Ui 的 Win11 Fluent 形状（圆角 / WinUI 结构）；页面里 74 个
+  ui:Button、23 个 ui:TextBox、21 个 ComboBox、16 个 CheckBox 全部如此。
+  标准控件则是 MahApps 默认形状（非系统 Win10 规格）——壳是 Metro 了，页身不是。
+- **修复**：新增 `Themes/Win10Controls.xaml` 换骨层，Metro 模式压轴加载，按
+  Win10 桌面控件规格整体重铸模板：方角、1px 描边（#ADADAD 正常 / #767676 悬停 /
+  #0078D7 焦点）、实底按钮、强调蓝 / 危险红（Appearance=Primary/Danger/Transparent
+  触发器）、ui:TextBox 保留占位符渲染、ComboBox 含可编辑变体
+  （PART_EditableTextBox 契约，验证站地址输入不受影响）、ListBox 选中浅蓝。
+  画刷全走 MetroSkin 变体键，深浅色热切换自动生效；切回 Fluent 自动卸载（出厂组合不变）。
+- 壳字体统一 Segoe UI（Win10 桌面字体）。
+- 回归测试 682→**685 全绿**（+3：换骨层存在与契约断言、压轴挂载与 Fluent 可卸载断言、双变体画刷键断言）。
+
 ## v0.15.13
 
 **Metro 标题栏 Win10 化 + 导航强调条（用户实测 v0.15.12 截图反馈：灰底白色全大写标题栏不像 Win10）**

@@ -2769,6 +2769,25 @@ try
     Check("v0.15.13：导航选中项 Win10 式强调条（3px 经典蓝圆头竖条）",
         metroMainXaml.Contains("x:Name=\"SelPill\"")
         && metroMainXaml.Contains("Background=\"{DynamicResource SystemAccentColorBrush}\""));
+    // ===== v0.15.14：Win10 换骨层 =====
+    var win10Xaml = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml")));
+    Check("v0.15.14：Win10 换骨层就位（ui:Button/ui:TextBox 重铸模板 + PART_ContentHost 契约 + 可编辑 ComboBox 变体）",
+        win10Xaml.Contains("TargetType=\"ui:Button\"")
+        && win10Xaml.Contains("TargetType=\"ui:TextBox\"")
+        && win10Xaml.Contains("x:Name=\"PART_ContentHost\"")
+        && win10Xaml.Contains("x:Name=\"PART_EditableTextBox\"")
+        && win10Xaml.Contains("Win10.ComboBox.Editable.Template")
+        && win10Xaml.Contains("IsEditable")
+        && !win10Xaml.Contains("FillArea"));
+    Check("v0.15.14：换骨层 Metro 压轴挂载 + Fluent 可卸载 + 壳字体 Segoe UI",
+        appText.Contains("Themes/Win10Controls.xaml")       // ApplyMetroOverlay 挂载
+        && appText.Contains("Themes/Win10Controls.")        // 移除前缀（切回 Fluent 卸载）
+        && metroMainXaml.Contains("FontFamily=\"Segoe UI\""));
+    Check("v0.15.14：MetroSkin 双变体补齐换骨层画刷键（TextBox/ComboBox/列表选中/危险红）",
+        File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("TextBoxBorderBrushFocused")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("DangerButtonBackground")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("TextBoxBorderBrushFocused")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("ListBoxItemSelectedBackground"));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

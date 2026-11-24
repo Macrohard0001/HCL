@@ -27,6 +27,7 @@
                  ShowTitleBar="True"
                  TitleCharacterCasing="Normal"
                  TitleBarHeight="32"
+                 FontFamily="Segoe UI"
                  WindowTitleBrush="{DynamicResource ApplicationBackgroundBrush}"
                  NonActiveWindowTitleBrush="{DynamicResource ApplicationBackgroundBrush}"
                  TitleForeground="{DynamicResource TextFillColorPrimaryBrush}"

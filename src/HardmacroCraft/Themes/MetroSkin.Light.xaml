@@ -72,4 +72,18 @@
 
     <!-- 焦点框：Win10 式黑（浅色模式） -->
     <SolidColorBrush x:Key="FocusStrokeColorOuter" Color="#FF000000" />
+
+    <!-- v0.15.14：Win10 换骨层补充键（Win10Controls.xaml 模板引用） -->
+    <SolidColorBrush x:Key="TextBoxBackground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="TextBoxBackgroundDisabled" Color="#FFF0F0F0" />
+    <SolidColorBrush x:Key="TextBoxBorderBrush" Color="#FFADADAD" />
+    <SolidColorBrush x:Key="TextBoxBorderBrushPointerOver" Color="#FF767676" />
+    <SolidColorBrush x:Key="TextBoxBorderBrushFocused" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#FFADADAD" />
+    <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#FF767676" />
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackground" Color="#FFCCE4F7" />
+    <SolidColorBrush x:Key="DangerButtonBackground" Color="#FFE81123" />
+    <SolidColorBrush x:Key="DangerButtonBackgroundPointerOver" Color="#FFF1707A" />
+    <SolidColorBrush x:Key="DangerButtonBackgroundPressed" Color="#FFC50E1F" />
+    <SolidColorBrush x:Key="DangerButtonForeground" Color="#FFFFFFFF" />
 </ResourceDictionary>
