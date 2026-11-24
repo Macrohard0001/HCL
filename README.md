@@ -1,6 +1,6 @@
 # Hardmacro Craft Launcher
 
-**v0.1.14** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent 设计
+**v0.15.12** · Hardmacro Craft Launcher · 一个独立的开源 Minecraft: Java Edition 启动器 · Windows 11 Fluent / Windows 8-10 Metro 双主题风格
 
 > **开发者：Fox_Ryn（Macrohard0001）** · 仓库：https://github.com/Macrohard0001/HCL · License: MIT
 
@@ -28,6 +28,7 @@
 | 🫥 启动行为 | 游戏启动后自动隐藏启动器（游戏退出时恢复）/ 游戏退出后自动关闭启动器（设置页可选） |
 | 🚑 闪退修复 | 修复中文语言文件 10 个 key 重复定义导致的启动即崩（"Item has already been added"）；新增语言字典重复 key 自动检测测试防回归 |
 | 🛟 启动防护 | 启动全程写 config/boot.log 逐步留痕（写不进时回退 %TEMP%\HardmacroCraft-boot.log）；config/ 与 .minecraft 目录创建失败不再静默闪退；非UI线程致命异常弹窗提示；settings.json 原子写入防损坏 |
+| 🛡 自愈防护 | 资源字典逐个强校验加载（失败带精确 URI 落 boot.log）；主字典失败整体回退 Fluent 出厂外观（绝不空白）；**UI 异常风暴断路器**（同签名异常 60 秒内 ≥6 次自动停弹窗，页面宿主类异常自动回退 Fluent 并落日志）；启动日志落实际生效的字典组合清单 |
 | 🩹 崩溃报告定位 | 游戏非零退出时自动在日志中给出最新崩溃报告文件名；主页日志区一键打开日志目录 / crash-reports 目录 |
 | 🧩 Mod 资源 | Modrinth / CurseForge 搜索下载 Mod / 资源包 / 光影包 / 数据包，自动放入对应版本目录；**版本选择对话框（release/beta/alpha 徽章）**；**必需依赖自动批量补齐**（Modrinth）；下载自动登记任务中心；本地管理列表跟随搜索类型切换（mods / 资源包 / 光影目录） |
 | 🖱 滚轮滚动 | 全局滚轮兑底升级：最内层容器优先滚动（版本列表等内嵌列表可独立滚动），滚到边界自动接力外层页面 |
@@ -35,9 +36,13 @@
 | 🗂 版本隔离 | 每个版本独立存档 / mods / 资源包，互不污染；assets 与 libraries 全局共享 |
 | 🇨🇳 国内加速 | BMCLAPI 镜像重写全部 Mojang 下载域名，可一键开关；镜像失败自动回退官方源 |
 | 🌗 深浅色 | 深色 / 浅色 / 跟随系统，切换立即生效；常显圆角滚动条 |
+| 🎨 主题风格 | **Fluent（Win11）与 Metro（Win8/Win10 怀旧）双风格**，与深浅色正交组合出四种外观；Metro 为 MahApps MetroWindow 双壳（手绘 Win10 导航窗格）+ 经典 Win10 蓝（#0078D7）+ 直角控件，切换重启生效；Metro 运行异常自动回退 Fluent 自愈（UI 异常风暴断路器） |
+| 🌐 联机（第一弹） | 局域网房间自动发现（UDP 信标）+ 房间码一键复制加入；**中转服务器中继（RelayEndpoint）已预留**，待服务端就绪后接入 |
+| 🧰 工具箱 | 史莱姆挂机点查询：按原版 slime chunk 算法逐位复刻（与多个独立开源实现交叉验证），地图网格渲染 + 3×3 / 2×2 全绿连片挂机点推荐 + 方块坐标换算 |
+| 📥 版本导入 | 一键扫描并导入官方 .minecraft 与 Prism 系启动器的 instances（含二层级目录），隔离时自动并入存档 / mods / config 等子目录 |
 | 🌐 双语 | 简体中文 / English，运行时切换 |
 | 💼 便携化 | **所有配置与账号保存在 exe 同目录 `config/`，不写 AppData、不写注册表**；另提供零外部写入的便携文件夹版 |
-| 🪶 体积优化 | 自包含单文件约 40 MB（原 164 MB，-75%；partial 裁剪 + 压缩，自包含免运行环境特性不变） |
+| 🪶 体积优化 | 自包含单文件约 66 MB（.NET 运行时内嵌 + 单文件压缩，免安装运行环境） |
 
 > **两种发行版**：
 > - `HardmacroCraftLauncher.exe`（单文件）：.NET 运行时原生库首次运行会解压到系统临时目录 `%TEMP%\.net\`（.NET 官方行为，约 30MB，一次性）
@@ -74,7 +79,7 @@
 
 任意兼容 authlib-injector / Yggdrasil 协议的验证站均可使用。
 
-## ✅ 核心功能验证（tests/HmCoreTest，593 项全部通过）
+## ✅ 核心功能验证（tests/HmCoreTest，680 项全部通过）
 
 验证套件直接源码链接 `Services/`，在 CI 可真实运行：
 
@@ -85,7 +90,8 @@
 - 微软设备码端点连通与错误处理、版本重命名 / 复制 / 删除；
 - Java 版本映射（含 Forge 后缀名 / 损坏 json 兜底）、托管扫描与挑选、JRE 下载元数据；
 - 任务中心（登记 / 进度夹紧 / 快照排序 / 50 条上限）；皮肤 textures base64 解析与 PNG 校验（真实网络）；
-- CurseForge 接入（classId / 排序 / modLoaderType 映射、搜索与文件解析、API Key 请求头、CDN 回退地址规则）、Modrinth facets 过滤与必需依赖解析、兼容文件挑选（夹具回放）。
+- CurseForge 接入（classId / 排序 / modLoaderType 映射、搜索与文件解析、API Key 请求头、CDN 回退地址规则）、Modrinth facets 过滤与必需依赖解析、兼容文件挑选（夹具回放）；
+- 主题字典路径断言（MahApps 带颜色段资源名）、页面宿主 XAML 枚举名断言、UI 异常风暴断路器回归；slime chunk 判定（多种子与独立实现交叉验证，密度 ≈10%）。
 
 ## 🏗 Java 自动管理
 
@@ -157,6 +163,7 @@ dotnet publish src/HardmacroCraft -c Release -r win-x64 --self-contained \
 - [CmlLib.Core.Installer.Forge](https://github.com/CmlLib/CmlLib.Core.Installer.Forge) — MIT
 - [authlib-injector](https://github.com/yushijinhun/authlib-injector) — 运行时按需下载（非再分发）
 - [WPF-UI](https://wpfui.lepo.co/) — MIT
+- [MahApps.Metro](https://mahapps.com/) — MIT（Metro 主题风格）
 - [Modrinth API](https://docs.modrinth.com/) — 开放 API
 - [CurseForge for Studios API](https://docs.curseforge.com/) — 需用户自有免费 API Key（启动器不内置、不再分发）
 - [BMCLAPI](https://bmclapi2.bangbang93.com/) — 镜像服务（请合理使用）
