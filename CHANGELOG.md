@@ -2,6 +2,25 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.15.15
+
+**页面级换骨（v0.15.14 用户截图实证：换骨层没到达页面）**
+
+- **截图破案**：v0.15.14 运行截图显示——窗控钮变灰底方框、汉堡按钮无框（换骨层
+  在**窗口层生效**的铁证），但页面里管理账号 / 一键进服 / ComboBox 全部还是
+  Fluent 圆角（**Frame 里 Page 内的 ui: 控件完全没吃到** app 级隐式样式）。
+  根因：Frame/Page 的资源隔离把 app 级 implicit 样式挡在页外——这也解释了
+  v0.15.9 以来页身为什么一直没变过。
+- **修复**：Navigate 创建页面实例时把 `Themes/Win10Controls.xaml` 直接合并进
+  `page.Resources.MergedDictionaries`（页面资源查找链无条件命中）；画刷仍走
+  app 级 MetroSkin 变体键，深浅色热切换不受影响。
+- **窗控钮回归**：换骨层移除 standard Button 隐式样式（页面不用标准 Button，
+  它只漏到 MahApps 窗控钮上变灰底方框）；窗控钮回归 MahApps 默认（扁平无框、
+  close 悬停红 = Win10 规格）。
+- **导航选中条修复**：v0.15.14 截图实证 SelPill 从未亮过 —— Navigate 只切内容
+  不建立 ListBox 选中态；首航时 `NavList.SelectedIndex = 0` 点亮选中条。
+- 回归测试 685→**687 全绿**（+2：standard Button 移除断言 / 页面级合并与选中态断言）。
+
 ## v0.15.14
 
 **Win10 换骨层（用户实测 v0.15.13 反馈"还是不像"的根治）**

@@ -2788,6 +2788,16 @@ try
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("DangerButtonBackground")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("TextBoxBorderBrushFocused")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("ListBoxItemSelectedBackground"));
+    // ===== v0.15.15：页面级换骨（用户截图实证 Frame/Page 隔离挡住 app 级隐式样式） =====
+    Check("v0.15.15：standard Button 隐式样式已从换骨层移除（窗控钮回归 MahApps 无边框，v0.15.14 截图实证漏样式）",
+        !win10Xaml.Contains("<Style TargetType=\"Button\">")
+        && !win10Xaml.Contains("Win10.Button.Template")
+        && win10Xaml.Contains("<Style TargetType=\"ui:Button\">"));
+    Check("v0.15.15：换骨层合并进页面级资源（Navigate 创建页时 page.Resources.MergedDictionaries）+ 首航建立导航选中态",
+        metroMainCs.Contains("page.Resources.MergedDictionaries.Add")
+        && metroMainCs.Contains("Themes/Win10Controls.xaml")
+        && metroMainCs.Contains("NavList.SelectedIndex = 0")
+        && metroMainCs.Contains("页面换骨层合并失败"));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

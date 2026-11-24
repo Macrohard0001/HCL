@@ -46,10 +46,15 @@ public partial class MetroMainWindow : MetroWindow
             }
         };
 
-        // 默认落在主页
+        // 默认落在主页；v0.15.15：同时建立导航选中态（v0.15.14 截图实证 SelPill
+        // 从未亮过 —— Navigate 只切内容不选中 ListBoxItem，选中条触发器空转）
         Loaded += (_, _) =>
         {
-            try { Navigate(typeof(Views.HomePage)); }
+            try
+            {
+                Navigate(typeof(Views.HomePage));
+                NavList.SelectedIndex = 0;
+            }
             catch (Exception navEx)
             { Services.BootLogger.Error("首页导航失败: " + Services.BootLogger.Format(navEx)); }
         };
@@ -96,6 +101,22 @@ public partial class MetroMainWindow : MetroWindow
         {
             page = (Page)Activator.CreateInstance(pageType)!;
             _pages[pageType] = page;
+            // v0.15.15：换骨层直接合并进页面级资源。v0.15.14 用户截图实证：
+            // app 级 implicit 样式对窗口内容生效（汉堡/窗控钮都吃到了），但 Frame
+            // 里 Page 内的 ui: 控件被隔离挡住（74 个 ui:Button 全是 Fluent 圆角）。
+            // 页面级 MergedDictionaries 在 Page 资源查找链上无条件命中，绕开隔离。
+            // 画刷全走 app 级 MetroSkin 变体键（DynamicResource），深浅色热切换不受影响。
+            try
+            {
+                page.Resources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/Themes/Win10Controls.xaml")
+                });
+            }
+            catch (Exception skinEx)
+            {
+                Services.BootLogger.Error("页面换骨层合并失败: " + Services.BootLogger.Format(skinEx));
+            }
         }
         _currentPage = page;
         PageHost.Content = page;

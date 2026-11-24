@@ -49,30 +49,9 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <ControlTemplate x:Key="Win10.Button.Template" TargetType="Button">
-        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="0"
-                SnapsToDevicePixels="True">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                              Margin="{TemplateBinding Padding}"
-                              RecognizesAccessKey="True" />
-        </Border>
-        <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushPointerOver}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushPressed}" />
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonBackgroundDisabled}" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ButtonBorderBrushDisabled}" />
-                <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
-            </Trigger>
-        </ControlTemplate.Triggers>
-    </ControlTemplate>
+    <!-- v0.15.15：不再定义 standard Button 模板/隐式样式 —— 页面不用标准 Button，
+         而它只漏到 MahApps 窗控钮（截图实证：窗控变灰底方框；真 Win10 窗控是无边框的）。
+         窗控钮回归 MahApps 默认（扁平无框，close 悬停红 = Win10 规格）。 -->
 
     <Style TargetType="ui:Button">
         <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />
@@ -164,18 +143,6 @@
                 <Setter Property="BorderThickness" Value="0" />
             </Trigger>
         </Style.Triggers>
-    </Style>
-
-    <Style TargetType="Button">
-        <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource ButtonForeground}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,4" />
-        <Setter Property="FontFamily" Value="Segoe UI" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Template" Value="{StaticResource Win10.Button.Template}" />
     </Style>
 
     <!-- ================= TextBox / ui:TextBox（23+1 处） ================= -->
