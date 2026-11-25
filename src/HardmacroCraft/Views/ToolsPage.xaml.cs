@@ -206,4 +206,41 @@ public partial class ToolsPage : Page
     }
 
     private void BtnBedrockStore_Click(object sender, RoutedEventArgs e) => OpenUrl(BedrockService.StoreUrl);
+
+    private async void BtnBedrockJoin_Click(object sender, RoutedEventArgs e)
+    {
+        var addr = TxtJoinAddr.Text.Trim();
+        var name = string.IsNullOrWhiteSpace(TxtJoinName.Text) ? "Bedrock Server" : TxtJoinName.Text.Trim();
+        if (addr.Length == 0 || !addr.Contains(':'))
+        {
+            TxtBedrockStatus.Text = "请填写 服务器地址:端口（例如 play.example.net:19132）。";
+            return;
+        }
+        try
+        {
+            await BedrockService.JoinServerAsync(name, addr);
+            TxtBedrockStatus.Text = $"已通过 minecraft:// 深链注册「{name}」（{addr}）并启动基岩版——游戏内「服务器」列表可见。";
+        }
+        catch (System.IO.FileNotFoundException) { TxtBedrockStatus.Text = "未检测到已安装的 Store 版基岩版——请先「购买/安装（官方）」。"; }
+        catch (Exception ex) { TxtBedrockStatus.Text = "启动失败：" + ex.Message; }
+    }
+
+    private async void BtnLeviDownload_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnLeviDownload.IsEnabled = false;
+            TxtBedrockStatus.Text = "正在获取 LeviLauncher 最新 Release（api.github.com）…";
+            var rel = await BedrockService.FetchLatestLeviAsync(App.LauncherService.Http)
+                ?? throw new InvalidOperationException("未找到可用资产——请到 GitHub Releases 手动下载。");
+            TxtBedrockStatus.Text = $"LeviLauncher {rel.Version}（{rel.AssetName}）开始下载…";
+            var dest = await BedrockService.DownloadLeviAsync(App.LauncherService.Http, rel, null);
+            TxtBedrockStatus.Text = "已下载：" + dest + "\nLeviLauncher 要求正版授权副本与微软账号登录（见其 README）——解压后按文档使用。";
+            BedrockService.RevealInExplorer(dest);
+        }
+        catch (Exception ex) { TxtBedrockStatus.Text = "下载失败：" + ex.Message; }
+        finally { BtnLeviDownload.IsEnabled = true; }
+    }
+
+    private void BtnLeviDocs_Click(object sender, RoutedEventArgs e) => OpenUrl(BedrockService.LeviDocsUrl);
 }

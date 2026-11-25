@@ -18,20 +18,31 @@ namespace HardmacroCraft.Services;
 public static partial class BedrockService
 {
     public const string StorePfnPrefix = "Microsoft.MinecraftUWP";
+    public const string PreviewPfnPrefix = "Microsoft.MinecraftWindowsBeta";
     public const string StoreUrl = "https://www.minecraft.net/en-us/download";
     private const string BdsPageUrl = "https://www.minecraft.net/en-us/download/server/bedrock";
+    public const string LeviDocsUrl = "https://levilauncher.levimc.org/zh-CN/";
+    public const string LeviReleaseApiUrl = "https://api.github.com/repos/LiteLDev/LeviLauncher/releases/latest";
+
+    /// <summary>LeviLauncher（LiteLDev，GPL-3.0 开源）—— 实例隔离/mod/LeviLamina 管理；
+    /// 其 README 明确要求「A legitimate licensed copy of Minecraft Bedrock Edition」+ 微软账号登录，
+    /// 我们只做下载/文档/调用集成，授权模型与本项目一致（正版硬前提）。</summary>
+    public sealed record LeviRelease(string Version, string AssetName, string AssetUrl, long SizeBytes);
 
     [GeneratedRegex(@"href=""(https://[^""]*?bedrock-server-[\d.]+\.zip)""")]
     private static partial Regex BdsLinkRegex();
 
     public sealed record BedrockInstall(string Version, string PackageFamilyName, string InstallLocation);
 
-    /// <summary>检测本机商店版基岩版（Windows；返回 null = 未安装）。</summary>
-    public static async Task<BedrockInstall?> DetectStoreInstallAsync()
+    /// <summary>
+    /// v0.16.3：检测本机商店版基岩版（Windows）——同时识别正式版（MinecraftUWP）与
+    /// Preview（MinecraftWindowsBeta），正式版排在前面；空列表 = 未安装。
+    /// </summary>
+    public static async Task<List<BedrockInstall>> DetectStoreInstallsAsync()
     {
-        if (!OperatingSystem.IsWindows()) return null;
+        if (!OperatingSystem.IsWindows()) return [];
         var psi = new ProcessStartInfo("powershell", """
-            -NoProfile -NonInteractive -Command "Get-AppxPackage -Name Microsoft.MinecraftUWP | ConvertTo-Json -Compress"
+            -NoProfile -NonInteractive -Command "Get-AppxPackage -Name Microsoft.Minecraft* | ConvertTo-Json -Compress -Depth 2"
             """)
         {
             UseShellExecute = false,
@@ -41,12 +52,15 @@ public static partial class BedrockService
         using var p = Process.Start(psi)!;
         var json = await p.StandardOutput.ReadToEndAsync();
         await p.WaitForExitAsync();
-        if (string.IsNullOrWhiteSpace(json) || json.TrimStart().StartsWith('{') is false) return null;
-        return ParseAppxJson(json);
+        return ParseAppxList(json);
     }
 
-    /// <summary>纯逻辑（进测试）：解析 Get-AppxPackage ConvertTo-Json 输出（单对象或数组取第一个）。</summary>
-    public static BedrockInstall? ParseAppxJson(string json)
+    /// <summary>兼容旧调用：返回检测到的第一个（正式版优先）安装；null = 未安装。</summary>
+    public static async Task<BedrockInstall?> DetectStoreInstallAsync()
+        => (await DetectStoreInstallsAsync()).FirstOrDefault();
+
+    /// <summary>纯逻辑（进测试）：解析 Get-AppxPackage ConvertTo-Json 输出（单对象或数组；正式版优先排序）。</summary>
+    public static List<BedrockInstall> ParseAppxList(string json)
     {
         try
         {
@@ -54,19 +68,37 @@ public static partial class BedrockService
             var root = doc.RootElement;
             if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                if (root.GetArrayLength() == 0) return null;
-                root = root[0];
+                var list = new List<BedrockInstall>();
+                foreach (var item in root.EnumerateArray())
+                    if (TryParseInstall(item, out var inst)) list.Add(inst);
+                return OrderInstalls(list);
             }
-            var pfn = root.TryGetProperty("PackageFamilyName", out var p) ? p.GetString() : null;
-            if (string.IsNullOrEmpty(pfn) || !pfn.StartsWith(StorePfnPrefix, StringComparison.OrdinalIgnoreCase))
-                return null;
-            return new BedrockInstall(
-                root.TryGetProperty("Version", out var v) ? v.GetString() ?? "" : "",
-                pfn,
-                root.TryGetProperty("InstallLocation", out var l) ? l.GetString() ?? "" : "");
+            return TryParseInstall(root, out var one) ? OrderInstalls([one]) : [];
         }
-        catch { return null; }
+        catch { return []; }
     }
+
+    private static List<BedrockInstall> OrderInstalls(List<BedrockInstall> list)
+        => list.OrderByDescending(i => !i.PackageFamilyName.StartsWith(PreviewPfnPrefix, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private static bool TryParseInstall(System.Text.Json.JsonElement root, out BedrockInstall inst)
+    {
+        inst = new BedrockInstall("", "", "");
+        var pfn = root.TryGetProperty("PackageFamilyName", out var p) ? p.GetString() : null;
+        if (string.IsNullOrEmpty(pfn)) return false;
+        var isMc = pfn.StartsWith(StorePfnPrefix, StringComparison.OrdinalIgnoreCase)
+                || pfn.StartsWith(PreviewPfnPrefix, StringComparison.OrdinalIgnoreCase);
+        if (!isMc) return false;
+        inst = new BedrockInstall(
+            root.TryGetProperty("Version", out var v) ? v.GetString() ?? "" : "",
+            pfn,
+            root.TryGetProperty("InstallLocation", out var l) ? l.GetString() ?? "" : "");
+        return true;
+    }
+
+    /// <summary>兼容旧调用：解析单个 Get-AppxPackage 输出（正式版优先），null = 未安装。</summary>
+    public static BedrockInstall? ParseAppxJson(string json)
+        => ParseAppxList(json).FirstOrDefault();
 
     /// <summary>启动商店版基岩版（shell:AppsFolder 协议；未安装时抛 FileNotFoundException）。</summary>
     public static async Task LaunchStoreAsync()
@@ -96,6 +128,60 @@ public static partial class BedrockService
         var fileName = url[(url.LastIndexOf('/') + 1)..];
         var dest = Path.Combine(HorizonService.DownloadDir, fileName);
         await DownloadEngine.DownloadFileAsync(http, url, dest, byteProgress: progress);
+        return dest;
+    }
+
+    /// <summary>
+    /// v0.16.3：minecraft:// 深链一键注册外部服务器并启动游戏（官方文档协议），
+    /// addExternalServer=名称|host:port —— 游戏内「服务器」列表直接出现该条目。
+    /// </summary>
+    public static async Task<bool> JoinServerAsync(string name, string hostPort)
+    {
+        var installs = await DetectStoreInstallsAsync();
+        if (installs.Count == 0)
+            throw new FileNotFoundException("未检测到已安装的 Microsoft Store 版基岩版。");
+        var uri = $"minecraft://?addExternalServer={Uri.EscapeDataString(name)}%7C{Uri.EscapeDataString(hostPort)}";
+        Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+        return true;
+    }
+
+    /// <summary>抓取 LeviLauncher 最新 Release（优先 windows 相关资产，回退首个 zip/资产）。</summary>
+    public static async Task<LeviRelease?> FetchLatestLeviAsync(HttpClient http)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, LeviReleaseApiUrl);
+        req.Headers.UserAgent.ParseAdd("HardmacroCraftLauncher/0.16.3");
+        using var resp = await http.SendAsync(req);
+        resp.EnsureSuccessStatusCode();
+        using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var rel = doc.RootElement;
+        if (!rel.TryGetProperty("assets", out var assets)) return null;
+        System.Text.Json.JsonElement chosen = default;
+        var hasAsset = false;
+        foreach (var a in assets.EnumerateArray())
+        {
+            if (!a.TryGetProperty("browser_download_url", out var u)) continue;
+            var name = a.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+            if (!hasAsset
+                || (name.Contains("windows", StringComparison.OrdinalIgnoreCase) && !(chosen.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "").Contains("windows", StringComparison.OrdinalIgnoreCase))
+                || (hasAsset && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && !(chosen.TryGetProperty("name", out var cn2) ? cn2.GetString() ?? "" : "").EndsWith(".zip", StringComparison.OrdinalIgnoreCase)))
+            {
+                chosen = a;
+                hasAsset = true;
+            }
+        }
+        if (!hasAsset) return null;
+        return new LeviRelease(
+            rel.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "latest" : "latest",
+            chosen.TryGetProperty("name", out var an) ? an.GetString() ?? "levilauncher.zip" : "levilauncher.zip",
+            chosen.GetProperty("browser_download_url").GetString() ?? "",
+            chosen.TryGetProperty("size", out var sz) ? sz.GetInt64() : 0);
+    }
+
+    /// <summary>下载 LeviLauncher 资产（DownloadEngine 复用），返回落盘路径。</summary>
+    public static async Task<string> DownloadLeviAsync(HttpClient http, LeviRelease info, IProgress<long>? progress)
+    {
+        var dest = Path.Combine(HorizonService.DownloadDir, info.AssetName);
+        await DownloadEngine.DownloadFileAsync(http, info.AssetUrl, dest, expectedSize: info.SizeBytes, byteProgress: progress);
         return dest;
     }
 

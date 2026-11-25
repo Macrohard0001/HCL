@@ -2,6 +2,24 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.3
+
+**MCBE 启动推进（LeviLauncher 对标）+ 多包检测 + 深链一键加服**
+
+### 调研结论：LeviLauncher 授权模型澄清
+
+- LeviLauncher（LiteLDev，GPL-3.0）README 明确要求 **"A legitimate licensed copy of Minecraft Bedrock Edition" + 微软账号登录** —— 并不存在"无授权微软账号登录"。本版本对标其正版能力做集成与增强。
+
+### 基岩版启动增强
+
+- **多包检测**：同时识别正式版（Microsoft.MinecraftUWP）与 Preview（Microsoft.MinecraftWindowsBeta），正式版优先；解析器拆为 `ParseAppxList`（列表 + 排序）并保持旧接口兼容。
+- **minecraft:// 深链一键加服**：输入 服务器名 + `host:port`，经官方 `addExternalServer` 协议注册外部服务器并拉起游戏（游戏内「服务器」列表直接出现该条目）。
+- **LeviLauncher 集成**：一键抓取 GitHub 最新 Release（优先 windows 资产）→ DownloadEngine 下载（重试/续传）→ 资源管理器定位；附官方文档入口。明确标注其正版授权要求。
+
+### 质量
+
+- 回归测试 701 → **702 全绿**（+1：MCBE 启动推进）。
+
 ## v0.16.2
 
 **Metro 点击/样式二次修复 + 定时内存清理 + Horizon 修正（release=Rust MC 版本包）+ 基岩版（正版路径）**

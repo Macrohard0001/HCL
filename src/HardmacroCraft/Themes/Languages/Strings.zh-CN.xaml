@@ -757,4 +757,11 @@
     <sys:String x:Key="S.Tool.BedrockLaunch">启动 Store 版</sys:String>
     <sys:String x:Key="S.Tool.BedrockBds">下载官方服务端（BDS）</sys:String>
     <sys:String x:Key="S.Tool.BedrockStore">购买/安装（官方）</sys:String>
+    <sys:String x:Key="S.Tool.JoinNamePh">服务器名（可选）</sys:String>
+    <sys:String x:Key="S.Tool.JoinAddrPh">地址:端口（如 play.example.net:19132）</sys:String>
+    <sys:String x:Key="S.Tool.BedrockJoin">注册并启动</sys:String>
+    <sys:String x:Key="S.Tool.LeviTitle">LeviLauncher 集成（LiteLDev 开源 · GPL-3.0）</sys:String>
+    <sys:String x:Key="S.Tool.LeviHint">实例隔离 / mod 管理 / LeviLamina 加载器 / CurseForge 集成。注意：LeviLauncher 官方要求「正版授权副本 + 微软账号登录」，与我们一致；下载最新 Release 或查看文档。</sys:String>
+    <sys:String x:Key="S.Tool.LeviDownload">下载最新 LeviLauncher</sys:String>
+    <sys:String x:Key="S.Tool.LeviDocs">打开官方文档</sys:String>
 </ResourceDictionary>

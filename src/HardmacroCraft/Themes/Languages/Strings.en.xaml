@@ -757,4 +757,11 @@
     <sys:String x:Key="S.Tool.BedrockLaunch">Launch Store copy</sys:String>
     <sys:String x:Key="S.Tool.BedrockBds">Download official server (BDS)</sys:String>
     <sys:String x:Key="S.Tool.BedrockStore">Buy / install (official)</sys:String>
+    <sys:String x:Key="S.Tool.JoinNamePh">Server name (optional)</sys:String>
+    <sys:String x:Key="S.Tool.JoinAddrPh">host:port (e.g. play.example.net:19132)</sys:String>
+    <sys:String x:Key="S.Tool.BedrockJoin">Register &amp; launch</sys:String>
+    <sys:String x:Key="S.Tool.LeviTitle">LeviLauncher integration (LiteLDev · GPL-3.0)</sys:String>
+    <sys:String x:Key="S.Tool.LeviHint">Instance isolation / mod management / LeviLamina loader / CurseForge integration. Note: LeviLauncher officially requires "a legitimate licensed copy + Microsoft account sign-in", same as us; grab the latest release or read the docs.</sys:String>
+    <sys:String x:Key="S.Tool.LeviDownload">Download latest LeviLauncher</sys:String>
+    <sys:String x:Key="S.Tool.LeviDocs">Open official docs</sys:String>
 </ResourceDictionary>

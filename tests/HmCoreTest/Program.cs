@@ -2882,6 +2882,26 @@ try
     var settingsPageCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
     var appCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
     var zhLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var enLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    Check("v0.16.3：MCBE 启动推进 —— 多包检测（正式+Preview）+ minecraft:// 深链一键加服 + LeviLauncher 集成（正版授权模型一致）",
+        bedrockCs.Contains("Microsoft.MinecraftWindowsBeta")
+        && bedrockCs.Contains("DetectStoreInstallsAsync")
+        && bedrockCs.Contains("ParseAppxList")
+        && bedrockCs.Contains("minecraft://?addExternalServer=")
+        && bedrockCs.Contains("LiteLDev/LeviLauncher/releases/latest")
+        && bedrockCs.Contains("levilauncher.levimc.org")
+        && bedrockCs.Contains("FetchLatestLeviAsync")
+        && bedrockCs.Contains("legitimate licensed copy")
+        && toolsPageXaml.Contains("TxtJoinAddr")
+        && toolsPageXaml.Contains("BtnBedrockJoin_Click")
+        && toolsPageXaml.Contains("S.Tool.LeviTitle")
+        && toolsPageXaml.Contains("BtnLeviDownload_Click")
+        && toolsPageCs.Contains("BedrockService.JoinServerAsync")
+        && toolsPageCs.Contains("BedrockService.FetchLatestLeviAsync")
+        && toolsPageCs.Contains("BedrockService.LeviDocsUrl")
+        && zhLang.Contains("S.Tool.LeviTitle") && enLang.Contains("S.Tool.LeviTitle")
+        && zhLang.Contains("S.Tool.BedrockJoin") && enLang.Contains("S.Tool.BedrockJoin")
+        && zhLang.Contains("正版授权副本"));
     Check("v0.16.2：Metro 下拉/按钮点击修复 —— ComboBoxItem 隐式样式 + ComboBox 主模板 ToggleButton 命中区保底 + Expander 兜底样式",
         win10Xaml.Contains("<Style TargetType=\"ComboBoxItem\">")
         && win10Xaml.Contains("ListBoxItemSelectedBackground")
