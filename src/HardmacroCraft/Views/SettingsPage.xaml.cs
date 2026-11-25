@@ -97,11 +97,228 @@ public partial class SettingsPage : Page
             foreach (ComboBoxItem i in CmbThemeStyle.Items)
                 if ((string)i.Tag == AppSettings.Instance.ThemeStyle) { CmbThemeStyle.SelectedItem = i; break; }
             _applyingTheme = false;
+            // v0.16.6：滚轮设置（跟随系统 / 手动像素，默认 90px）
+            foreach (ComboBoxItem i in CmbWheelMode.Items)
+                if ((string)i.Tag == AppSettings.Instance.WheelScrollMode) { CmbWheelMode.SelectedItem = i; break; }
+            SldWheelPx.Value = Math.Clamp(AppSettings.Instance.WheelScrollPx, 30, 300);
+            RefreshWheelPanel();
+            // v0.16.6：全部初值就位后再挂自动保存钩子（初值回放不触发保存）
+            HookAutoSave();
         };
         // v0.1.12：每次进入设置页都重启内存读数定时器（Loaded/Unloaded 随导航反复触发，
         // 不能放进 _loaded 一次性守卫里，否则切页回来后读数不再刷新）
+        // v0.16.6：自动保存防抖定时器 —— 文本框逐键输入每次都落盘太频繁（SSD 写放大 +
+        // config 读写竞争），600ms 无新改动后统一提交一次
+        _saveTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(600),
+        };
+        _saveTimer.Tick += (_, _) =>
+        {
+            _saveTimer.Stop();
+            SaveFromUi();
+        };
         Loaded += (_, _) => { RefreshLauncherMem(); StartMemTimer(); };
-        Unloaded += (_, _) => StopMemTimer();
+        Unloaded += (_, _) =>
+        {
+            StopMemTimer();
+            // 离开设置页时把手头未落盘的改动立即提交（防抖窗口内的最后一次编辑不丢）
+            if (_saveTimer.IsEnabled)
+            {
+                _saveTimer.Stop();
+                SaveFromUi();
+            }
+        };
+    }
+
+    // ---- v0.16.6：设置自动保存（「保存设置」按钮移除） ----
+
+    private readonly System.Windows.Threading.DispatcherTimer _saveTimer = null!;
+
+    /// <summary>
+    /// 遍历设置页全部输入控件挂自动保存钩子（改动即保存，PCL 式）。
+    /// 在 Loaded 初值回放完成后调用一次，避免回放本身触发保存。
+    /// 具体业务处理器（主题 / 语言 / 刷新面板切换等）已在 XAML 挂载，这里叠加
+    /// MarkDirty 只是多一次幂等的落盘，不冲突。
+    /// </summary>
+    private void HookAutoSave()
+    {
+        void Hook(DependencyObject root)
+        {
+            var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+            for (var i = 0; i < count; i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+                switch (child)
+                {
+                    case CheckBox chk:
+                        chk.Checked += (_, _) => MarkDirty();
+                        chk.Unchecked += (_, _) => MarkDirty();
+                        break;
+                    case ComboBox cmb:
+                        cmb.SelectionChanged += (_, _) => MarkDirty();
+                        break;
+                    case System.Windows.Controls.Slider sld:
+                        sld.ValueChanged += (_, _) => MarkDirty();
+                        break;
+                    case Wpf.Ui.Controls.NumberBox num:
+                        num.ValueChanged += (_, _) => MarkDirty();
+                        break;
+                    case System.Windows.Controls.TextBox tb:
+                        tb.TextChanged += (_, _) => MarkDirty();
+                        break;
+                }
+                Hook(child);
+            }
+        }
+        Hook(this);
+    }
+
+    /// <summary>任一设置控件改动 → 重置防抖窗口，600ms 后统一落盘。</summary>
+    private void MarkDirty()
+    {
+        if (!_loaded) return; // XAML 解析 / 初值回放期不保存
+        _saveTimer.Stop();
+        _saveTimer.Start();
+    }
+
+    /// <summary>滚轮模式切换：手动档显示像素滑杆；改动随自动保存落盘。</summary>
+    private void CmbWheelMode_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (PnlWheelPx == null) return; // XAML 加载期保护
+        RefreshWheelPanel();
+        MarkDirty();
+    }
+
+    private void RefreshWheelPanel()
+    {
+        if (CmbWheelMode.SelectedItem is not ComboBoxItem item || item.Tag is not string mode) return;
+        PnlWheelPx.Visibility = mode == "manual" ? Visibility.Visible : Visibility.Collapsed;
+        TxtWheelValue.Text = ((int)SldWheelPx.Value) + " px";
+    }
+
+    private void SldWheelPx_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TxtWheelValue == null) return; // XAML 加载期保护
+        TxtWheelValue.Text = ((int)e.NewValue) + " px";
+        MarkDirty();
+    }
+
+    /// <summary>
+    /// 从 UI 收集全部设置并落盘（自动保存引擎；原「保存设置」按钮逻辑）。
+    /// v0.16.6：不再弹窗 —— 常规保存只在提示行打勾；游戏目录非法时在提示行警示
+    /// 并跳过本次落盘（原值继续生效），不打断输入。
+    /// </summary>
+    private void SaveFromUi()
+    {
+        var oldRoot = AppSettings.Instance.GameRoot;
+        var s = AppSettings.Instance;
+        var newRoot = string.IsNullOrWhiteSpace(TxtGameRoot.Text) ? s.GameRoot : TxtGameRoot.Text.Trim();
+        try
+        {
+            // 提前校验目录可创建/可写，避免保存后启动阶段崩溃
+            Directory.CreateDirectory(newRoot);
+            var probe = Path.Combine(newRoot, ".hm_write_probe");
+            File.WriteAllText(probe, "ok");
+            File.Delete(probe);
+        }
+        catch (Exception ex)
+        {
+            TxtSaveHint.Text = "⚠ 游戏目录不可用（" + ex.Message + "），已保留原目录设置——请修正后再改其他项。";
+            TxtSaveHint.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty,
+                "DangerButtonBackground");
+            return;
+        }
+        TxtSaveHint.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty,
+            "TextFillColorTertiaryBrush");
+        s.GameRoot = newRoot;
+        // 用户显式选择了非默认目录 → 标记自定义，Load() 不再自动纠正
+        try
+        {
+            s.GameRootCustomized = !string.Equals(
+                Path.GetFullPath(newRoot),
+                Path.GetFullPath(Path.Combine(AppSettings.AppDir, ".minecraft")),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch { s.GameRootCustomized = true; }
+        s.JavaPath = TxtJava.Text.Trim();
+        s.JavaRuntimeDir = TxtJavaDir.Text.Trim();
+        s.CustomJvmArgs = TxtJvmArgs.Text.Trim();
+        // fix8：JVM 优化开关 / 游戏参数 / 全屏启动
+        s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
+        s.CustomGameArgs = TxtGameArgs.Text.Trim();
+        s.GameFullscreen = ChkFullscreen.IsChecked == true;
+        // v0.1.1：下载线程数（1-256，非法输入回退默认 64）/ 每次启动重新校验
+        s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 256
+            ? (int)NumDownloadThreads.Value!.Value : 64;
+        s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
+        // v0.1.3：启动器内存优化开关；关闭后立即做一次优化以便用户看到变化
+        s.AutoMemoryOptimize = ChkLauncherMemOpt.IsChecked == true;
+        // v0.1.11：相对路径增强 / 日志平滑滚动 / 界面刷新频率
+        s.UseRelativePaths = ChkRelativePaths.IsChecked == true;
+        s.SmoothScrollLogs = ChkSmoothScroll.IsChecked == true;
+        // v0.1.12：一键配置 Mods 移除前备份
+        s.ModSetupBackup = ChkModSetupBackup.IsChecked == true;
+        // v0.16.0：网络代理（下载管线作用，重启生效）+ 启动前/退出后命令
+        s.ProxyEnabled = ChkProxy.IsChecked == true;
+        s.ProxyType = CmbProxyType.SelectedItem is ComboBoxItem pt && pt.Tag is string pTag
+            ? pTag : "http";
+        s.ProxyHost = TxtProxyHost.Text.Trim();
+        s.ProxyPort = NumProxyPort.Value is >= 1 and <= 65535 ? (int)NumProxyPort.Value!.Value : 0;
+        s.PreLaunchCommand = TxtPreCmd.Text.Trim();
+        s.PostExitCommand = TxtPostCmd.Text.Trim();
+        s.UiRefreshMode = CmbUiRefresh.SelectedItem is ComboBoxItem ur && ur.Tag is string urTag
+            ? UiRefreshPolicy.Normalize(urTag) : UiRefreshPolicy.ModeAuto;
+        s.UiRefreshFps = NumUiFps.Value is >= 1 and <= 240 ? (int)NumUiFps.Value!.Value : 30;
+        s.UiRefreshMaxFps = NumUiMaxFps.Value is >= 1 and <= 240 ? (int)NumUiMaxFps.Value!.Value : 30;
+        s.MemoryAuto = ChkMemAuto.IsChecked == true;
+        s.MemoryMb = (int)SldMemory.Value;
+        // v0.1.14：下载源三档（对齐 PCL）；切换即时生效（LauncherService 订阅了 Saved 事件）
+        if (CmbDownloadSource.SelectedItem is ComboBoxItem ds && ds.Tag is string dsTag)
+        {
+            s.DownloadSource = dsTag;
+            s.UseMirror = dsTag != "official"; // 旧字段同步，兼容旧版本读配置
+        }
+        s.VersionIsolation = ChkIsolation.IsChecked == true;
+        s.HideLauncherOnGameStart = ChkHideOnStart.IsChecked == true;
+        s.ExitLauncherOnGameExit = ChkExitOnGameExit.IsChecked == true;
+        // fix7：跳过初始屏幕 / 游戏语言
+        s.SkipOnboarding = ChkSkipOnboarding.IsChecked == true;
+        if (CmbGameLang.SelectedItem is ComboBoxItem gli && gli.Tag is string gl)
+            s.GameLang = gl;
+        s.AutoJavaSelect = ChkAutoJava.IsChecked == true;
+        s.GameWidth = int.TryParse(TxtGameWidth.Text.Trim(), out var gw) && gw > 0 ? gw : 0;
+        s.GameHeight = int.TryParse(TxtGameHeight.Text.Trim(), out var gh) && gh > 0 ? gh : 0;
+        // v0.1.10：窗口大小模式
+        s.GameWindowSizeMode = CmbWindowMode.SelectedItem is ComboBoxItem wm && wm.Tag is string wmTag
+            ? wmTag : "default";
+        s.AzureClientId = TxtAzureId.Text.Trim();
+        s.CurseForgeApiKey = TxtCfKey.Text.Trim();
+        if (CmbLanguage.SelectedItem is ComboBoxItem li && li.Tag is string lang)
+            s.Language = lang;
+        // v0.16.6：滚轮设置
+        if (CmbWheelMode.SelectedItem is ComboBoxItem wmi && wmi.Tag is string wmode)
+            s.WheelScrollMode = wmode;
+        s.WheelScrollPx = Math.Clamp((int)SldWheelPx.Value, 30, 300);
+        try
+        {
+            s.Save();
+        }
+        catch (Exception ex)
+        {
+            TxtSaveHint.Text = "⚠ 设置写入失败（config/ 目录不可写？）：" + ex.Message;
+            return;
+        }
+
+        if (s.Language != App.Language)
+        {
+            try { App.ApplyLanguage(s.Language); }
+            catch { /* 语言切换失败不阻塞设置保存 */ }
+        }
+
+        TxtSaveHint.Text = "✓ 已自动保存 " + DateTime.Now.ToString("HH:mm:ss") +
+            "（" + (s.GameRoot != oldRoot ? "游戏目录已变更，建议重启启动器刷新版本列表 · " : "") +
+            "config/settings.json）";
     }
 
     private void SldMemory_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -435,108 +652,5 @@ public partial class SettingsPage : Page
             Process.Start(new ProcessStartInfo("https://console.curseforge.com") { UseShellExecute = true });
         }
         catch { }
-    }
-
-    private void BtnSave_Click(object sender, RoutedEventArgs e)
-    {
-        var oldRoot = AppSettings.Instance.GameRoot;
-        var s = AppSettings.Instance;
-        var newRoot = string.IsNullOrWhiteSpace(TxtGameRoot.Text) ? s.GameRoot : TxtGameRoot.Text.Trim();
-        try
-        {
-            // 提前校验目录可创建/可写，避免保存后启动阶段崩溃
-            Directory.CreateDirectory(newRoot);
-            var probe = Path.Combine(newRoot, ".hm_write_probe");
-            File.WriteAllText(probe, "ok");
-            File.Delete(probe);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"游戏目录不可用：{ex.Message}\n已保留原目录设置。", "Hardmacro Craft Launcher",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-        s.GameRoot = newRoot;
-        // 用户显式选择了非默认目录 → 标记自定义，Load() 不再自动纠正
-        try
-        {
-            s.GameRootCustomized = !string.Equals(
-                Path.GetFullPath(newRoot),
-                Path.GetFullPath(Path.Combine(AppSettings.AppDir, ".minecraft")),
-                StringComparison.OrdinalIgnoreCase);
-        }
-        catch { s.GameRootCustomized = true; }
-        s.JavaPath = TxtJava.Text.Trim();
-        s.JavaRuntimeDir = TxtJavaDir.Text.Trim();
-        s.CustomJvmArgs = TxtJvmArgs.Text.Trim();
-        // fix8：JVM 优化开关 / 游戏参数 / 全屏启动
-        s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
-        s.CustomGameArgs = TxtGameArgs.Text.Trim();
-        s.GameFullscreen = ChkFullscreen.IsChecked == true;
-        // v0.1.1：下载线程数（1-256，非法输入回退默认 64）/ 每次启动重新校验
-        s.DownloadThreads = NumDownloadThreads.Value is >= 1 and <= 256
-            ? (int)NumDownloadThreads.Value!.Value : 64;
-        s.VerifyFilesEveryLaunch = ChkVerifyFiles.IsChecked == true;
-        // v0.1.3：启动器内存优化开关；关闭后立即做一次优化以便用户看到变化
-        s.AutoMemoryOptimize = ChkLauncherMemOpt.IsChecked == true;
-        // v0.1.11：相对路径增强 / 日志平滑滚动 / 界面刷新频率
-        s.UseRelativePaths = ChkRelativePaths.IsChecked == true;
-        s.SmoothScrollLogs = ChkSmoothScroll.IsChecked == true;
-        // v0.1.12：一键配置 Mods 移除前备份
-        s.ModSetupBackup = ChkModSetupBackup.IsChecked == true;
-        // v0.16.0：网络代理（下载管线作用，重启生效）+ 启动前/退出后命令
-        s.ProxyEnabled = ChkProxy.IsChecked == true;
-        s.ProxyType = CmbProxyType.SelectedItem is ComboBoxItem pt && pt.Tag is string pTag
-            ? pTag : "http";
-        s.ProxyHost = TxtProxyHost.Text.Trim();
-        s.ProxyPort = NumProxyPort.Value is >= 1 and <= 65535 ? (int)NumProxyPort.Value!.Value : 0;
-        s.PreLaunchCommand = TxtPreCmd.Text.Trim();
-        s.PostExitCommand = TxtPostCmd.Text.Trim();
-        s.UiRefreshMode = CmbUiRefresh.SelectedItem is ComboBoxItem ur && ur.Tag is string urTag
-            ? UiRefreshPolicy.Normalize(urTag) : UiRefreshPolicy.ModeAuto;
-        s.UiRefreshFps = NumUiFps.Value is >= 1 and <= 240 ? (int)NumUiFps.Value!.Value : 30;
-        s.UiRefreshMaxFps = NumUiMaxFps.Value is >= 1 and <= 240 ? (int)NumUiMaxFps.Value!.Value : 30;
-        s.MemoryAuto = ChkMemAuto.IsChecked == true;
-        s.MemoryMb = (int)SldMemory.Value;
-        // v0.1.14：下载源三档（对齐 PCL）；切换即时生效（LauncherService 订阅了 Saved 事件）
-        if (CmbDownloadSource.SelectedItem is ComboBoxItem ds && ds.Tag is string dsTag)
-        {
-            s.DownloadSource = dsTag;
-            s.UseMirror = dsTag != "official"; // 旧字段同步，兼容旧版本读配置
-        }
-        s.VersionIsolation = ChkIsolation.IsChecked == true;
-        s.HideLauncherOnGameStart = ChkHideOnStart.IsChecked == true;
-        s.ExitLauncherOnGameExit = ChkExitOnGameExit.IsChecked == true;
-        // fix7：跳过初始屏幕 / 游戏语言
-        s.SkipOnboarding = ChkSkipOnboarding.IsChecked == true;
-        if (CmbGameLang.SelectedItem is ComboBoxItem gli && gli.Tag is string gl)
-            s.GameLang = gl;
-        s.AutoJavaSelect = ChkAutoJava.IsChecked == true;
-        s.GameWidth = int.TryParse(TxtGameWidth.Text.Trim(), out var gw) && gw > 0 ? gw : 0;
-        s.GameHeight = int.TryParse(TxtGameHeight.Text.Trim(), out var gh) && gh > 0 ? gh : 0;
-        // v0.1.10：窗口大小模式
-        s.GameWindowSizeMode = CmbWindowMode.SelectedItem is ComboBoxItem wm && wm.Tag is string wmTag
-            ? wmTag : "default";
-        s.AzureClientId = TxtAzureId.Text.Trim();
-        s.CurseForgeApiKey = TxtCfKey.Text.Trim();
-        if (CmbLanguage.SelectedItem is ComboBoxItem li && li.Tag is string lang)
-            s.Language = lang;
-        try
-        {
-            s.Save();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"设置写入失败（config/ 目录不可写？）：{ex.Message}", "Hardmacro Craft Launcher",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
-
-        if (s.Language != App.Language)
-            App.ApplyLanguage(s.Language);
-
-        MessageBox.Show("设置已保存（保存在 exe 同目录 config/settings.json）。\n" +
-            (s.GameRoot != oldRoot ? "游戏目录已变更，建议重启启动器以刷新版本列表。\n" : "") +
-            "语言切换立即生效。", "Hardmacro Craft Launcher");
     }
 }

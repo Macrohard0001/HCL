@@ -40,8 +40,34 @@
                     </Grid>
                     <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,10,0,0"
                                TextWrapping="Wrap" />
-                    <Image x:Name="MapImage" MaxWidth="520" MaxHeight="520" Margin="0,12,0,0"
-                           HorizontalAlignment="Left" Visibility="Collapsed" />
+                    <TextBlock x:Name="TxtSeedPos" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" FontWeight="Medium" Visibility="Collapsed" />
+                    <!-- v0.16.6：内置种子地图 —— 拖动平移 / 滚轮缩放 / 光标实时区块与方块坐标；
+                         地图本体仍是纯算法生成的史莱姆区块图层（无地形生成依赖），最佳挂机点黄色高亮 -->
+                    <Grid x:Name="SeedMapHost" MaxHeight="420" Margin="0,10,0,0"
+                          Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                          ClipToBounds="True" Cursor="Cross" Visibility="Collapsed"
+                          MouseLeftButtonDown="SeedMap_MouseDown" MouseMove="SeedMap_MouseMove"
+                          MouseLeftButtonUp="SeedMap_MouseUp" MouseLeave="SeedMap_MouseLeave"
+                          MouseWheel="SeedMap_MouseWheel">
+                        <Image x:Name="SeedMapImage" HorizontalAlignment="Left" VerticalAlignment="Top"
+                               Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor">
+                            <Image.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="SeedMapScale" />
+                                    <TranslateTransform x:Name="SeedMapTranslate" />
+                                </TransformGroup>
+                            </Image.RenderTransform>
+                        </Image>
+                    </Grid>
+                    <WrapPanel Margin="0,10,0,0">
+                        <ui:Button x:Name="BtnSeedBig" MinHeight="30" MinWidth="130" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.SeedBig}" Click="BtnSeedBig_Click" />
+                        <ui:Button x:Name="BtnSeedReset" MinHeight="30" MinWidth="110" Margin="0,0,0,6"
+                                   Content="{DynamicResource S.Tool.SeedReset}" Click="BtnSeedReset_Click" />
+                        <TextBlock Text="{DynamicResource S.Tool.SeedLegend}" Style="{StaticResource HmHint}"
+                                   VerticalAlignment="Center" Margin="8,0,0,6" TextWrapping="Wrap" />
+                    </WrapPanel>
                 </StackPanel>
             </Border>
 
@@ -69,6 +95,9 @@
                         <ui:Button x:Name="BtnHorizonLaunch" MinHeight="32" MinWidth="130" Margin="0,0,8,0"
                                    Appearance="Primary"
                                    Content="{DynamicResource S.Tool.HorizonLaunch}" Click="BtnHorizonLaunch_Click" />
+                        <ui:Button x:Name="BtnHorizonRun" MinHeight="32" MinWidth="130" Margin="0,0,8,0"
+                                   Visibility="Collapsed"
+                                   Content="{DynamicResource S.Tool.HorizonRun}" Click="BtnHorizonRun_Click" />
                     </WrapPanel>
                     <TextBlock x:Name="TxtHorizonStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
                                TextWrapping="Wrap" />
@@ -118,6 +147,8 @@
                         <ui:Button x:Name="BtnLeviDocs" MinHeight="32" MinWidth="110"
                                    Content="{DynamicResource S.Tool.LeviDocs}" Click="BtnLeviDocs_Click" />
                     </StackPanel>
+                </StackPanel>
+            </Border>
 
             <!-- ===== v0.16.4：从其他启动器导入（扫描内置位置 → 选择候选 → 隔离语义导入） ===== -->
             <Border Style="{StaticResource HmCard}">
@@ -195,6 +226,23 @@
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
+
+            <!-- ===== v0.16.6：截图管理（KAMUCL 同类实用功能）：扫描 screenshots → 缩略图墙查看 ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.ShotsTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.ShotsHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnShotsScan" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.ShotsScan}" Click="BtnShotsScan_Click" />
+                        <ui:Button x:Name="BtnShotsView" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.ShotsView}" Click="BtnShotsView_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="TxtShotsStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </StackPanel>

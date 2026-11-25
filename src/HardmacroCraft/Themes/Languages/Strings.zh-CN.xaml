@@ -549,6 +549,11 @@
     <sys:String x:Key="S.Set.LauncherMemGroupHint">启动器内存占用优化、手动清理与日志滚动体验。</sys:String>
     <sys:String x:Key="S.Set.SmoothScroll">日志平滑滚动动画</sys:String>
     <sys:String x:Key="S.Set.SmoothScrollHint">开启后任务详情 / 日志区域的滚轮滚动带平滑动画（滚动中随时拖动滚动条可立即接管）。</sys:String>
+    <sys:String x:Key="S.Set.WheelMode">滚轮滚动</sys:String>
+    <sys:String x:Key="S.Set.WheelModeHint">每格滚轮的滚动距离。跟随系统 = 使用 Windows 鼠标设置里的「滚轮滚动行数」；手动设置 = 每格固定像素（默认 90px）。改动即时生效。</sys:String>
+    <sys:String x:Key="S.Set.WheelSystem">跟随系统设置</sys:String>
+    <sys:String x:Key="S.Set.WheelManual">手动设置</sys:String>
+    <sys:String x:Key="S.Set.AutoSaveNote">设置改动后自动保存（无需手动点保存）· 保存在 exe 同目录 config/settings.json</sys:String>
     <sys:String x:Key="S.Set.LaunchGroup">启动</sys:String>
     <sys:String x:Key="S.Set.LaunchGroupHint">JVM 参数、游戏窗口大小与启动行为。</sys:String>
     <sys:String x:Key="S.Set.NetworkGroup">网络</sys:String>
@@ -728,6 +733,29 @@
     <sys:String x:Key="S.Tool.HorizonRunIt">版本包已保存到上方路径——解压后直接运行其中的 Horizon 启动器（无需安装步骤）。</sys:String>
     <sys:String x:Key="S.Tool.HorizonFail">下载失败：</sys:String>
     <sys:String x:Key="S.Tool.HorizonManualHint">建议改用「浏览器手动下载」，或检查代理/网络后重试。</sys:String>
+    <sys:String x:Key="S.Tool.SeedBig">打开大图窗口</sys:String>
+    <sys:String x:Key="S.Tool.SeedReset">重置视图</sys:String>
+    <sys:String x:Key="S.Tool.SeedLegend">拖动平移 · 滚轮缩放 · 光标显示区块/方块坐标 · 绿=史莱姆区块，黄=最佳挂机点</sys:String>
+    <sys:String x:Key="S.Tool.SeedPos">区块 ({0}, {1}) · 方块 ({2}, {3})</sys:String>
+    <sys:String x:Key="S.Tool.SeedFirst">请先生成种子地图。</sys:String>
+    <sys:String x:Key="S.Tool.SeedExportFail">导出失败：</sys:String>
+    <sys:String x:Key="S.Tool.HorizonExtracted">已自动解压：</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDirect">点「启动 Horizon」即可开始（需正版 Minecraft Java 26.3，Java 运行时由 Horizon 自动安装）。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRun">运行安装包</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunMissing">安装包不存在——请重新下载。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunStarted">已运行安装包（如弹出 UAC 请确认）。安装完成后点「检测本地安装」。</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunFail">运行失败：</sys:String>
+    <sys:String x:Key="S.Tool.ShotsTitle">截图管理</sys:String>
+    <sys:String x:Key="S.Tool.ShotsHint">扫描游戏根目录与隔离版本的 screenshots/ 目录，缩略图墙浏览；双击打开、可删除误截的图。</sys:String>
+    <sys:String x:Key="S.Tool.ShotsScan">扫描截图</sys:String>
+    <sys:String x:Key="S.Tool.ShotsView">查看截图</sys:String>
+    <sys:String x:Key="S.Tool.ShotsWinTitle">截图管理</sys:String>
+    <sys:String x:Key="S.Tool.ShotsWinStatus">共 {0} 张（显示最新 {1} 张）· 双击打开</sys:String>
+    <sys:String x:Key="S.Tool.ShotsOpenFolder">打开所在文件夹</sys:String>
+    <sys:String x:Key="S.Tool.ShotsDelete">删除所选</sys:String>
+    <sys:String x:Key="S.Tool.ShotsDeleteConfirm">确定删除这张截图？删除后无法恢复。</sys:String>
+    <sys:String x:Key="S.Tool.ShotsNone">没有找到截图——进游戏按 F2 截图后重试（共享与隔离版本的 screenshots/ 都会扫描）。</sys:String>
+    <sys:String x:Key="S.Tool.ShotsFound">找到 {0} 张截图（{1} 个目录）——点「查看截图」打开缩略图墙。</sys:String>
 
     <!-- ===== v0.16.0：网络代理 + 启动前/退出后命令 ===== -->
     <sys:String x:Key="S.Set.ProxyTitle">网络代理</sys:String>

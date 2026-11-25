@@ -248,9 +248,11 @@ public partial class App : Application
         // 交给它处理（它先滚，滚不动才轮到我）
         if (HasInnerScrollViewer(sv, e.OriginalSource as DependencyObject)) return;
 
-        // v0.15.2：每格滚动长度 100px → 66px（≈3 行文本）—— 侧栏 / 详情页等较矮容器
-        // 此前一格接近半屏，方向感混乱；66px 对齐浏览器 / PCL 的常规步长
-        const double WheelPxPerNotch = 66.0;
+        // v0.16.6：每格滚动长度改为设置项（设置 → 交互体验）——
+        // "manual"（默认）= 固定像素步长，默认 90px（v0.15.2 的 66px 经用户反馈偏小后
+        // 整体上调，仍对齐浏览器 / PCL 的常规量级）；"system" = 跟随 Windows
+        // 「滚轮滚动行数」系统设置（控制面板 → 鼠标），按行数 × 30px 换算
+        // （系统默认 3 行 ≈ 90px，与手动档默认一致；设为整屏时滚一页）
         var deltaPx = e.Delta / 120.0 * WheelPxPerNotch;
 
         // 本层滚不动：内容不足一屏，或已滚到对应方向的边界
@@ -289,6 +291,25 @@ public partial class App : Application
         }
         if (itemH <= 0) itemH = 48; // 条目未生成 / 不可见时的兜底高度
         return Math.Max(1.0, deltaPx / itemH);
+    }
+
+    /// <summary>
+    /// v0.16.6：当前设置下每格滚轮的滚动像素 —— 跟随系统（MouseWheelScrollLines × 30px，
+    /// 系统默认 3 行 ≈ 90px）或手动档（WheelScrollPx，默认 90px）。
+    /// </summary>
+    private static double WheelPxPerNotch
+    {
+        get
+        {
+            var s = Services.AppSettings.Instance;
+            if (string.Equals(s.WheelScrollMode, "system", StringComparison.OrdinalIgnoreCase))
+            {
+                var lines = SystemParameters.WheelScrollLines;
+                if (lines <= 0) return 300; // Windows 设为「一次滚动一个屏幕」→ 一格约一页
+                return Math.Clamp(lines, 1, 20) * 30.0;
+            }
+            return Math.Clamp(s.WheelScrollPx, 30, 300);
+        }
     }
 
     /// <summary>判断事件源与 outer 之间是否存在更内层的 ScrollViewer。</summary>

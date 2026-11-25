@@ -82,6 +82,19 @@
     <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#FFADADAD" />
     <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#FF767676" />
     <SolidColorBrush x:Key="ListBoxItemSelectedBackground" Color="#FFCCE4F7" />
+    <!-- v0.16.6：下拉弹层 / 右键菜单 / 提示框（Win10 桌面规格，方角实底） -->
+    <SolidColorBrush x:Key="ComboBoxPopupBackground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="ComboBoxPopupBorderBrush" Color="#FFADADAD" />
+    <SolidColorBrush x:Key="ComboBoxItemHoverBackground" Color="#FFDEDEDE" />
+    <SolidColorBrush x:Key="ComboBoxItemSelectedBackground" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="ComboBoxItemSelectedForeground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="MenuPopupBackground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="MenuPopupBorderBrush" Color="#FFCFCFCF" />
+    <SolidColorBrush x:Key="MenuHoverBackground" Color="#FFEAEAEA" />
+    <SolidColorBrush x:Key="MenuSeparatorBrush" Color="#FFE0E0E0" />
+    <SolidColorBrush x:Key="ToolTipBackground" Color="#FF2D2D2D" />
+    <SolidColorBrush x:Key="ToolTipForeground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#FF2D2D2D" />
     <!-- v0.16.0：Win10 滚动条（12px 扁平方角拇指） -->
     <SolidColorBrush x:Key="ScrollBarThumbBackground" Color="#FFCDCDCD" />
     <SolidColorBrush x:Key="ScrollBarThumbHover" Color="#FFA6A6A6" />

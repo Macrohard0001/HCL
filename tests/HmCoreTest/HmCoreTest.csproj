@@ -54,6 +54,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LauncherMigrationService.cs" Link="Services/LauncherMigrationService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/WorldMapRenderer.cs" Link="Services/WorldMapRenderer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/InstanceBackupService.cs" Link="Services/InstanceBackupService.cs" />
+    <!-- v0.16.6：截图管理（纯文件系统逻辑） -->
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ScreenshotService.cs" Link="Services/ScreenshotService.cs" />
   </ItemGroup>
 
   <ItemGroup>

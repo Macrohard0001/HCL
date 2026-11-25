@@ -174,6 +174,25 @@
                     <TextBlock Text="{DynamicResource S.Set.SmoothScrollHint}" Style="{StaticResource HmHint}"
                                Margin="24,0,0,0" TextWrapping="Wrap" />
 
+                    <!-- v0.16.6：滚轮滚动（跟随系统 / 手动像素，PCL「滑轮设置」同款思路） -->
+                    <TextBlock Text="{DynamicResource S.Set.WheelMode}" FontWeight="Medium" Margin="0,16,0,4" />
+                    <TextBlock Text="{DynamicResource S.Set.WheelModeHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox x:Name="CmbWheelMode" MinHeight="30" MinWidth="200"
+                                  SelectionChanged="CmbWheelMode_Changed">
+                            <ComboBoxItem Content="{DynamicResource S.Set.WheelSystem}" Tag="system" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.WheelManual}" Tag="manual" IsSelected="True" />
+                        </ComboBox>
+                        <StackPanel x:Name="PnlWheelPx" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <Slider x:Name="SldWheelPx" Minimum="30" Maximum="300" TickFrequency="10"
+                                    IsSnapToTickEnabled="True" Width="180" VerticalAlignment="Center"
+                                    ValueChanged="SldWheelPx_ValueChanged" />
+                            <TextBlock x:Name="TxtWheelValue" VerticalAlignment="Center" Margin="10,0,0,0"
+                                       FontWeight="Medium" MinWidth="56" />
+                        </StackPanel>
+                    </StackPanel>
+
                     <!-- v0.1.12：一键配置 Mods —— 开始移除前先备份（PCL 式兜底） -->
                     <CheckBox x:Name="ChkModSetupBackup" Content="{DynamicResource S.Set.ModSetupBackup}" Margin="0,14,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.ModSetupBackupHint}" Style="{StaticResource HmHint}"
@@ -415,8 +434,10 @@
                 </StackPanel>
             </Border>
 
-            <ui:Button Content="{DynamicResource S.Set.Save}" Appearance="Primary" Icon="{ui:SymbolIcon Save24}"
-                       Click="BtnSave_Click" MinWidth="160" MinHeight="30" FontSize="14" FontWeight="SemiBold" />
+            <!-- v0.16.6：保存按钮移除 —— 所有设置项改动即自动保存（防抖 600ms 落盘），
+                 状态在下方提示行展示（游戏目录非法时同样在此警示，不再弹窗打断） -->
+            <TextBlock x:Name="TxtSaveHint" Style="{StaticResource HmHint}" Margin="0,4,0,0"
+                       Text="{DynamicResource S.Set.AutoSaveNote}" HorizontalAlignment="Left" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

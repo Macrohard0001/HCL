@@ -14,7 +14,8 @@ public static class HorizonLaunch
     public static readonly string[] CandidateExeNames =
         { "Horizon.exe", "horizon.exe", "horizon-launcher.exe", "HorizonLauncher.exe", "horizon_rust.exe" };
 
-    /// <summary>在目录中定位 Horizon 可执行文件（候选名优先，回退唯一顶层 exe）；null = 未找到。</summary>
+    /// <summary>在目录中定位 Horizon 可执行文件（候选名优先，回退唯一顶层 exe，
+    /// v0.16.6：再回退到候选名命中的一级子目录 —— 自动解压的版本包常见 bin/ 等内层结构）；null = 未找到。</summary>
     public static string? FindExe(string? dir)
     {
         if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return null;
@@ -24,7 +25,24 @@ public static class HorizonLaunch
             if (File.Exists(p)) return p;
         }
         var exes = Directory.GetFiles(dir, "*.exe", SearchOption.TopDirectoryOnly);
-        return exes.Length == 1 ? exes[0] : null;
+        if (exes.Length == 1) return exes[0];
+        // 一级子目录：候选名精确命中优先，其次唯一 exe 的子目录
+        try
+        {
+            foreach (var sub in Directory.GetDirectories(dir))
+            {
+                foreach (var name in CandidateExeNames)
+                {
+                    var p = Path.Combine(sub, name);
+                    if (File.Exists(p)) return p;
+                }
+            }
+            var subExes = Directory.GetDirectories(dir)
+                .SelectMany(sub => Directory.GetFiles(sub, "*.exe", SearchOption.TopDirectoryOnly))
+                .ToList();
+            return subExes.Count == 1 ? subExes[0] : null;
+        }
+        catch { return null; }
     }
 
     /// <summary>启动 Horizon：优先已检测安装，其次启动器下载目录中的版本包解压位置提示。

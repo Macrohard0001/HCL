@@ -165,6 +165,15 @@ public class AppSettings
     /// <summary>v0.1.11：任务详情日志滚动动画（平滑滚动，可关）。</summary>
     public bool SmoothScrollLogs { get; set; } = true;
     /// <summary>
+    /// v0.16.6 滚轮滚动模式（对齐 PCL「滑轮设置」）：
+    /// "system" = 跟随 Windows「滚轮滚动行数」系统设置（控制面板 → 鼠标），
+    /// "manual" = 手动指定每格像素（WheelScrollPx，默认 90 —— v0.15.2 的 66px
+    /// 经用户反馈偏小后整体上调）。
+    /// </summary>
+    public string WheelScrollMode { get; set; } = "manual";
+    /// <summary>v0.16.6：WheelScrollMode=manual 时每格滚轮的滚动像素（30-300）。</summary>
+    public int WheelScrollPx { get; set; } = 90;
+    /// <summary>
     /// v0.1.12 一键配置 Mods：开始移除前把待删文件备份到 config/mod-backup/&lt;版本&gt;/&lt;时间&gt;/，
     /// 误删可找回（PCL 同款兜底习惯）。默认开启。
     /// </summary>

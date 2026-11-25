@@ -303,40 +303,51 @@
         </Setter>
     </Style>
 
-    <!-- ================= ComboBox（21 处，全部非可编辑） ================= -->
-    <!-- 可编辑变体（AuthlibLoginWindow 等输入验证站地址场景）：PART_EditableTextBox 契约 -->
+    <!-- ================= ComboBox（21 处） =================
+         v0.16.6 重铸（用户反馈"下拉菜单不能用/不像 Win10"）——此前三处根病：
+         ① 非可编辑模板的可见骨是内层 ToggleButton（Background=Transparent）→ ComboBox
+            自身的白底/悬停底色永远画不出来，悬停态只换内层描边，与 Win10 不符；
+         ② 弹层直接用页面背景色（浅色=灰底 #F2F2F2），非 Win10 规格白弹层；
+         ③ 可编辑变体触发器改的是 ComboBox 根的 Background，但 Border 画刷写死
+            ComboBoxBorderBrush，悬停底色同样永远不生效。
+         重铸为标准结构：外层 Border 承载 TemplateBinding Background/BorderBrush，
+         色随 ComboBox 触发器（悬停/展开/键盘焦点）；全尺寸透明 ToggleButton 垫底
+         （点击任意处展开）；24px 雪佛龙；弹层独立配色键（白弹层/方角/悬停灰/选中蓝）。
+         可编辑变体：PART_EditableTextBox 契约保留，ToggleButton 垫在文本之下
+         （空白处点击展开、文本处进入编辑 —— 与 Win10 行为一致）。 -->
+    <ControlTemplate x:Key="Win10.ComboBox.EmptyToggle.Template" TargetType="ToggleButton">
+        <Border Background="Transparent" />
+    </ControlTemplate>
+
     <ControlTemplate x:Key="Win10.ComboBox.Editable.Template" TargetType="ComboBox">
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="24" />
-            </Grid.ColumnDefinitions>
-            <Border Grid.ColumnSpan="2" Background="{TemplateBinding Background}" CornerRadius="0"
-                    BorderBrush="{DynamicResource ComboBoxBorderBrush}" BorderThickness="1"
-                    SnapsToDevicePixels="True" />
-            <TextBox x:Name="PART_EditableTextBox" Margin="0,0,0,0" VerticalAlignment="Stretch"
-                     Background="Transparent" BorderThickness="0" Padding="{TemplateBinding Padding}"
-                     Foreground="{TemplateBinding Foreground}"
-                     SelectionBrush="{DynamicResource SystemAccentColorBrush}"
-                     CaretBrush="{DynamicResource TextFillColorPrimaryBrush}"
-                     FontFamily="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" VerticalContentAlignment="Center" />
-            <ToggleButton Grid.Column="1" Focusable="False" ClickMode="Press"
-                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                <ToggleButton.Template>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="Transparent">
-                            <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        </Border>
-                    </ControlTemplate>
-                </ToggleButton.Template>
-            </ToggleButton>
-            <Popup x:Name="PART_Popup" Placement="Bottom"
-                   IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True"
-                   Focusable="False" PopupAnimation="None">
-                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
-                        BorderBrush="{DynamicResource ComboBoxBorderBrush}" BorderThickness="1"
+            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="0" SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="24" />
+                    </Grid.ColumnDefinitions>
+                    <ToggleButton Focusable="False" ClickMode="Press" Grid.ColumnSpan="2"
+                                  Template="{StaticResource Win10.ComboBox.EmptyToggle.Template}"
+                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                    <TextBox x:Name="PART_EditableTextBox" VerticalAlignment="Stretch"
+                             Background="Transparent" BorderThickness="0" Padding="{TemplateBinding Padding}"
+                             Foreground="{TemplateBinding Foreground}"
+                             SelectionBrush="{DynamicResource SystemAccentColorBrush}"
+                             CaretBrush="{DynamicResource TextFillColorPrimaryBrush}"
+                             FontFamily="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" VerticalContentAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Border>
+            <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                   Focusable="False" PopupAnimation="None"
+                   IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <Border Background="{DynamicResource ComboBoxPopupBackground}"
+                        BorderBrush="{DynamicResource ComboBoxPopupBorderBrush}" BorderThickness="1"
                         CornerRadius="0" MinWidth="{TemplateBinding ActualWidth}"
                         MaxHeight="{TemplateBinding MaxDropDownHeight}" SnapsToDevicePixels="True">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -347,7 +358,15 @@
         </Grid>
         <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundPointerOver}" />
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxBackgroundPointerOver}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushPointerOver}" />
+            </Trigger>
+            <Trigger Property="IsDropDownOpen" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxBackgroundFocused}" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushFocused}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushFocused}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.5" />
@@ -367,46 +386,34 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
-                        <ToggleButton x:Name="ToggleButton" Focusable="False" ClickMode="Press" Background="Transparent"
-                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                            <ToggleButton.Template>
-                                <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="0"
-                                            BorderBrush="{DynamicResource ComboBoxBorderBrush}" BorderThickness="1"
-                                            SnapsToDevicePixels="True">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="24" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                        </Grid>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushPointerOver}" />
-                                        </Trigger>
-                                        <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrushFocused}" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </ToggleButton.Template>
-                        </ToggleButton>
-                        <ContentPresenter IsHitTestVisible="False"
-                                          Content="{TemplateBinding SelectionBoxItem}"
-                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                          Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="Left" VerticalAlignment="Center"
-                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-                        <Popup x:Name="PART_Popup" Placement="Bottom"
-                               IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True"
-                               Focusable="False" PopupAnimation="None">
-                            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
-                                    BorderBrush="{DynamicResource ComboBoxBorderBrush}" BorderThickness="1"
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="0" SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="24" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter IsHitTestVisible="False"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Border>
+                        <ToggleButton Focusable="False" ClickMode="Press" Grid.ColumnSpan="2"
+                                      Template="{StaticResource Win10.ComboBox.EmptyToggle.Template}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                               Focusable="False" PopupAnimation="None"
+                               IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border Background="{DynamicResource ComboBoxPopupBackground}"
+                                    BorderBrush="{DynamicResource ComboBoxPopupBorderBrush}" BorderThickness="1"
                                     CornerRadius="0" MinWidth="{TemplateBinding ActualWidth}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}" SnapsToDevicePixels="True">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -417,6 +424,17 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxBackgroundPointerOver}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushPointerOver}" />
+                        </Trigger>
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ComboBoxBackgroundFocused}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushFocused}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrushFocused}" />
+                        </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
@@ -481,7 +499,8 @@
         </Setter>
     </Style>
 
-    <!-- ================= v0.16.2：ComboBoxItem（47 处下拉项 —— 换骨层此前漏铸，暗色下系统黑字/高亮蓝） ================= -->
+    <!-- ================= v0.16.2：ComboBoxItem（47 处下拉项 —— 换骨层此前漏铸，暗色下系统黑字/高亮蓝）
+         v0.16.6：对齐 Win10 下拉项规格 —— 悬停灰、键盘高亮同悬停、选中=强调蓝实底白字。 -->
     <Style TargetType="ComboBoxItem">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
@@ -496,15 +515,93 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource SubtleFillColorSecondary}" />
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource ComboBoxItemHoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource ComboBoxItemHoverBackground}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource ListBoxItemSelectedBackground}" />
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource ComboBoxItemSelectedBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ComboBoxItemSelectedForeground}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================= v0.16.6：ContextMenu / MenuItem / Separator / ToolTip（换骨层漏网之鱼） =================
+         右键菜单此前完全没有 Win10 模板（AccountManager 等场景裸用默认 WPF 白底灰条），
+         ToolTip 同理。按 Win10 桌面规格重铸：白弹层 + 1px 灰描边 + 方角；菜单项悬停浅灰、
+         无圆角子菜单残留；ToolTip 深灰底白字（Win10 XAML 提示样式）。 -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource MenuPopupBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MenuPopupBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                            CornerRadius="0" Padding="2" SnapsToDevicePixels="True">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource MenuHoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Separator">
+        <Setter Property="Background" Value="{DynamicResource MenuSeparatorBrush}" />
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="6,3" />
+    </Style>
+
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource ToolTipBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource ToolTipForeground}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource ToolTipBorderBrush}" BorderThickness="1"
+                            CornerRadius="0" Padding="8,4" SnapsToDevicePixels="True">
+                        <ContentPresenter />
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

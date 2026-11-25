@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -55,19 +56,56 @@ public static class HorizonService
     public static async Task<ReleaseInfo?> FetchLatestAsync(HttpClient http, CancellationToken ct = default)
     {
         using var req = new HttpRequestMessage(HttpMethod.Get, ReleaseApiUrl);
-        req.Headers.UserAgent.ParseAdd("HardmacroCraftLauncher/0.16.0");
+        req.Headers.UserAgent.ParseAdd("HardmacroCraftLauncher/0.16.6");
         using var resp = await http.SendAsync(req, ct);
         resp.EnsureSuccessStatusCode();
         var rel = await resp.Content.ReadFromJsonAsync<GhRelease>(cancellationToken: ct);
         if (rel?.Assets is null) return null;
-        // Windows x64 优先：名称含 setup.exe 且不含 arm64
+        // Windows x64 优先：setup.exe 安装包 → zip 版本包（均不含 arm64）
         var asset = rel.Assets.FirstOrDefault(a =>
                 (a.Name?.EndsWith("setup.exe", StringComparison.OrdinalIgnoreCase) ?? false)
+                && !(a.Name.Contains("arm64", StringComparison.OrdinalIgnoreCase)))
+            ?? rel.Assets.FirstOrDefault(a =>
+                (a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ?? false)
                 && !(a.Name.Contains("arm64", StringComparison.OrdinalIgnoreCase)))
             ?? rel.Assets.FirstOrDefault(a =>
                 a.Name?.Contains("windows", StringComparison.OrdinalIgnoreCase) ?? false);
         if (asset?.Url is null) return null;
         return new ReleaseInfo(rel.TagName ?? "latest", asset.Name ?? "horizon-setup.exe", asset.Url, asset.Size);
+    }
+
+    /// <summary>
+    /// v0.16.6：下载完成后自动解压 zip 版本包到 downloads/Horizon-&lt;版本&gt;/（zip-slip 防护：
+    /// 归一化路径含 ".." 或越出目标根的条目跳过）。返回解压目录；非 zip（如 setup.exe 安装包）
+    /// 返回 null，由用户运行安装器或手动解压。
+    /// </summary>
+    public static async Task<string?> ExtractIfArchiveAsync(string filePath, string version)
+    {
+        if (!filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) return null;
+        var destRoot = Path.Combine(DownloadDir, "Horizon-" + SanitizeVersion(version));
+        Directory.CreateDirectory(destRoot);
+        await Task.Run(() =>
+        {
+            var rootFull = Path.GetFullPath(destRoot);
+            using var archive = System.IO.Compression.ZipFile.OpenRead(filePath);
+            foreach (var entry in archive.Entries)
+            {
+                if (string.IsNullOrEmpty(entry.Name)) continue; // 纯目录条目
+                var targetFull = Path.GetFullPath(Path.Combine(destRoot, entry.FullName));
+                if (!targetFull.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase)
+                    || targetFull.Contains("..")) continue; // zip-slip 跳过
+                Directory.CreateDirectory(Path.GetDirectoryName(targetFull)!);
+                entry.ExtractToFile(targetFull, overwrite: true);
+            }
+        });
+        return destRoot;
+    }
+
+    /// <summary>版本号 → 目录名安全子集（tag 里可能带 / 等非法字符）。</summary>
+    public static string SanitizeVersion(string version)
+    {
+        var bad = Path.GetInvalidFileNameChars();
+        return new string(version.Select(c => bad.Contains(c) ? '_' : c).ToArray());
     }
 
     /// <summary>下载安装包（复用 DownloadEngine：重试/续传/校验），返回落盘路径。</summary>
@@ -88,8 +126,10 @@ public static class HorizonService
         var candidates = new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Programs",
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
         }.Where(p => !string.IsNullOrEmpty(p)).SelectMany(root => new[]
         {
             Path.Combine(root, "Horizon"), Path.Combine(root, "horizon"),

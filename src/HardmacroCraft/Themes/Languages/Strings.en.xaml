@@ -549,6 +549,11 @@
     <sys:String x:Key="S.Set.LauncherMemGroupHint">Launcher memory optimization, manual cleanup and log scrolling experience.</sys:String>
     <sys:String x:Key="S.Set.SmoothScroll">Smooth log scrolling</sys:String>
     <sys:String x:Key="S.Set.SmoothScrollHint">Adds a smooth animation to wheel scrolling in task details / log areas (drag the scrollbar to take over instantly).</sys:String>
+    <sys:String x:Key="S.Set.WheelMode">Mouse wheel scrolling</sys:String>
+    <sys:String x:Key="S.Set.WheelModeHint">Distance scrolled per wheel notch. Follow system = use the Windows mouse setting "Lines to scroll per wheel notch"; Manual = a fixed pixel step per notch (default 90px). Applies immediately.</sys:String>
+    <sys:String x:Key="S.Set.WheelSystem">Follow system setting</sys:String>
+    <sys:String x:Key="S.Set.WheelManual">Manual</sys:String>
+    <sys:String x:Key="S.Set.AutoSaveNote">Settings are saved automatically on change — no Save button needed · stored in config/settings.json next to the exe</sys:String>
     <sys:String x:Key="S.Set.LaunchGroup">Launch</sys:String>
     <sys:String x:Key="S.Set.LaunchGroupHint">JVM arguments, game window size and launch behavior.</sys:String>
     <sys:String x:Key="S.Set.NetworkGroup">Network</sys:String>
@@ -728,6 +733,29 @@
     <sys:String x:Key="S.Tool.HorizonRunIt">The build was saved to the path above — extract and run the Horizon launcher inside (no installer needed).</sys:String>
     <sys:String x:Key="S.Tool.HorizonFail">Download failed:</sys:String>
     <sys:String x:Key="S.Tool.HorizonManualHint">Try "Download in browser", or check proxy/network and retry.</sys:String>
+    <sys:String x:Key="S.Tool.SeedBig">Open in large viewer</sys:String>
+    <sys:String x:Key="S.Tool.SeedReset">Reset view</sys:String>
+    <sys:String x:Key="S.Tool.SeedLegend">Drag to pan · wheel to zoom · cursor shows chunk/block coords · green=slime chunk, yellow=best farm spot</sys:String>
+    <sys:String x:Key="S.Tool.SeedPos">Chunk ({0}, {1}) · Block ({2}, {3})</sys:String>
+    <sys:String x:Key="S.Tool.SeedFirst">Generate the seed map first.</sys:String>
+    <sys:String x:Key="S.Tool.SeedExportFail">Export failed:</sys:String>
+    <sys:String x:Key="S.Tool.HorizonExtracted">Extracted automatically to:</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDirect">Click "Launch Horizon" to play (a licensed Minecraft Java 26.3 is required; Java runtime installed automatically by Horizon).</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRun">Run installer</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunMissing">The installer is missing — please download again.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunStarted">Installer launched (confirm the UAC prompt if it appears). Afterwards use "Detect local install".</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunFail">Failed to run:</sys:String>
+    <sys:String x:Key="S.Tool.ShotsTitle">Screenshot manager</sys:String>
+    <sys:String x:Key="S.Tool.ShotsHint">Scans the screenshots/ folders of the game root and isolated versions; browse as a thumbnail wall, double-click to open, delete accidental shots.</sys:String>
+    <sys:String x:Key="S.Tool.ShotsScan">Scan screenshots</sys:String>
+    <sys:String x:Key="S.Tool.ShotsView">View screenshots</sys:String>
+    <sys:String x:Key="S.Tool.ShotsWinTitle">Screenshot manager</sys:String>
+    <sys:String x:Key="S.Tool.ShotsWinStatus">{0} shots (showing latest {1}) · double-click to open</sys:String>
+    <sys:String x:Key="S.Tool.ShotsOpenFolder">Open folder</sys:String>
+    <sys:String x:Key="S.Tool.ShotsDelete">Delete selected</sys:String>
+    <sys:String x:Key="S.Tool.ShotsDeleteConfirm">Delete this screenshot? This cannot be undone.</sys:String>
+    <sys:String x:Key="S.Tool.ShotsNone">No screenshots found — take one in game with F2 and scan again (both shared and isolated versions' screenshots/ are scanned).</sys:String>
+    <sys:String x:Key="S.Tool.ShotsFound">Found {0} screenshots in {1} folders — click "View screenshots" to open the thumbnail wall.</sys:String>
 
     <!-- ===== v0.16.0: proxy + pre/post commands ===== -->
     <sys:String x:Key="S.Set.ProxyTitle">Network proxy</sys:String>

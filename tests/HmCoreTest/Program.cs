@@ -3090,10 +3090,11 @@ try
         && zhLang.Contains("S.Tool.LeviTitle") && enLang.Contains("S.Tool.LeviTitle")
         && zhLang.Contains("S.Tool.BedrockJoin") && enLang.Contains("S.Tool.BedrockJoin")
         && zhLang.Contains("正版授权副本"));
-    Check("v0.16.2：Metro 下拉/按钮点击修复 —— ComboBoxItem 隐式样式 + ComboBox 主模板 ToggleButton 命中区保底 + Expander 兜底样式",
+    Check("v0.16.2→v0.16.6：Metro 下拉点击修复 —— ComboBoxItem 隐式样式 + ComboBox 全尺寸透明 ToggleButton 命中区（v0.16.6 重铸模板语义等价）",
         win10Xaml.Contains("<Style TargetType=\"ComboBoxItem\">")
         && win10Xaml.Contains("ListBoxItemSelectedBackground")
-        && win10Xaml.Contains("ClickMode=\"Press\" Background=\"Transparent\"")
+        && win10Xaml.Contains("ClickMode=\"Press\"")
+        && win10Xaml.Contains("Win10.ComboBox.EmptyToggle.Template")
         && win10Xaml.Contains("<Style TargetType=\"Expander\">"));
     Check("v0.16.2：定时自动清理 —— 可配周期（0=关闭）+ 忙碌豁免 + 设置页五档 + 启动即应用",
         settingsCs.Contains("AutoCleanIntervalMinutes")
@@ -3353,6 +3354,129 @@ try
 }
 catch (Exception ex) { Check("第 36 节 v0.15.0（翻页条 / 目录决策）", false, ex.Message); }
 
+// ==================== 第 37 节 v0.16.6：种子地图 / 滚轮设置 / 截图管理 / Horizon 解压 / Win10 换骨 ====================
+Console.WriteLine("\n---- 第 37 节 · v0.16.6（种子地图 / 滚轮 / 截图 / Horizon / Win10）----");
+try
+{
+    // --- ScreenshotService：目录发现 + 列表排序 + 删除（rootOverride 注入临时目录） ---
+    var shotsRoot = Directory.CreateTempSubdirectory("hm-shots-").FullName;
+    var shotShared = Directory.CreateDirectory(Path.Combine(shotsRoot, "screenshots"));
+    var shotIso = Directory.CreateDirectory(Path.Combine(shotsRoot, "versions", "1.20.4", "screenshots"));
+    var pngA = Path.Combine(shotShared.FullName, "2026-01-01_1.png");
+    var pngB = Path.Combine(shotIso.FullName, "2026-01-02_2.png");
+    foreach (var p in new[] { pngA, pngB })
+        File.WriteAllBytes(p, new byte[] { 0x89, 0x50, 0x4E, 0x47 }); // PNG 魔数头即可（按扩展名过滤）
+    var dirs = ScreenshotService.FindScreenshotDirs(shotsRoot);
+    Check("ScreenshotService：共享 + 隔离 screenshots 目录都发现", dirs.Count == 2);
+    File.SetLastWriteTime(pngA, new DateTime(2026, 1, 1));
+    File.SetLastWriteTime(pngB, new DateTime(2026, 1, 2));
+    var shots = ScreenshotService.ListAll(shotsRoot);
+    Check("ScreenshotService：两张都列出且新在前",
+        shots.Count == 2 && shots[0].Path == pngB && shots[1].Path == pngA);
+    ScreenshotService.Delete(shots[0].Path);
+    Check("ScreenshotService：删除后不再列出",
+        ScreenshotService.ListAll(shotsRoot).Count == 1 && !File.Exists(pngB));
+    Check("ScreenshotService：非 PNG 与空目录不报错（root 不存在也安全）",
+        ScreenshotService.ListAll(Path.Combine(shotsRoot, "不存在的目录")).Count == 0);
+    Directory.Delete(shotsRoot, true);
+
+    // --- HorizonService：版本号清洗（解压目录名安全子集；非法字符集按平台取，Linux/Windows 各自成立） ---
+    var sanitized37 = HorizonService.SanitizeVersion("v1/bad:name*");
+    Check("HorizonService.SanitizeVersion：非法字符全部替换 / 正常版本保留",
+        !sanitized37.Any(c => Path.GetInvalidFileNameChars().Contains(c))
+        && sanitized37.StartsWith("v1") && sanitized37.Contains("name")
+        && HorizonService.SanitizeVersion("0.3.2") == "0.3.2");
+    var horizonSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Services", "HorizonService.cs")));
+    Check("HorizonService：zip 自动解压 + zip-slip 防护 + UA 版本对齐",
+        horizonSrc.Contains("ExtractIfArchiveAsync")
+        && horizonSrc.Contains("targetFull.Contains(\"..\")")
+        && horizonSrc.Contains("HardmacroCraftLauncher/0.16.6"));
+    var horizonLaunchSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Services", "HorizonLaunch.cs")));
+    Check("HorizonLaunch：一级子目录 exe 搜索（自动解压的内层结构可启动）",
+        horizonLaunchSrc.Contains("GetDirectories(dir)")
+        && horizonLaunchSrc.Contains("subExes"));
+    var toolsPageSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    Check("Horizon 下载流：自动解压 + 运行安装包按钮接线",
+        toolsPageSrc.Contains("ExtractIfArchiveAsync") && toolsPageSrc.Contains("BtnHorizonRun_Click"));
+
+    // --- AppSettings：滚轮设置字段默认值 + JSON roundtrip ---
+    var fresh = new AppSettings();
+    Check("AppSettings：滚轮默认手动档 90px",
+        fresh.WheelScrollMode == "manual" && fresh.WheelScrollPx == 90);
+    var roundtrip = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(
+        System.Text.Json.JsonSerializer.Serialize(new AppSettings
+        {
+            WheelScrollMode = "system",
+            WheelScrollPx = 120,
+        }))!;
+    Check("AppSettings：滚轮设置 JSON roundtrip 保留",
+        roundtrip.WheelScrollMode == "system" && roundtrip.WheelScrollPx == 120);
+    var appSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
+    Check("滚轮引擎：设置驱动步长（跟随系统 WheelScrollLines / 手动 30-300px 钳制）",
+        appSrc.Contains("WheelScrollLines") && appSrc.Contains("WheelPxPerNotch")
+        && appSrc.Contains("Math.Clamp(s.WheelScrollPx, 30, 300)"));
+
+    // --- Win10 换骨层：ComboBox 重铸 + 弹层/菜单/提示配色键（双变体） ---
+    var win10 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml")));
+    var skinL = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml")));
+    var skinD = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml")));
+    Check("Win10 换骨：ComboBox 外层 Border 承载底色 + 全尺寸透明 ToggleButton（白底/悬停真正生效）",
+        win10.Contains("Win10.ComboBox.EmptyToggle.Template")
+        && win10.Contains("Background=\"{TemplateBinding Background}\""));
+    Check("Win10 换骨：下拉弹层独立配色（页面背景色不再当弹层用）",
+        win10.Contains("ComboBoxPopupBackground") && !win10.Contains("ApplicationBackgroundBrush\""));
+    Check("Win10 换骨：右键菜单 / 菜单项 / 分隔线 / ToolTip 补铸",
+        win10.Contains("<Style TargetType=\"ContextMenu\">")
+        && win10.Contains("<Style TargetType=\"MenuItem\">")
+        && win10.Contains("<Style TargetType=\"Separator\">")
+        && win10.Contains("<Style TargetType=\"ToolTip\">"));
+    Check("Win10 换骨：新配色键双变体齐全（浅/深各 13 键）",
+        skinL.Contains("ComboBoxItemSelectedBackground") && skinD.Contains("ComboBoxItemSelectedBackground")
+        && skinL.Contains("MenuPopupBackground") && skinD.Contains("MenuPopupBackground")
+        && skinL.Contains("ToolTipBackground") && skinD.Contains("ToolTipBackground"));
+
+    // --- 设置页：保存按钮移除 + 自动保存 + 滚轮设置 UI ---
+    var settingsXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml")));
+    var settingsSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
+    Check("设置页：保存按钮已移除，自动保存引擎就位（防抖 + 离页兜底提交）",
+        !settingsXaml.Contains("BtnSave_Click") && !settingsXaml.Contains("S.Set.Save")
+        && settingsSrc.Contains("HookAutoSave") && settingsSrc.Contains("MarkDirty")
+        && settingsSrc.Contains("SaveFromUi"));
+    Check("设置页：滚轮设置项（跟随系统 / 手动）+ 自动保存提示行",
+        settingsXaml.Contains("CmbWheelMode") && settingsXaml.Contains("SldWheelPx")
+        && settingsXaml.Contains("TxtSaveHint")
+        && settingsXaml.Contains("S.Set.WheelSystem") && settingsXaml.Contains("S.Set.WheelManual"));
+
+    // --- 工具页：内置种子地图（交互） + 截图管理卡 ---
+    var toolsXaml37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    Check("工具页：种子地图交互容器（平移/缩放/坐标追踪 + 大图导出 + 重置）",
+        toolsXaml37.Contains("SeedMapHost") && toolsXaml37.Contains("SeedMapScale")
+        && toolsXaml37.Contains("SeedMap_MouseWheel") && toolsXaml37.Contains("BtnSeedBig_Click")
+        && toolsPageSrc.Contains("ClampTranslate") && toolsPageSrc.Contains("MapViewerWindow.Show"));
+    Check("工具页：截图管理卡 + 查看窗口（缩略图墙 / 删除确认 / 定位文件夹）",
+        toolsXaml37.Contains("S.Tool.ShotsTitle") && toolsPageSrc.Contains("ScreenshotViewerWindow.Show")
+        && File.Exists(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ScreenshotViewerWindow.cs")))
+        && File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ScreenshotViewerWindow.cs")))
+            .Contains("ShotsDeleteConfirm"));
+
+    // --- 基岩卡闭合修复（v0.16.3 漏标签导致的嵌套卡片） ---
+    Check("ToolsPage：基岩卡正确闭合（导入/地图/备份/诊断卡不再是其子元素）",
+        toolsXaml37.Contains("Content=\"{DynamicResource S.Tool.LeviDocs}\" Click=\"BtnLeviDocs_Click\" />")
+        && System.Text.RegularExpressions.Regex.Matches(toolsXaml37, "<Border Style=\"\\{StaticResource HmCard\\}\"").Count
+            == System.Text.RegularExpressions.Regex.Matches(toolsXaml37, "</Border>").Count);
+
+    // --- 双语词条成对 ---
+    var zh37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var en37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    var newKeys37 = new[] { "S.Set.WheelMode", "S.Set.WheelSystem", "S.Set.AutoSaveNote",
+        "S.Tool.SeedBig", "S.Tool.SeedLegend", "S.Tool.SeedPos",
+        "S.Tool.HorizonExtracted", "S.Tool.HorizonRun",
+        "S.Tool.ShotsTitle", "S.Tool.ShotsWinTitle", "S.Tool.ShotsDeleteConfirm" };
+    Check("v0.16.6：新增词条双语成对（11 个关键键 zh/en 都在）",
+        newKeys37.All(k => zh37.Contains(k) && en37.Contains(k)));
+}
+catch (Exception ex) { Check("第 37 节 v0.16.6（种子地图 / 滚轮 / 截图 / Horizon / Win10）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;
@@ -3362,6 +3486,19 @@ static string? ModsPage_Extract(string v)
 {
     var m = System.Text.RegularExpressions.Regex.Match(v ?? "", @"^\d+\.\d+(\.\d+)?");
     return m.Success ? m.Value : null;
+}
+
+// v0.16.6 第 37 节用的仓库根定位（与第 31 节 try 块内的 FindRepoFile 同规则，顶层声明全局可用）
+static string RepoFile(string rel)
+{
+    var dir = AppContext.BaseDirectory;
+    for (var i = 0; i < 8; i++)
+    {
+        var cand = Path.Combine(dir, rel);
+        if (File.Exists(cand)) return cand;
+        dir = Path.GetDirectoryName(dir)!;
+    }
+    return Path.Combine(AppContext.BaseDirectory, rel);
 }
 static string ModsPageBadgePlatform(ModrinthService.SearchHit h) => h.Source == "curseforge" ? "CurseForge" : "Modrinth";
 
