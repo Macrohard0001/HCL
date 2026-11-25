@@ -34,6 +34,9 @@ public partial class SettingsPage : Page
             ChkVerifyFiles.IsChecked = AppSettings.Instance.VerifyFilesEveryLaunch;
             // v0.1.3：启动器内存优化 + 当前占用展示
             ChkLauncherMemOpt.IsChecked = AppSettings.Instance.AutoMemoryOptimize;
+            // v0.16.2：定时自动清理周期
+            foreach (ComboBoxItem i in CmbAutoCleanInterval.Items)
+                if ((string)i.Tag == AppSettings.Instance.AutoCleanIntervalMinutes.ToString()) { CmbAutoCleanInterval.SelectedItem = i; break; }
             RefreshLauncherMem();
             // v0.1.11：相对路径增强 / 日志平滑滚动
             ChkRelativePaths.IsChecked = AppSettings.Instance.UseRelativePaths;
@@ -163,6 +166,18 @@ public partial class SettingsPage : Page
     /// <summary>v0.1.10：手动触发内存清理（PCL 式立即回收），并在标签上显示回收效果。
     /// v0.1.12：改用工作集 + 托管堆双口径展示真实收益（此前只报托管堆，
     /// 与任务管理器里的变化对不上）。</summary>
+    /// <summary>v0.16.2：定时自动清理周期变更 —— 立即落盘并重建空闲定时器（0=停止定时）。</summary>
+    private void CmbAutoCleanInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded) return; // 页面 XAML 解析期触发忽略
+        if (CmbAutoCleanInterval.SelectedItem is ComboBoxItem it && int.TryParse((string)it.Tag, out var min))
+        {
+            AppSettings.Instance.AutoCleanIntervalMinutes = min;
+            AppSettings.Instance.Save();
+            MemoryManager.ApplyInterval(min);
+        }
+    }
+
     private void BtnMemClean_Click(object sender, RoutedEventArgs e)
     {
         var (wsBefore, wsAfter, mBefore, mAfter, _) = Services.MemoryManager.OptimizeNowDetailed();

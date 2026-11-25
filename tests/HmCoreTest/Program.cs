@@ -2875,6 +2875,47 @@ try
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("TargetType=\"ui:NumberBox\"")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("TargetType=\"ui:PasswordBox\"")
         && !File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("FontFamily=\"Segoe UI\""));
+    var settingsCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "AppSettings.cs")));
+    var memoryCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "MemoryManager.cs")));
+    var bedrockCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "BedrockService.cs")));
+    var settingsPageXaml = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml")));
+    var settingsPageCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
+    var appCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
+    var zhLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    Check("v0.16.2：Metro 下拉/按钮点击修复 —— ComboBoxItem 隐式样式 + ComboBox 主模板 ToggleButton 命中区保底 + Expander 兜底样式",
+        win10Xaml.Contains("<Style TargetType=\"ComboBoxItem\">")
+        && win10Xaml.Contains("ListBoxItemSelectedBackground")
+        && win10Xaml.Contains("ClickMode=\"Press\" Background=\"Transparent\"")
+        && win10Xaml.Contains("<Style TargetType=\"Expander\">"));
+    Check("v0.16.2：定时自动清理 —— 可配周期（0=关闭）+ 忙碌豁免 + 设置页五档 + 启动即应用",
+        settingsCs.Contains("AutoCleanIntervalMinutes")
+        && memoryCs.Contains("public static void ApplyInterval(int minutes)")
+        && memoryCs.Contains("AppSettings.Instance.AutoCleanIntervalMinutes <= 0")
+        && memoryCs.Contains("IsLauncherBusy()")
+        && settingsPageXaml.Contains("CmbAutoCleanInterval")
+        && settingsPageXaml.Split("AutoClean").Length - 1 >= 5
+        && settingsPageCs.Contains("CmbAutoCleanInterval_SelectionChanged")
+        && settingsPageCs.Contains("MemoryManager.ApplyInterval(min)")
+        && appCs.Contains("ApplyInterval(Math.Max(0, AppSettings.Instance.AutoCleanIntervalMinutes))"));
+    Check("v0.16.2：Horizon 措辞修正 —— release=Rust MC 版本包（非安装包，无双击安装表述）",
+        zhLang.Contains("Rust 版 Minecraft 版本包")
+        && zhLang.Contains("S.Tool.HorizonDownload\">下载 Rust 版 MC<")
+        && !zhLang.Contains("双击安装包"));
+    Check("v0.16.2：基岩版（正版路径）—— Store 版检测/启动 + 官方 BDS 爬取下载 + 不做绕过验证登录",
+        bedrockCs.Contains("Microsoft.MinecraftUWP")
+        && bedrockCs.Contains("Get-AppxPackage")
+        && bedrockCs.Contains("shell:AppsFolder")
+        && bedrockCs.Contains("bedrock-server")
+        && bedrockCs.Contains("download/server/bedrock")
+        && bedrockCs.Contains("DownloadEngine.DownloadFileAsync")
+        && bedrockCs.Contains("绕过正版验证")
+        && toolsPageXaml.Contains("S.Tool.BedrockTitle")
+        && toolsPageXaml.Contains("S.Tool.BedrockBds")
+        && toolsPageXaml.Contains("BtnBedrockLaunch_Click")
+        && toolsPageXaml.Contains("BedrockProgress")
+        && toolsPageCs.Contains("BtnBedrockDetect_Click")
+        && toolsPageCs.Contains("BedrockService.FetchLatestBdsAsync")
+        && toolsPageCs.Contains("BedrockService.LaunchStoreAsync"));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

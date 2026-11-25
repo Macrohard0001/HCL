@@ -2,6 +2,41 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.2
+
+**Metro 点击/样式二次修复 + 定时内存清理 + Horizon 修正（release=Rust MC 版本包）+ 基岩版（正版路径）**
+
+### Metro：下拉菜单与按钮点击无响应 + 样式补齐
+
+- **ComboBoxItem 隐式样式**（47 处下拉项此前漏铸，仍是系统默认模板——暗色变体下黑字黑底、系统高亮蓝、选中态错乱）：方角 Win10 规格 + 悬停/选中/禁用三态换骨层画刷。
+- **ComboBox 主模板 ToggleButton 命中区保底**：显式 `Background="Transparent"`，杜绝主题默认 Background=null 的点击死区。
+- **Expander 兜底样式**：方角 + 字形切换箭头（E70D/E70E）+ 悬停反馈。
+
+### 性能：定时自动清理内存（可选项）
+
+- 设置页新增**定时自动清理**周期选项：关闭 / 每 5 / 15 / 30 / 60 分钟（默认 15）。
+- 既有 MemoryManager（GC 2 代压缩 + SetProcessWorkingSetSize 工作集裁剪）接入可配周期：`ApplyInterval(min)` 重建定时器，启动即按设置应用；游戏启动/下载进行中自动跳过（忙碌豁免不变）；0 = 不定时（保留重大操作后清理与手动「立即清理」）。
+
+### Horizon 修正：release = Rust MC 版本包（非安装包）
+
+- 措辞全面修正：卡片标题「Horizon（Rust 版 Minecraft）下载」、按钮「下载 Rust 版 MC」、提示「下载内容为 Rust 版 Minecraft 版本包（含启动器），解压即用、无需安装」；移除所有"双击安装包"表述。
+
+### 基岩版（Bedrock）下载与启动——只走正版路径
+
+- **Store 版检测**：`Get-AppxPackage Microsoft.MinecraftUWP` 解析版本/安装位置。
+- **一键启动**：`shell:AppsFolder` 协议拉起已购商店版（微软账号随系统登录，单机/离线由商店版自身支持）。
+- **官方 BDS 服务端下载**：爬取 minecraft.net 官方下载页拿 `bedrock-server-*.zip` 直链，DownloadEngine 复用（重试/续传/进度）。
+- **购买/安装引导**到 minecraft.net 官方入口。
+- 明确**不提供绕过正版验证的登录方式**（无授权微软账号登录 = 绕过付费授权）：已在功能内说明并引导正途。
+
+### 质量
+
+- 回归测试 697 → **701 全绿**（+4：下拉/按钮点击修复 / 定时清理 / Horizon 修正 / 基岩版）。
+
+# 更新日志
+
+所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
+
 ## v0.16.1
 
 **Metro 模式可用性修复 + 侧栏滚轮 + Horizon 去广告化（直连爬取下载入口）**

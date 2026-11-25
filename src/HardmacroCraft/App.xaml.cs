@@ -153,6 +153,8 @@ public partial class App : Application
 
         // v0.1.3 内存优化：空闲时段定时回收（重大操作后的即时优化在各业务收尾处触发）
         Services.MemoryManager.Initialize();
+        // v0.16.2：按用户选择的周期启动定时自动清理（0 = 不定时）
+        Services.MemoryManager.ApplyInterval(Math.Max(0, AppSettings.Instance.AutoCleanIntervalMinutes));
 
         // 滚轮滚动全局兜底：在最外层 ScrollViewer 上直接手动滚动。
         // 这不依赖滚轮事件链（ScrollInfo 接线差异、内层 ListBox 的空滚动器吞事件、

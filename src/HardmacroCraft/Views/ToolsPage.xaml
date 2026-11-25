@@ -69,6 +69,31 @@
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
+
+            <!-- ===== v0.16.2：基岩版（Bedrock）—— 正版路径：Store 版检测/启动 + 官方 BDS 服务端下载 ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.BedrockTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.BedrockHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,12" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnBedrockDetect" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.BedrockDetect}" Click="BtnBedrockDetect_Click" />
+                        <ui:Button x:Name="BtnBedrockLaunch" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.BedrockLaunch}" Click="BtnBedrockLaunch_Click" />
+                        <ui:Button x:Name="BtnBedrockBds" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.BedrockBds}" Click="BtnBedrockBds_Click" />
+                        <ui:Button x:Name="BtnBedrockStore" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
+                                   Content="{DynamicResource S.Tool.BedrockStore}" Click="BtnBedrockStore_Click" />
+                    </WrapPanel>
+                    <ProgressBar x:Name="BedrockProgress" Height="4" Minimum="0" Maximum="100"
+                                 Margin="0,8,0,0" Visibility="Collapsed" />
+                    <TextBlock x:Name="TxtBedrockStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>

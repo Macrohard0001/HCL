@@ -264,13 +264,29 @@ public static class MemoryManager
         lock (Lock)
         {
             if (_idleTimer != null) return;
-            _idleTimer = new System.Timers.Timer(TimeSpan.FromMinutes(5).TotalMilliseconds)
-            {
-                AutoReset = true,
-            };
-            _idleTimer.Elapsed += (_, _) => AutoOptimize();
-            _idleTimer.Start();
+            _idleTimer = CreateTimer();
         }
+    }
+
+    /// <summary>v0.16.2：按设置页选择的周期（分钟）重建空闲定时器；0 = 停止定时触发。</summary>
+    public static void ApplyInterval(int minutes)
+    {
+        lock (Lock)
+        {
+            _idleTimer?.Dispose();
+            _idleTimer = minutes > 0 ? CreateTimer(minutes) : null;
+        }
+    }
+
+    private static System.Timers.Timer CreateTimer(int minutes = 5)
+    {
+        var timer = new System.Timers.Timer(TimeSpan.FromMinutes(minutes).TotalMilliseconds)
+        {
+            AutoReset = true,
+        };
+        timer.Elapsed += (_, _) => AutoOptimize();
+        timer.Start();
+        return timer;
     }
 
     private static void AutoOptimize()
@@ -278,6 +294,7 @@ public static class MemoryManager
         try
         {
             if (!AppSettings.Instance.AutoMemoryOptimize) return;
+            if (AppSettings.Instance.AutoCleanIntervalMinutes <= 0) return;
             if (IsLauncherBusy()) return;
             OptimizeNow();
         }

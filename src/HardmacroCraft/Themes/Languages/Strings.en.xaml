@@ -715,17 +715,17 @@
     <sys:String x:Key="S.Tool.BestNone">No 2×2 all-green cluster in range — try a larger radius.</sys:String>
 
     <!-- ===== v0.16.0: Horizon (Rust rewrite of Minecraft, with source attribution) ===== -->
-    <sys:String x:Key="S.Tool.HorizonTitle">Horizon launcher (Rust Minecraft)</sys:String>
+    <sys:String x:Key="S.Tool.HorizonTitle">Horizon (Rust Minecraft) download</sys:String>
     <sys:String x:Key="S.Tool.HorizonHint">Source: github.com/horizon-rust/horizon · LGPL-3.0 · playhorizon.dev</sys:String>
-    <sys:String x:Key="S.Tool.HorizonRuntime">Runtime: no rustc/cargo needed. You must own Minecraft Java 26.3 and have run it once via the official launcher; the Mojang Java runtime is installed automatically by the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRuntime">The download is the Rust Minecraft build (launcher included) — extract and run, no installer; a licensed Minecraft Java 26.3 is required, Java runtime installed automatically by Horizon.</sys:String>
     <sys:String x:Key="S.Tool.HorizonDetect">Detect local install</sys:String>
-    <sys:String x:Key="S.Tool.HorizonDownload">Download in app</sys:String>
+    <sys:String x:Key="S.Tool.HorizonDownload">Download Rust MC</sys:String>
     <sys:String x:Key="S.Tool.HorizonManual">Download in browser</sys:String>
     <sys:String x:Key="S.Tool.HorizonNotFound">No Horizon installation found in common locations (absence here does not mean it is not installed).</sys:String>
     <sys:String x:Key="S.Tool.HorizonFetching">Fetching latest release info…</sys:String>
     <sys:String x:Key="S.Tool.HorizonNoAsset">No Windows x64 setup in the latest release — please download from the releases page.</sys:String>
     <sys:String x:Key="S.Tool.HorizonDone">Downloaded:</sys:String>
-    <sys:String x:Key="S.Tool.HorizonRunIt">Run the setup to install Horizon; the game and Java runtime are installed by the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonRunIt">The build was saved to the path above — extract and run the Horizon launcher inside (no installer needed).</sys:String>
     <sys:String x:Key="S.Tool.HorizonFail">Download failed:</sys:String>
     <sys:String x:Key="S.Tool.HorizonManualHint">Try "Download in browser", or check proxy/network and retry.</sys:String>
 
@@ -744,4 +744,17 @@
 
     <!-- ===== v0.16.0: playtime ===== -->
     <sys:String x:Key="S.Inst.Playtime">Total playtime</sys:String>
+
+    <sys:String x:Key="S.Set.AutoCleanInterval">Scheduled auto-clean</sys:String>
+    <sys:String x:Key="S.Set.AutoCleanOff">Off (post-heavy-op cleanup still applies)</sys:String>
+    <sys:String x:Key="S.Set.AutoClean5M">Every 5 minutes</sys:String>
+    <sys:String x:Key="S.Set.AutoClean15M">Every 15 minutes</sys:String>
+    <sys:String x:Key="S.Set.AutoClean30M">Every 30 minutes</sys:String>
+    <sys:String x:Key="S.Set.AutoClean60M">Every 60 minutes</sys:String>
+    <sys:String x:Key="S.Tool.BedrockTitle">Bedrock Edition download &amp; launch</sys:String>
+    <sys:String x:Key="S.Tool.BedrockHint">Legit paths: a purchased Microsoft Store copy can be detected and launched here (signed in via your Microsoft account, playable offline); the official Bedrock Dedicated Server (BDS) is free to download for LAN play. Circumventing license verification is not supported.</sys:String>
+    <sys:String x:Key="S.Tool.BedrockDetect">Detect Store copy</sys:String>
+    <sys:String x:Key="S.Tool.BedrockLaunch">Launch Store copy</sys:String>
+    <sys:String x:Key="S.Tool.BedrockBds">Download official server (BDS)</sys:String>
+    <sys:String x:Key="S.Tool.BedrockStore">Buy / install (official)</sys:String>
 </ResourceDictionary>

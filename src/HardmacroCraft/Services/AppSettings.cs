@@ -105,6 +105,12 @@ public class AppSettings
     /// 默认开；关闭后启动器常驻内存可能更高。
     /// </summary>
     public bool AutoMemoryOptimize { get; set; } = true;
+
+    /// <summary>
+    /// v0.16.2：定时自动清理周期（分钟）。0 = 不定时（保留重大操作后清理与手动「立即清理」）。
+    /// 定时触发仍遵守 MemoryManager 的忙碌检查（游戏启动/下载进行中绝不 GC）。
+    /// </summary>
+    public int AutoCleanIntervalMinutes { get; set; } = 15;
     /// <summary>游戏窗口宽度（0 = 游戏默认）。</summary>
     public int GameWidth { get; set; }
     /// <summary>游戏窗口高度（0 = 游戏默认）。</summary>

@@ -37,7 +37,7 @@ public partial class ToolsPage : Page
                 return;
             }
             TxtHorizonStatus.Text = $"Horizon {info.Version} · {info.AssetName} · 约 {info.SizeBytes / 1024 / 1024} MB"
-                + "\n" + ((string?)TryFindResource("S.Tool.HorizonRuntime") ?? "需正版 Minecraft Java 26.3；Java 运行时由 Horizon 启动器自动安装。");
+                + "\n" + ((string?)TryFindResource("S.Tool.HorizonRuntime") ?? "下载内容为 Rust 版 Minecraft 版本包（含启动器），解压即用；Java 运行时由 Horizon 自动安装。");
         }
         catch
         {
@@ -156,4 +156,54 @@ public partial class ToolsPage : Page
     }
 
     private void BtnHorizonManual_Click(object sender, RoutedEventArgs e) => OpenUrl(HorizonService.ReleasesUrl);
+
+    // ---- v0.16.2：基岩版（只走正版路径：Store 版检测/启动 + 官方 BDS 下载）----
+
+    private async void BtnBedrockDetect_Click(object sender, RoutedEventArgs e)
+    {
+        TxtBedrockStatus.Text = "正在检测 Microsoft Store 版基岩版…";
+        try
+        {
+            var inst = await BedrockService.DetectStoreInstallAsync();
+            TxtBedrockStatus.Text = inst is null
+                ? "未检测到已安装的 Store 版基岩版——请用「购买/安装（官方）」获取。"
+                : $"已安装：版本 {inst.Version}\n位置：{inst.InstallLocation}\n微软账号随系统登录，单机/离线由商店版自身支持。";
+        }
+        catch (Exception ex) { TxtBedrockStatus.Text = "检测失败：" + ex.Message; }
+    }
+
+    private async void BtnBedrockLaunch_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await BedrockService.LaunchStoreAsync();
+            TxtBedrockStatus.Text = "已通过 shell:AppsFolder 启动商店版基岩版。";
+        }
+        catch (System.IO.FileNotFoundException) { TxtBedrockStatus.Text = "未检测到已安装的 Store 版基岩版——请先「购买/安装（官方）」。"; }
+        catch (Exception ex) { TxtBedrockStatus.Text = "启动失败：" + ex.Message; }
+    }
+
+    private async void BtnBedrockBds_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnBedrockBds.IsEnabled = false;
+            TxtBedrockStatus.Text = "正在爬取官方 BDS 下载页…";
+            var bds = await BedrockService.FetchLatestBdsAsync(App.LauncherService.Http)
+                ?? throw new InvalidOperationException("官方页面结构变化，未找到 BDS 直链——请到 minecraft.net 官方页下载。");
+            BedrockProgress.IsIndeterminate = true;
+            BedrockProgress.Visibility = Visibility.Visible;
+            TxtBedrockStatus.Text = $"BDS {bds.Version} 开始下载（重试/续传已启用）…";
+            BedrockProgress.IsIndeterminate = false;
+            var progress = new Progress<long>(b => BedrockProgress.Value = Math.Min(100, 100d * b / 80_000_000));
+            var dest = await BedrockService.DownloadBdsAsync(App.LauncherService.Http, bds.Url, progress);
+            BedrockProgress.Value = 100;
+            TxtBedrockStatus.Text = "服务端已下载：" + dest + "\n解压后运行 bedrock_server.exe 即可开服（局域网离线联机）。";
+            BedrockService.RevealInExplorer(dest);
+        }
+        catch (Exception ex) { TxtBedrockStatus.Text = "下载失败：" + ex.Message; }
+        finally { BtnBedrockBds.IsEnabled = true; }
+    }
+
+    private void BtnBedrockStore_Click(object sender, RoutedEventArgs e) => OpenUrl(BedrockService.StoreUrl);
 }

@@ -148,6 +148,18 @@
                     <CheckBox x:Name="ChkLauncherMemOpt" Content="{DynamicResource S.Set.LauncherMemOpt}" Margin="0,0,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.LauncherMemOptHint}" Style="{StaticResource HmHint}" Margin="24,0,0,6"
                                TextWrapping="Wrap" />
+                    <!-- v0.16.2：定时自动清理周期（可选项，定时触发；忙碌时自动跳过） -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="{DynamicResource S.Set.AutoCleanInterval}" VerticalAlignment="Center" />
+                        <ComboBox x:Name="CmbAutoCleanInterval" MinWidth="120" Margin="10,0,0,0"
+                                  SelectionChanged="CmbAutoCleanInterval_SelectionChanged">
+                            <ComboBoxItem Content="{DynamicResource S.Set.AutoCleanOff}" Tag="0" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.AutoClean5M}" Tag="5" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.AutoClean15M}" Tag="15" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.AutoClean30M}" Tag="30" />
+                            <ComboBoxItem Content="{DynamicResource S.Set.AutoClean60M}" Tag="60" />
+                        </ComboBox>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <ui:Button x:Name="BtnMemClean" Content="{DynamicResource S.Set.MemCleanNow}"
                                    Icon="{ui:SymbolIcon Broom24}" MinHeight="30" MinWidth="110"
