@@ -786,4 +786,14 @@
     <sys:String x:Key="S.Msu.AskSkip">不安装此 mod</sys:String>
     <sys:String x:Key="S.Msu.AskReasonNoCompat">Modrinth 上没有兼容目标版本的文件。</sys:String>
     <sys:String x:Key="S.Msu.AskReasonUnknown">未收录到 Modrinth，无法自动匹配新版本文件。</sys:String>
+    <sys:String x:Key="S.Tool.MapTitle">世界地图（顶视图）</sys:String>
+    <sys:String x:Key="S.Tool.MapHint">扫描共享 saves 与隔离 versions/*/saves 的存档（带 level.dat），解析 region/*.mca 渲染每列最顶方块 → PNG 顶视图（滚轮缩放查看）。支持 1.18+ 区块格式；1.17- 旧格式跳过并注明。</sys:String>
+    <sys:String x:Key="S.Tool.MapScan">扫描世界</sys:String>
+    <sys:String x:Key="S.Tool.MapRender">生成顶视图</sys:String>
+    <sys:String x:Key="S.Tool.MapWinTitle">世界地图</sys:String>
+    <sys:String x:Key="S.Tool.MapOpenFolder">打开 PNG 所在文件夹</sys:String>
+    <sys:String x:Key="S.Tool.BackupTitle">实例备份 / 恢复</sys:String>
+    <sys:String x:Key="S.Tool.BackupHint">把整个版本目录（含隔离实例数据：存档 / mods / 配置）打成 zip 存到下载目录；恢复时自动避开重名（-restored 后缀），不会覆盖现有版本。</sys:String>
+    <sys:String x:Key="S.Tool.BackupDo">备份所选</sys:String>
+    <sys:String x:Key="S.Tool.BackupRestore">从备份恢复</sys:String>
 </ResourceDictionary>

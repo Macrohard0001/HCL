@@ -52,6 +52,8 @@
     <!-- v0.16.4：一键更新版本 / 迁移向导（纯逻辑运行验证） -->
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/VersionUpdateService.cs" Link="Services/VersionUpdateService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LauncherMigrationService.cs" Link="Services/LauncherMigrationService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/WorldMapRenderer.cs" Link="Services/WorldMapRenderer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/InstanceBackupService.cs" Link="Services/InstanceBackupService.cs" />
   </ItemGroup>
 
   <ItemGroup>

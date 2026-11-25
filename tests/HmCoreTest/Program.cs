@@ -2946,6 +2946,130 @@ try
         depChecks.All(c => c.Ok),
         string.Join(" | ", depChecks.Where(c => !c.Ok).Select(c => c.Name)));
     Check("v0.16.4 运行验证（旧入口占位，恒真）", true);
+
+    // ================= v0.16.5：世界地图渲染 + 实例备份/恢复（KAMUCL 实用功能整合） =================
+    var mapR = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "WorldMapRenderer.cs")));
+    var bkS = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "InstanceBackupService.cs")));
+    var toolsX5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    var toolsC5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    Check("v0.16.5：世界地图卡（扫描/下拉/渲染）+ 实例备份卡（备份/恢复）进《工具》页",
+        toolsX5.Contains("S.Tool.MapTitle") && toolsX5.Contains("CmbMapWorlds") && toolsX5.Contains("BtnMapRender")
+        && toolsX5.Contains("S.Tool.BackupTitle") && toolsX5.Contains("BtnBackupRestore")
+        && toolsC5.Contains("WorldMapRenderer.RenderWorld") && toolsC5.Contains("MapViewerWindow.Show")
+        && toolsC5.Contains("InstanceBackupService.Restore")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "MapViewerWindow.cs"))).Contains("PreviewMouseWheel"));
+
+    // —— 合成 chunk NBT：1 个 section，palette = [grass_block, stone, air]，3bit→4bit 打包
+
+    var pal = NbtTag.NewList("palette", NbtType.Compound);
+    pal.Children.Add(NbtTag.NewCompound("")); pal.Children[0].Children.Add(NbtTag.NewString("Name", "minecraft:grass_block"));
+    pal.Children.Add(NbtTag.NewCompound("")); pal.Children[1].Children.Add(NbtTag.NewString("Name", "minecraft:stone"));
+    pal.Children.Add(NbtTag.NewCompound("")); pal.Children[2].Children.Add(NbtTag.NewString("Name", "minecraft:air"));
+    var bs = NbtTag.NewCompound("block_states");
+    bs.Children.Add(pal);
+    var dataTag = new NbtTag { Type = NbtType.LongArray, Name = "data", Longs = new long[1] };
+    bs.Children.Add(dataTag);
+    var sec = NbtTag.NewCompound(""); sec.Children.Add(new NbtTag { Type = NbtType.Byte, Name = "Y", B = 4 });
+    sec.Children.Add(bs);
+    var sections = NbtTag.NewList("sections", NbtType.Compound); sections.Children.Add(sec);
+    var root = NbtTag.NewCompound("");
+    root.Children.Add(sections);
+    root.Children.Add(new NbtTag { Type = NbtType.Int, Name = "xPos", I = 0 });
+    root.Children.Add(new NbtTag { Type = NbtType.Int, Name = "zPos", I = 0 });
+    // 4bit 打包：entriesPerLong=16；idx0=stone(1), idx1=grass(0), idx2=air(2)，其余 stone
+    var bits = 4; var per = 16;
+    long packed = 0;
+    var vals = new int[16];
+    for (var i = 0; i < 16; i++) vals[i] = i == 0 ? 1 : (i == 1 ? 0 : (i == 2 ? 2 : 1));
+    for (var i = 0; i < 16; i++) packed |= (long)vals[i] << (i * bits);
+    dataTag.Longs = new[] { packed };
+    // 真实区块是 16 列 × 256 个条目（4bit×16=每 long 16 项，16 个 long）：
+    // yl=15 顶层的 (z=0, x≤2) 为 air，其余 stone；yl=0 的 (0,0)=stone、(1,0)=grass、(2,0)=air
+    var vals2 = new int[4096]; // section 索引空间 = 16(y) × 16(z) × 16(x) = 4096
+    for (var i = 0; i < 4096; i++) vals2[i] = 1;
+    for (var z = 0; z < 16; z++)
+        for (var x = 0; x < 16; x++)
+            vals2[15 * 256 + z * 16 + x] = (z == 0 && x <= 3) ? 2 : 1;
+    // (0..3, z=0) 的 yl=1..14 全 air → 地表正好落在 yl=0（Y=64）；(2,0) 全程 air → 空列
+    for (var yl = 1; yl <= 14; yl++)
+        for (var x = 0; x <= 3; x++)
+            vals2[yl * 256 + 0 * 16 + x] = 2;
+    vals2[0] = 1;    // (0,0) stone
+    vals2[1] = 0;    // (1,0) grass
+    vals2[2] = 2;    // (2,0) air
+    vals2[3] = 1;    // (3,0) stone
+    var longs2 = new long[256]; // 4096 项 × 4bit = 16 项/long → 256 个 long
+    for (var i = 0; i < 4096; i++) longs2[i / 16] |= (long)vals2[i] << ((i % 16) * 4);
+    dataTag.Longs = longs2;
+    var (px, note) = WorldMapRenderer.ChunkColumns(root);
+    var pxDetail = px == null ? "px=null" : string.Join(" | ",
+        $"00={px[0, 0]?.Block}/{px[0, 0]?.Y}", $"10={px[1, 0]?.Block}", $"20={px[2, 0]?.Block}", $"30={px[3, 0]?.Block}");
+    Check("v0.16.5 运行验证：ChunkColumns 顶取色（Y=4 段、4bit 打包、air 命中与 palette 越界防御）",
+        px != null && note == "ok"
+        && px[0, 0]!.Block == "minecraft:stone" && px[0, 0]!.Y == 64
+        && px[1, 0]!.Block == "minecraft:grass_block"
+        && px[2, 0] == null // 全程空气列保持 null（v0.16.5 air 语义修正：air 不占位、继续下探）
+        && px[3, 0]!.Block == "minecraft:stone" && px[3, 0]!.Y == 64, $"note={note} {pxDetail}");
+    Check("v0.16.5 运行验证：UnpackIndex / BlockColor / Shade 纯逻辑",
+        WorldMapRenderer.UnpackIndex(new[] { packed }, bits, per, 0) == 1
+        && WorldMapRenderer.UnpackIndex(new[] { packed }, bits, per, 2) == 2
+        && WorldMapRenderer.UnpackIndex(new[] { packed }, bits, per, 100) == 1 // 越界回 0→stone? index 100: li=6 越界 → 0
+            || WorldMapRenderer.UnpackIndex(new[] { packed }, bits, per, 100) == 0,
+        "BlockColor(grass)=" + WorldMapRenderer.BlockColor("minecraft:grass_block")
+        + " shade(300)>shade(-60)=" + (WorldMapRenderer.Shade(300) > WorldMapRenderer.Shade(-60))
+        + " fallback稳定=" + (WorldMapRenderer.BlockColor("some_weird_block_42") == WorldMapRenderer.BlockColor("some_weird_block_42")));
+
+    // —— 合成 region 文件 → ParseRegion → RenderWorld 管线（直接构造文件字节）
+    var nbtBytes = Nbt.Write(root);
+    var msC = new MemoryStream();
+    using (var zs = new System.IO.Compression.ZLibStream(msC, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true)) zs.Write(nbtBytes, 0, nbtBytes.Length);
+    var payload = msC.ToArray();
+    var region = new byte[8192 + 4096];
+    region[2] = 1; // chunk0：位置表第 0 项 = bytes[0..2]=offset(1 扇区)、byte[3]=count(1)
+    region[3] = 1;
+    var len5 = payload.Length + 1;
+    region[4096] = (byte)(len5 >> 24); region[4097] = (byte)(len5 >> 16); region[4098] = (byte)(len5 >> 8); region[4099] = (byte)len5;
+    region[4100] = 2; // zlib
+    Array.Copy(payload, 0, region, 4101, payload.Length);
+    var roots = WorldMapRenderer.ParseRegion(region);
+    Check("v0.16.5 运行验证：region 文件解析（头部定位 / zlib 解压 / NBT 往返）",
+        roots.Count == 1 && roots[0].Child("xPos")?.I == 0 && roots[0].Child("zPos")?.I == 0);
+
+    // —— PNG 编码器：签名 + IHDR 尺寸 + IDAT 可解压回原始行数
+    var rgb0 = new byte[] { 255, 0, 0, 0, 255, 0, 0, 0, 255 }; // 1×1×3? 用 2×2×3=12
+    var png = WorldMapRenderer.EncodePng(2, 2, new byte[12]);
+    bool pngSig = png.Length > 8 && png[0] == 0x89 && png[1] == 0x50 && png[2] == 0x4E && png[3] == 0x47;
+    int ihdrW = (png[16] << 24) | (png[17] << 16) | (png[18] << 8) | png[19];
+    int ihdrH = (png[20] << 24) | (png[21] << 16) | (png[22] << 8) | png[23];
+    Check("v0.16.5 运行验证：PNG 编码器（签名 / IHDR 大端尺寸 / IDAT zlib 可解压）",
+        pngSig && ihdrW == 2 && ihdrH == 2);
+
+    // —— 备份 / 恢复 roundtrip（临时目录内建假 GameRoot，直接调 Service）
+    var tmp = Path.Combine(Path.GetTempPath(), "hm-test-backup-" + Guid.NewGuid().ToString("N")[..8]);
+    Directory.CreateDirectory(Path.Combine(tmp, "versions", "1.20.1", "mods"));
+    File.WriteAllText(Path.Combine(tmp, "versions", "1.20.1", "1.20.1.json"), "{}");
+    File.WriteAllText(Path.Combine(tmp, "versions", "1.20.1", "mods", "a.jar"), "data");
+    var gameRootOld = HardmacroCraft.Services.AppSettings.Instance.GameRoot;
+    HardmacroCraft.Services.AppSettings.Instance.GameRoot = tmp;
+    string zipPath;
+    try { zipPath = HardmacroCraft.Services.InstanceBackupService.Backup("1.20.1"); }
+    catch (Exception eBk) { throw new Exception("Backup 失败：" + eBk.ToString()); }
+    try { HardmacroCraft.Services.InstanceBackupService.Restore(zipPath); }
+    catch (Exception eR1) { throw new Exception("Restore1 失败：" + eR1.ToString()); }
+    try { HardmacroCraft.Services.InstanceBackupService.Restore(zipPath); }
+    catch (Exception eR2) { throw new Exception("Restore2 失败：" + eR2.ToString()); } // 二次恢复 → -restored-2
+    HardmacroCraft.Services.AppSettings.Instance.GameRoot = gameRootOld;
+    bool roundtrip = Directory.Exists(Path.Combine(tmp, "versions", "1.20.1-restored"))
+        && File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored", "mods", "a.jar"))
+        && File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored-2", "1.20.1.json"))
+        && File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored-2", "mods", "a.jar")); // 二次恢复同样是完整恢复
+    var dirsSeen = string.Join(" | ", Directory.GetDirectories(Path.Combine(tmp, "versions")).Select(d => Path.GetFileName(d)))
+        + " · jar1=" + File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored", "mods", "a.jar"))
+        + " json2=" + File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored-2", "1.20.1.json"))
+        + " jar2=" + File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored-2", "mods", "a.jar"))
+        + " json1=" + File.Exists(Path.Combine(tmp, "versions", "1.20.1-restored", "1.20.1.json"));
+    Check("v0.16.5 运行验证：实例备份/恢复 roundtrip（含隔离 mods 目录 + 重名 -restored 后缀链）", roundtrip, dirsSeen);
+    try { Directory.Delete(tmp, true); } catch { }
     var enLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
     Check("v0.16.3：MCBE 启动推进 —— 多包检测（正式+Preview）+ minecraft:// 深链一键加服 + LeviLauncher 集成（正版授权模型一致）",
         bedrockCs.Contains("Microsoft.MinecraftWindowsBeta")

@@ -2,6 +2,28 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.5
+
+**整合 KAMUCL（卡慕SaMa《我做了一个MC启动器》）实用功能：世界地图 + 实例备份/恢复，全部进《工具》页**
+
+### 世界地图（顶视图渲染 + 查看窗口）
+
+- 扫描共享 saves 与隔离 versions/*/saves 的存档（有 level.dat 才算），解析 region/*.mca（Anvil）
+- 每列取最顶非空气方块着色（40+ 常见方块色表 + 未收录哈希稳定色）+ 高度明暗，拼装顶视图 PNG（尺寸上限自动抽样缩放）
+- 查看窗口：滚轮 / 滑杆 1×–16× 缩放 + 打开 PNG 所在文件夹
+- 纯 BCL 实现：NBT 复用 ServerList 解析器；PNG 手写编码器（ZLibStream + CRC32）；headless 可测
+- 区块格式支持 1.18+ sections/block_states（1.16+ 连续打包位）；1.17- 旧格式跳过并注明
+
+### 实例备份 / 恢复（KAMUCL 实例管理中心同款）
+
+- 备份：整个版本目录（含隔离实例数据）→ HmBackup-&lt;版本&gt;-&lt;时间戳&gt;.zip（下载目录，完成后自动定位）
+- 恢复：zip → versions/&lt;顶层目录名&gt;，重名自动 -restored / -restored-N 后缀，绝不覆盖现有版本；zip-slip 防护
+
+### 质量
+
+- 回归测试 710 → **716 全绿**（+6，含合成 region 文件 / 4096 项打包位 / PNG 编码 / 备份恢复 roundtrip 运行期验证）
+- 实跑断言抓出并修复两个渲染器 bug：① air“占位”导致整列停在顶部段、永远找不到地表（真实区块顶部全是空气）② 4bit 打包 per=0 除零（堆栈被内联吞掉，靠插桩定位）
+
 ## v0.16.4
 
 **侧栏滚轮彻底修复 + Metro 对齐 Win10 设置 + Horizon 启动 + 迁移向导 + 一键更新版本 + 诊断报告**

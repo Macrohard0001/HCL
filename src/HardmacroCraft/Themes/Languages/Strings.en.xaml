@@ -786,4 +786,14 @@
     <sys:String x:Key="S.Msu.AskSkip">Skip this mod</sys:String>
     <sys:String x:Key="S.Msu.AskReasonNoCompat">No file on Modrinth is compatible with the target version.</sys:String>
     <sys:String x:Key="S.Msu.AskReasonUnknown">Not listed on Modrinth; cannot auto-match a new-version file.</sys:String>
+    <sys:String x:Key="S.Tool.MapTitle">World map (top view)</sys:String>
+    <sys:String x:Key="S.Tool.MapHint">Scans saves in the shared root and isolated versions/*/saves (level.dat required), parses region/*.mca and renders the topmost block per column into a PNG map (wheel to zoom). Supports 1.18+ chunk format; older chunks are skipped and reported.</sys:String>
+    <sys:String x:Key="S.Tool.MapScan">Scan worlds</sys:String>
+    <sys:String x:Key="S.Tool.MapRender">Render map</sys:String>
+    <sys:String x:Key="S.Tool.MapWinTitle">World map</sys:String>
+    <sys:String x:Key="S.Tool.MapOpenFolder">Open PNG folder</sys:String>
+    <sys:String x:Key="S.Tool.BackupTitle">Instance backup / restore</sys:String>
+    <sys:String x:Key="S.Tool.BackupHint">Packs a whole version directory (incl. isolated instance data: saves / mods / config) into a zip in the download folder; restoring avoids name clashes (-restored suffix) and never overwrites existing versions.</sys:String>
+    <sys:String x:Key="S.Tool.BackupDo">Backup selected</sys:String>
+    <sys:String x:Key="S.Tool.BackupRestore">Restore from backup</sys:String>
 </ResourceDictionary>

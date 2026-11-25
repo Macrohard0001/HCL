@@ -141,6 +141,45 @@
                 </StackPanel>
             </Border>
 
+            <!-- ===== v0.16.5：世界地图（KAMUCL 式地图查看）：扫描存档 → 顶视图渲染 → 查看窗口 ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.MapTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.MapHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnMapScan" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.MapScan}" Click="BtnMapScan_Click" />
+                        <ComboBox x:Name="CmbMapWorlds" MinWidth="240" MinHeight="32" Margin="0,0,8,6" />
+                        <ui:Button x:Name="BtnMapRender" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.MapRender}" Click="BtnMapRender_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="TxtMapStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== v0.16.5：实例备份 / 恢复（KAMUCL 实例管理中心同款） ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.BackupTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.BackupHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ComboBox x:Name="CmbBackupVersion" MinWidth="200" MinHeight="32" Margin="0,0,8,6" />
+                        <ui:Button x:Name="BtnBackupDo" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.BackupDo}" Click="BtnBackupDo_Click" />
+                        <ui:Button x:Name="BtnBackupRestore" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.BackupRestore}" Click="BtnBackupRestore_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="TxtBackupStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
             <!-- ===== v0.16.4：一键诊断报告（doctor） ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -305,6 +306,103 @@ public partial class ToolsPage : Page
         }
         catch (Exception ex) { TxtMigStatus.Text = "导入失败：" + ex.Message; }
         finally { BtnMigImport.IsEnabled = true; }
+    }
+
+    // ---- v0.16.5：世界地图（KAMUCL 式地图查看） ----
+
+    private List<(string Name, string Dir)> RefreshMapWorlds()
+    {
+        var worlds = WorldMapRenderer.FindWorlds();
+        CmbMapWorlds.ItemsSource = worlds.Select(w => w.Name).ToList();
+        CmbMapWorlds.SelectedIndex = worlds.Count > 0 ? 0 : -1;
+        try
+        {
+            CmbBackupVersion.ItemsSource = App.LauncherService.GetInstalledVersions();
+        }
+        catch { /* 版本列表读取失败不阻塞地图扫描 */ }
+        return worlds;
+    }
+
+    private void BtnMapScan_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var worlds = RefreshMapWorlds();
+            TxtMapStatus.Text = worlds.Count == 0
+                ? "没有找到带 level.dat 的世界（共享 saves 与隔离 versions/*/saves 都扫了）——先进游戏创建存档。"
+                : $"找到 {worlds.Count} 个世界，选择后点「生成顶视图」。";
+        }
+        catch (Exception ex) { TxtMapStatus.Text = "扫描失败：" + ex.Message; }
+    }
+
+    private async void BtnMapRender_Click(object sender, RoutedEventArgs e)
+    {
+        if (CmbMapWorlds.SelectedItem is not string name)
+        {
+            TxtMapStatus.Text = "请先「扫描世界」并选择一个存档。";
+            return;
+        }
+        var hit = WorldMapRenderer.FindWorlds().FirstOrDefault(w => w.Name == name);
+        var dir = hit.Dir;
+        if (string.IsNullOrEmpty(dir)) { TxtMapStatus.Text = "世界目录已不存在，请重新扫描。"; return; }
+        try
+        {
+            BtnMapRender.IsEnabled = false;
+            TxtMapStatus.Text = $"正在渲染「{name}」的顶视图（后台解析 region/*.mca）…";
+            var pngPath = Path.Combine(HorizonService.DownloadDir, $"HmMap-{name}-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+            var result = await Task.Run(() =>
+            {
+                var (png, w, h, info, ok, skip) = WorldMapRenderer.RenderWorld(dir);
+                Directory.CreateDirectory(HorizonService.DownloadDir);
+                File.WriteAllBytes(pngPath, png);
+                return (Info: info, Chunks: ok, Skipped: skip);
+            });
+            var note = result.Skipped > 0 ? $"，{result.Skipped} 个旧格式区块已跳过" : "";
+            TxtMapStatus.Text = $"✓ 渲染完成：{result.Chunks} 个区块{note} · {result.Info} → {pngPath}";
+            MapViewerWindow.Show(Window.GetWindow(this), pngPath, $"{result.Info} · {result.Chunks} 区块{note}");
+        }
+        catch (Exception ex) { TxtMapStatus.Text = "渲染失败：" + ex.Message; }
+        finally { BtnMapRender.IsEnabled = true; }
+    }
+
+    // ---- v0.16.5：实例备份 / 恢复 ----
+
+    private async void BtnBackupDo_Click(object sender, RoutedEventArgs e)
+    {
+        if (CmbBackupVersion.SelectedItem is not string ver)
+        {
+            TxtBackupStatus.Text = "请先选择要备份的版本。";
+            return;
+        }
+        try
+        {
+            BtnBackupDo.IsEnabled = false;
+            TxtBackupStatus.Text = $"备份「{ver}」中（整个版本目录打成 zip，含隔离实例数据）…";
+            var path = await Task.Run(() => InstanceBackupService.Backup(ver));
+            TxtBackupStatus.Text = "✓ 备份完成：" + path;
+            HorizonService.RevealInExplorer(path);
+        }
+        catch (Exception ex) { TxtBackupStatus.Text = "备份失败：" + ex.Message; }
+        finally { BtnBackupDo.IsEnabled = true; }
+    }
+
+    private async void BtnBackupRestore_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "选择备份压缩包",
+            Filter = "备份压缩包 (*.zip)|*.zip",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            BtnBackupRestore.IsEnabled = false;
+            TxtBackupStatus.Text = "恢复中（重名版本自动加 -restored 后缀，不会覆盖现有版本）…";
+            var name = await Task.Run(() => InstanceBackupService.Restore(dlg.FileName));
+            TxtBackupStatus.Text = $"✓ 已恢复为版本「{name}」——启动页 / 版本列表刷新后即可使用。";
+        }
+        catch (Exception ex) { TxtBackupStatus.Text = "恢复失败：" + ex.Message; }
+        finally { BtnBackupRestore.IsEnabled = true; }
     }
 
     // ---- v0.16.4：一键诊断报告 ----
