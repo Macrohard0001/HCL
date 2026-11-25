@@ -2809,20 +2809,20 @@ try
     var toolsPageCs = ReadSrc("Views", "ToolsPage.xaml.cs");
     var settingsXaml = ReadSrc("Views", "SettingsPage.xaml");
     var launcherSvc = ReadSrc("Services", "LauncherService.cs");
-    Check("v0.16.0：Horizon 整合带出处备注（horizon-rust/horizon + playhorizon.dev + LGPL + 差分测试澄清）",
+    Check("v0.16.0/0.16.1：Horizon 下载入口（出处标注 + 去广告化：加载即爬取最新版 + 应用内/手动下载）",
         horizonSvc.Contains("https://github.com/horizon-rust/horizon")
         && horizonSvc.Contains("https://playhorizon.dev")
         && horizonSvc.Contains("LGPL-3.0")
         && horizonSvc.Contains("差分测试")
-        && toolsPageXaml.Contains("S.Tool.HorizonSource")
+        && horizonSvc.Contains("Java 运行时")
+        && horizonSvc.Contains("DownloadEngine.DownloadFileAsync")
+        && toolsPageXaml.Contains("S.Tool.HorizonHint")
         && toolsPageXaml.Contains("S.Tool.HorizonManual")
+        && !toolsPageXaml.Contains("S.Tool.HorizonSource")
+        && !toolsPageXaml.Contains("S.Tool.HorizonSite")
+        && toolsPageCs.Contains("FetchHorizonInfoAsync")
         && toolsPageCs.Contains("HorizonService.DetectInstall")
         && toolsPageCs.Contains("HorizonService.ReleasesUrl")
-        && toolsPageCs.Contains("HorizonService.SiteUrl"));
-    Check("v0.16.0：Horizon 运行时提示 + 应用内下载（DownloadEngine 复用）+ 手动下载入口",
-        horizonSvc.Contains("Java 运行时")
-        && horizonSvc.Contains("DownloadEngine.DownloadFileAsync")
-        && toolsPageXaml.Contains("S.Tool.HorizonRuntime")
         && toolsPageCs.Contains("S.Tool.HorizonDone")
         && toolsPageXaml.Contains("HorizonProgress"));
     Check("v0.16.0：崩溃智能分析（本地规则引擎 + HomePage 异常退出自动诊断 + PCL2/HMCL 出处）",
@@ -2856,6 +2856,25 @@ try
         && !win10Xaml.Contains("Value=\"Segoe UI\" />".Replace("Value=\"Segoe UI\" />", "<Setter Property=\"FontFamily\" Value=\"Segoe UI\" />"))
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml"))).Contains("ScrollBarThumbBackground")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("ScrollBarThumbBackground"));
+    Check("v0.16.1：滚动条横竖双模板（横向 PageLeft/Right + IsDirectionReversed=False，竖版 PageUp/Down）",
+        win10Xaml.Contains("Win10.ScrollBar.Vertical")
+        && win10Xaml.Contains("Win10.ScrollBar.Horizontal")
+        && win10Xaml.Contains("ScrollBar.PageLeftCommand")
+        && win10Xaml.Contains("ScrollBar.PageRightCommand")
+        && win10Xaml.Contains("IsDirectionReversed=\"False\" Orientation=\"Horizontal\""));
+    Check("v0.16.1：ProgressBar 不确定态自带动画（自定义模板必须提供，否则冻住满宽条）",
+        win10Xaml.Contains("IsIndeterminate\" Value=\"True\"")
+        && win10Xaml.Contains("DoubleAnimation")
+        && win10Xaml.Contains("StopStoryboard")
+        && win10Xaml.Contains("PART_Track"));
+    Check("v0.16.1：侧栏滚轮修复 —— NavList 变 DockPanel 填充子项（不再 Dock=Top 按内容高布局）",
+        File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml")))
+            .Contains("<ListBox x:Name=\"NavList\" Background=\"Transparent\" ScrollViewer.VerticalScrollBarVisibility=\"Auto\""));
+    Check("v0.16.1：TextBox 只读态 ×2 + 可编辑 ComboBox 微软雅黑 + ui:NumberBox/ui:PasswordBox 换色",
+        win10Xaml.Split("IsReadOnly").Length - 1 >= 2
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("TargetType=\"ui:NumberBox\"")
+        && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("TargetType=\"ui:PasswordBox\"")
+        && !File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("FontFamily=\"Segoe UI\""));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant

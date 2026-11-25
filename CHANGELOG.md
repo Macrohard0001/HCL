@@ -2,6 +2,32 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.1
+
+**Metro 模式可用性修复 + 侧栏滚轮 + Horizon 去广告化（直连爬取下载入口）**
+
+### Metro（Win10 怀旧风）修复——针对"只能看不能用"反馈
+
+- **滚动条横竖不分（关键交互损坏）**：v0.16.0 单模板把竖版 Track 强加给横向滚动条 → 一切横向滚动（宽表格/宽内容）失灵。重铸为 **竖/横两套模板**：竖版 `PageUp/Down + IsDirectionReversed=True`，横版 `PageLeft/Right + IsDirectionReversed=False`，`Track.Orientation` 显式绑定。
+- **ProgressBar 不确定态冻结**：自定义模板必须自带动画——补 Win10 式短蓝条循环跑动（`DoubleAnimation` + `StopStoryboard`），不再是冻住的一条蓝。
+- **TextBox/ui:TextBox 只读态**：补 `IsReadOnly` 触发器（灰底 + 次级字色），不再与可编辑框无差别。
+- **可编辑 ComboBox**：PART_EditableTextBox 漏改字体 → 微软雅黑（v0.16.0 字体统一收尾）。
+- **ui:NumberBox / ui:PasswordBox**：补换色样式（背景/描边/光标/选区/字体随 Win10 变体），不再残留 Fluent 配色。
+- Slider / ProgressBar 补禁用态视觉。
+
+### 侧栏滚轮修复
+
+- 根因：`NavList` 在 DockPanel 里 `Dock=Top`（按内容高布局），内部 ScrollViewer 永不激活——导航项一多（展开下载分组）整个侧栏溢出、滚轮无处生效。改为 **NavList 作 DockPanel 最后的填充子项**（`FooterNav` 提前），显式 `VerticalScrollBarVisibility=Auto`，滚轮 + 细滚动条正常工作。
+
+### Horizon 去广告化（用户反馈）
+
+- 移除三段推广文案（"Rust 重制版介绍 / 运行时说明 / 出处大段文字"）与"打开官网"按钮；保留一行来源标注（github.com/horizon-rust/horizon · LGPL-3.0 · playhorizon.dev）。
+- 改为**直接爬取的下载入口**：进入工具页即拉取 GitHub 最新 release，状态栏直接显示 `版本 · 安装包名 · 体积`；按钮保留：应用内下载（重试/续传/进度条）/ 浏览器手动下载 / 检测本地安装。运行时提示移入下载完成后的状态文案。
+
+### 质量
+
+- 回归测试 694 → **697 全绿**（净+3：Horizon 两断言合并为一、新增滚动条双模板/进度条动画/侧栏布局/只读态换色四项：滚动条双模板 / 进度条动画 / 侧栏填充布局 / 只读态+换色+字体收尾 / Horizon 去广告断言更新）。
+
 ## v0.16.0
 
 **Horizon（Rust 重制版 Minecraft）整合 + 四项市面启动器实用功能 + Metro 观感收尾**

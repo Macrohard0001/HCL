@@ -715,14 +715,12 @@
     <sys:String x:Key="S.Tool.BestNone">No 2×2 all-green cluster in range — try a larger radius.</sys:String>
 
     <!-- ===== v0.16.0: Horizon (Rust rewrite of Minecraft, with source attribution) ===== -->
-    <sys:String x:Key="S.Tool.HorizonTitle">Horizon — Minecraft rewritten in Rust</sys:String>
-    <sys:String x:Key="S.Tool.HorizonHint">Horizon is a from-scratch Rust rewrite of Minecraft Java 26.3 (client + dedicated server + its own launcher). The community phrase "losslessly transpiled to Rust" actually refers to 281 differential test harnesses proving behavioral equivalence — there is no official "transpiler". This page just helps you fetch and manage the Horizon launcher.</sys:String>
+    <sys:String x:Key="S.Tool.HorizonTitle">Horizon launcher (Rust Minecraft)</sys:String>
+    <sys:String x:Key="S.Tool.HorizonHint">Source: github.com/horizon-rust/horizon · LGPL-3.0 · playhorizon.dev</sys:String>
     <sys:String x:Key="S.Tool.HorizonRuntime">Runtime: no rustc/cargo needed. You must own Minecraft Java 26.3 and have run it once via the official launcher; the Mojang Java runtime is installed automatically by the Horizon launcher.</sys:String>
-    <sys:String x:Key="S.Tool.HorizonSource">Source: github.com/horizon-rust/horizon (LGPL-3.0) | playhorizon.dev</sys:String>
     <sys:String x:Key="S.Tool.HorizonDetect">Detect local install</sys:String>
     <sys:String x:Key="S.Tool.HorizonDownload">Download in app</sys:String>
     <sys:String x:Key="S.Tool.HorizonManual">Download in browser</sys:String>
-    <sys:String x:Key="S.Tool.HorizonSite">Open website</sys:String>
     <sys:String x:Key="S.Tool.HorizonNotFound">No Horizon installation found in common locations (absence here does not mean it is not installed).</sys:String>
     <sys:String x:Key="S.Tool.HorizonFetching">Fetching latest release info…</sys:String>
     <sys:String x:Key="S.Tool.HorizonNoAsset">No Windows x64 setup in the latest release — please download from the releases page.</sys:String>

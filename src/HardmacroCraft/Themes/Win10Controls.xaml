@@ -170,6 +170,10 @@
             <Trigger Property="IsFocused" Value="True">
                 <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrushFocused}" />
             </Trigger>
+            <Trigger Property="IsReadOnly" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextBoxBackgroundDisabled}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextBoxBackgroundDisabled}" />
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
@@ -213,6 +217,10 @@
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrushFocused}" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextBoxBackgroundDisabled}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextBoxBackgroundDisabled}" />
@@ -311,7 +319,7 @@
                      Foreground="{TemplateBinding Foreground}"
                      SelectionBrush="{DynamicResource SystemAccentColorBrush}"
                      CaretBrush="{DynamicResource TextFillColorPrimaryBrush}"
-                     FontFamily="Segoe UI" VerticalContentAlignment="Center" />
+                     FontFamily="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" VerticalContentAlignment="Center" />
             <ToggleButton Grid.Column="1" Focusable="False" ClickMode="Press"
                           IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                 <ToggleButton.Template>
@@ -458,9 +466,10 @@
         </Setter>
     </Style>
 
-    <!-- ================= v0.16.0 补齐：ProgressBar / Slider / ScrollBar（Win10 桌面规格） ================= -->
+    <!-- ================= v0.16.1 重铸：ProgressBar / Slider / ScrollBar（Win10 桌面规格） ================= -->
 
-    <!-- Win10 进度条：4px 扁条，浅灰底 + 经典蓝填充 -->
+    <!-- Win10 进度条：4px 扁条，浅灰底 + 经典蓝填充。
+         不确定态 = 短蓝条循环跑动（v0.16.0 冻住满宽条的修正：自定义模板必须自带动画）。 -->
     <Style TargetType="ProgressBar">
         <Setter Property="Foreground" Value="{DynamicResource SystemAccentColorBrush}" />
         <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
@@ -469,14 +478,40 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
-                    <Grid>
+                    <Grid ClipToBounds="True">
                         <Border x:Name="PART_Track" Background="{TemplateBinding Background}" />
                         <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}"
-                                HorizontalAlignment="Left" />
+                                HorizontalAlignment="Left" Width="0">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="IndTrans" X="-48" />
+                            </Border.RenderTransform>
+                        </Border>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsIndeterminate" Value="True">
+                            <Setter TargetName="PART_Indicator" Property="Width" Value="48" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard x:Name="IndAnim">
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="IndTrans"
+                                                         Storyboard.TargetProperty="X"
+                                                         From="-48" To="464" Duration="0:0:1.5" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="IndAnim" />
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Win10 滑杆：4px 轨道（左段经典蓝）+ 14×14 方角蓝拇指 -->
@@ -509,65 +544,10 @@
                                 <Thumb Focusable="False" Width="14" Height="14">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Grid>
-                                                <Border x:Name="Bd" Background="{TemplateBinding Foreground}" />
-                                            </Grid>
+                                            <Border x:Name="Bd" Background="{TemplateBinding Foreground}" />
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListBoxItemSelectedBackground}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Track.Thumb>
-                        </Track>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Win10 滚动条：12px 扁平，浅灰方角拇指（悬停加深），无箭头 -->
-    <Style TargetType="ScrollBar">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Width" Value="12" />
-        <Setter Property="MinWidth" Value="12" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ScrollBar">
-                    <Grid Background="{TemplateBinding Background}">
-                        <Track x:Name="PART_Track" IsDirectionReversed="True">
-                            <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False">
-                                    <RepeatButton.Template>
-                                        <ControlTemplate TargetType="RepeatButton">
-                                            <Border Background="Transparent" />
-                                        </ControlTemplate>
-                                    </RepeatButton.Template>
-                                </RepeatButton>
-                            </Track.DecreaseRepeatButton>
-                            <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False">
-                                    <RepeatButton.Template>
-                                        <ControlTemplate TargetType="RepeatButton">
-                                            <Border Background="Transparent" />
-                                        </ControlTemplate>
-                                    </RepeatButton.Template>
-                                </RepeatButton>
-                            </Track.IncreaseRepeatButton>
-                            <Track.Thumb>
-                                <Thumb Focusable="False">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border x:Name="ThumbBd" Background="{DynamicResource ScrollBarThumbBackground}"
-                                                    Margin="3,0" />
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbHover}" />
-                                                </Trigger>
-                                                <Trigger Property="IsDragging" Value="True">
-                                                    <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbPressed}" />
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="0.82" />
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -580,12 +560,133 @@
             </Setter.Value>
         </Setter>
         <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.4" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Win10 滚动条：12px 扁平方角拇指（悬停加深），无箭头。
+         v0.16.1 修正：横/竖两套模板 —— 竖版 PageUp/Down + IsDirectionReversed=True，
+         横版 PageLeft/Right + IsDirectionReversed=False；Track Orientation 显式绑定。
+         v0.16.0 单模板竖版强加到横向滚动条 = 横向滚动全坏（用户反馈"不能用"根因之一）。 -->
+    <ControlTemplate x:Key="Win10.ScrollBar.Vertical" TargetType="ScrollBar">
+        <Grid Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="Vertical">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.DecreaseRepeatButton>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.IncreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Focusable="False">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Border x:Name="ThumbBd" Background="{DynamicResource ScrollBarThumbBackground}"
+                                        Margin="3,0" MinHeight="24" />
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbHover}" />
+                                    </Trigger>
+                                    <Trigger Property="IsDragging" Value="True">
+                                        <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbPressed}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="Win10.ScrollBar.Horizontal" TargetType="ScrollBar">
+        <Grid Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="False" Orientation="Horizontal">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageLeftCommand" Focusable="False">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.DecreaseRepeatButton>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageRightCommand" Focusable="False">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.IncreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Focusable="False">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Border x:Name="ThumbBd" Background="{DynamicResource ScrollBarThumbBackground}"
+                                        Margin="0,3" MinWidth="24" />
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbHover}" />
+                                    </Trigger>
+                                    <Trigger Property="IsDragging" Value="True">
+                                        <Setter TargetName="ThumbBd" Property="Background" Value="{DynamicResource ScrollBarThumbPressed}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Template" Value="{StaticResource Win10.ScrollBar.Vertical}" />
+        <Style.Triggers>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto" />
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="Height" Value="12" />
                 <Setter Property="MinHeight" Value="12" />
+                <Setter Property="Template" Value="{StaticResource Win10.ScrollBar.Horizontal}" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+    <!-- ================= v0.16.1：ui:NumberBox / ui:PasswordBox 换色（不重模板，色随 Win10 变体） ================= -->
+    <Style TargetType="ui:NumberBox">
+        <Setter Property="Background" Value="{DynamicResource TextBoxBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource SystemAccentColorBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
+    </Style>
+
+    <Style TargetType="ui:PasswordBox">
+        <Setter Property="Background" Value="{DynamicResource TextBoxBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource SystemAccentColorBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
     </Style>
 </ResourceDictionary>

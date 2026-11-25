@@ -95,8 +95,29 @@
                                FontSize="16" />
                 </Button>
 
+                <!-- 底部：设置 / 关于 -->
+                <ListBox x:Name="FooterNav" DockPanel.Dock="Bottom" Background="Transparent"
+                         BorderThickness="0" SelectionMode="Single"
+                         ItemContainerStyle="{StaticResource MetroNavItem}"
+                         SelectionChanged="NavList_SelectionChanged">
+                    <ListBoxItem Tag="{x:Type views:SettingsPage}">
+                        <DockPanel Height="40" Margin="4,0">
+                            <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" />
+                            <TextBlock Text="{DynamicResource S.Nav.Settings}" VerticalAlignment="Center"
+                                       Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
+                        </DockPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="{x:Type views:AboutPage}">
+                        <DockPanel Height="40" Margin="4,0">
+                            <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" />
+                            <TextBlock Text="{DynamicResource S.Nav.About}" VerticalAlignment="Center"
+                                       Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
+                        </DockPanel>
+                    </ListBoxItem>
+                </ListBox>
+
                 <!-- 主导航（Win10 式：分组 + 项） -->
-                <ListBox x:Name="NavList" DockPanel.Dock="Top" Background="Transparent"
+                <ListBox x:Name="NavList" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto"
                          BorderThickness="0" SelectionMode="Single"
                          ItemContainerStyle="{StaticResource MetroNavItem}"
                          SelectionChanged="NavList_SelectionChanged"
@@ -239,29 +260,6 @@
                     </ListBoxItem>
                 </ListBox>
 
-                <!-- 底部：设置 / 关于 -->
-                <ListBox x:Name="FooterNav" DockPanel.Dock="Bottom" Background="Transparent"
-                         BorderThickness="0" SelectionMode="Single"
-                         ItemContainerStyle="{StaticResource MetroNavItem}"
-                         SelectionChanged="NavList_SelectionChanged">
-                    <ListBoxItem Tag="{x:Type views:SettingsPage}">
-                        <DockPanel Height="40" Margin="4,0">
-                            <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="16" VerticalAlignment="Center" />
-                            <TextBlock Text="{DynamicResource S.Nav.Settings}" VerticalAlignment="Center"
-                                       Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
-                        </DockPanel>
-                    </ListBoxItem>
-                    <ListBoxItem Tag="{x:Type views:AboutPage}">
-                        <DockPanel Height="40" Margin="4,0">
-                            <TextBlock DockPanel.Dock="Left" Width="40" FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="16" VerticalAlignment="Center" />
-                            <TextBlock Text="{DynamicResource S.Nav.About}" VerticalAlignment="Center"
-                                       Visibility="{Binding IsChecked, ElementName=Hamburger, Converter={StaticResource BoolToVis}}" />
-                        </DockPanel>
-                    </ListBoxItem>
-                </ListBox>
-
-                <!-- 中部弹性区 -->
-                <Border />
             </DockPanel>
         </Border>
 

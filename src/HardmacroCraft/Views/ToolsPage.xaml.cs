@@ -20,6 +20,29 @@ public partial class ToolsPage : Page
     public ToolsPage()
     {
         InitializeComponent();
+        // v0.16.1：Horizon 下载入口 —— 加载即爬取最新 release，状态栏直接显示版本/体积
+        Loaded += async (_, _) => await FetchHorizonInfoAsync();
+    }
+
+    /// <summary>爬取 GitHub 最新 release 信息并展示（失败静默，不打断页面使用）。</summary>
+    private async Task FetchHorizonInfoAsync()
+    {
+        try
+        {
+            TxtHorizonStatus.Text = (string?)TryFindResource("S.Tool.HorizonFetching") ?? "正在获取最新版本…";
+            var info = await HorizonService.FetchLatestAsync(App.LauncherService.Http);
+            if (info is null)
+            {
+                TxtHorizonStatus.Text = (string?)TryFindResource("S.Tool.HorizonNoAsset") ?? "未找到 Windows 安装包，请用「浏览器手动下载」。";
+                return;
+            }
+            TxtHorizonStatus.Text = $"Horizon {info.Version} · {info.AssetName} · 约 {info.SizeBytes / 1024 / 1024} MB"
+                + "\n" + ((string?)TryFindResource("S.Tool.HorizonRuntime") ?? "需正版 Minecraft Java 26.3；Java 运行时由 Horizon 启动器自动安装。");
+        }
+        catch
+        {
+            TxtHorizonStatus.Text = (string?)TryFindResource("S.Tool.HorizonManualHint") ?? "获取失败，可用「浏览器手动下载」。";
+        }
     }
 
     private void BtnGenerate_Click(object sender, RoutedEventArgs e)
@@ -133,6 +156,4 @@ public partial class ToolsPage : Page
     }
 
     private void BtnHorizonManual_Click(object sender, RoutedEventArgs e) => OpenUrl(HorizonService.ReleasesUrl);
-
-    private void BtnHorizonSite_Click(object sender, RoutedEventArgs e) => OpenUrl(HorizonService.SiteUrl);
 }
