@@ -10,7 +10,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- 应用底色：Win10 浅色纯白 -->
-    <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FFF2F2F2" />
 
     <!-- 按钮：Win10 经典（实底 / 灰描边 / 悬停蓝描边） -->
     <SolidColorBrush x:Key="ButtonBackground" Color="#FFE1E1E1" />
@@ -42,15 +42,15 @@
     <SolidColorBrush x:Key="ControlStrongFillColorDefault" Color="#FFE1E1E1" />
 
     <!-- 微妙填充（卡片 / 列表项悬停）：实色浅灰 -->
-    <SolidColorBrush x:Key="SubtleFillColorSecondary" Color="#FFEDEDED" />
-    <SolidColorBrush x:Key="SubtleFillColorTertiary" Color="#FFE6E6E6" />
+    <SolidColorBrush x:Key="SubtleFillColorSecondary" Color="#FFDADADA" />
+    <SolidColorBrush x:Key="SubtleFillColorTertiary" Color="#FFCCCCCC" />
 
     <!-- 卡片：实色 -->
     <SolidColorBrush x:Key="CardBackgroundFillColorDefault" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="CardBackgroundFillColorSecondary" Color="#FFF2F2F2" />
 
     <!-- 描边：Win10 式硬边 -->
-    <SolidColorBrush x:Key="ControlStrokeColorDefault" Color="#FFADADAD" />
+    <SolidColorBrush x:Key="ControlStrokeColorDefault" Color="#FFE6E6E6" />
     <SolidColorBrush x:Key="ControlStrokeColorSecondary" Color="#FF707070" />
     <SolidColorBrush x:Key="ControlStrokeColorTertiary" Color="#FFB0B0B0" />
     <SolidColorBrush x:Key="CardStrokeColorDefaultSolid" Color="#FFEBEBEB" />

@@ -243,4 +243,83 @@ public partial class ToolsPage : Page
     }
 
     private void BtnLeviDocs_Click(object sender, RoutedEventArgs e) => OpenUrl(BedrockService.LeviDocsUrl);
+
+    // ---- v0.16.4：Horizon（Rust 版 MC）启动 ----
+
+    private async void BtnHorizonLaunch_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnHorizonLaunch.IsEnabled = false;
+            TxtHorizonStatus.Text = "正在定位 Horizon 可执行文件…";
+            var exe = await HorizonLaunch.LaunchDetectedAsync();
+            TxtHorizonStatus.Text = "已启动：" + exe;
+        }
+        catch (System.IO.FileNotFoundException) { TxtHorizonStatus.Text = "未找到 Horizon——请先「下载 Rust 版 MC」并解压版本包，或安装后再试。"; }
+        catch (Exception ex) { TxtHorizonStatus.Text = "启动失败：" + ex.Message; }
+        finally { BtnHorizonLaunch.IsEnabled = true; }
+    }
+
+    // ---- v0.16.4：从其他启动器导入（用户友好迁移向导） ----
+
+    private async void BtnMigScan_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnMigScan.IsEnabled = false;
+            TxtMigStatus.Text = "正在扫描内置位置（官方 .minecraft / Prism / PolyMC / MultiMC 及常见嵌套布局）…";
+            var cands = await Task.Run(() =>
+                LauncherMigrationService.BuiltinRoots()
+                    .SelectMany(LauncherMigrationService.ScanFolder)
+                    .GroupBy(c => (c.LauncherKind, c.VersionName))
+                    .Select(g => g.First())
+                    .ToList());
+            CmbMigCandidates.ItemsSource = cands;
+            if (cands.Count > 0)
+            {
+                CmbMigCandidates.SelectedIndex = 0;
+                ChkMigIsolation.IsChecked = AppSettings.Instance.VersionIsolation;
+            }
+            TxtMigStatus.Text = cands.Count == 0
+                ? "内置位置没有发现可导入的版本——常见启动器布局（官方 .minecraft / instances 容器 / 二级版本目录）均已支持，也可把对应目录放进上述位置再扫。"
+                : $"发现 {cands.Count} 个候选版本，下拉选择后点「导入所选」。";
+        }
+        catch (Exception ex) { TxtMigStatus.Text = "扫描失败：" + ex.Message; }
+        finally { BtnMigScan.IsEnabled = true; }
+    }
+
+    private async void BtnMigImport_Click(object sender, RoutedEventArgs e)
+    {
+        if (CmbMigCandidates.SelectedItem is not MigrationCandidate cand)
+        {
+            TxtMigStatus.Text = "请先「扫描」并选择一个候选版本。";
+            return;
+        }
+        try
+        {
+            BtnMigImport.IsEnabled = false;
+            var isolation = ChkMigIsolation.IsChecked == true;
+            TxtMigStatus.Text = $"导入中：{cand.VersionName}（{cand.LauncherKind}，{(isolation ? "带实例数据" : "仅版本")}）…";
+            var name = await Task.Run(() => LauncherMigrationService.Import(cand, isolation));
+            TxtMigStatus.Text = $"✓ 导入完成，新版本名「{name}」——启动页 / 版本列表刷新后即可使用。";
+        }
+        catch (Exception ex) { TxtMigStatus.Text = "导入失败：" + ex.Message; }
+        finally { BtnMigImport.IsEnabled = true; }
+    }
+
+    // ---- v0.16.4：一键诊断报告 ----
+
+    private async void BtnDoctor_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnDoctor.IsEnabled = false;
+            TxtDoctorStatus.Text = "正在收集环境信息…";
+            var path = await DoctorService.WriteReportAsync();
+            TxtDoctorStatus.Text = "✓ 报告已生成：" + path;
+            HorizonService.RevealInExplorer(path);
+        }
+        catch (Exception ex) { TxtDoctorStatus.Text = "诊断失败：" + ex.Message; }
+        finally { BtnDoctor.IsEnabled = true; }
+    }
 }

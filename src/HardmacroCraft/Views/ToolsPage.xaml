@@ -65,6 +65,11 @@
                     </WrapPanel>
                     <ProgressBar x:Name="HorizonProgress" Height="4" Minimum="0" Maximum="100"
                                  Margin="0,8,0,0" Visibility="Collapsed" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnHorizonLaunch" MinHeight="32" MinWidth="130" Margin="0,0,8,0"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.HorizonLaunch}" Click="BtnHorizonLaunch_Click" />
+                    </WrapPanel>
                     <TextBlock x:Name="TxtHorizonStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
                                TextWrapping="Wrap" />
                 </StackPanel>
@@ -113,6 +118,44 @@
                         <ui:Button x:Name="BtnLeviDocs" MinHeight="32" MinWidth="110"
                                    Content="{DynamicResource S.Tool.LeviDocs}" Click="BtnLeviDocs_Click" />
                     </StackPanel>
+
+            <!-- ===== v0.16.4：从其他启动器导入（扫描内置位置 → 选择候选 → 隔离语义导入） ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.MigTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.MigHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ui:Button x:Name="BtnMigScan" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Tool.MigScan}" Click="BtnMigScan_Click" />
+                        <ComboBox x:Name="CmbMigCandidates" MinWidth="260" MinHeight="32" Margin="0,0,8,6" />
+                        <ui:Button x:Name="BtnMigImport" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                                   Appearance="Primary"
+                                   Content="{DynamicResource S.Tool.MigImport}" Click="BtnMigImport_Click" />
+                        <CheckBox x:Name="ChkMigIsolation" VerticalAlignment="Center" Margin="0,0,0,6"
+                                  Content="{DynamicResource S.Tool.MigIsolation}" />
+                    </WrapPanel>
+                    <TextBlock x:Name="TxtMigStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== v0.16.4：一键诊断报告（doctor） ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Tool.DoctorTitle}" Style="{StaticResource HmSectionTitle}"
+                               Margin="0,0,0,4" />
+                    <TextBlock Text="{DynamicResource S.Tool.DoctorHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,10" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal">
+                        <ui:Button x:Name="BtnDoctor" MinHeight="32" MinWidth="130"
+                                   Content="{DynamicResource S.Tool.DoctorGo}" Click="BtnDoctor_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="TxtDoctorStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
                 </StackPanel>
             </Border>
         </StackPanel>

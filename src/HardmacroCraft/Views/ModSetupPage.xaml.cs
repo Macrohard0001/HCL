@@ -33,6 +33,161 @@ public partial class ModSetupPage : Page
 
     private string? GameVersion => ExtractGameVersion(Version);
 
+    /// <summary>
+    /// v0.16.4：一键更新版本 —— 源版本 → 新 MC 版本：安装目标（fabric 自动带最新 loader），
+    /// 隔离语义下迁移实例数据；mods 逐个 SHA1 反查 Modrinth 更新，未匹配时按
+    /// fabric.mod.json 依赖范围评估沿用，仍不行才弹窗（保留旧版/不装 + 仅当前/全部）。
+    /// </summary>
+    private async void BtnUpdateVersion_Click(object sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        var src = Version;
+        if (src == null)
+        {
+            Log(App.Current.TryFindResource("S.Msu.NeedVersion") as string ?? "请先在上方选择一个已安装的游戏版本。");
+            return;
+        }
+        var target = TxtUpdateTarget.Text.Trim();
+        if (!VersionUpdateService.McVersionRegex().IsMatch(target))
+        {
+            Log(App.Current.TryFindResource("S.Msu.UpdateBadTarget") as string ?? "请输入有效的 MC 版本号，例如 1.21.4。");
+            return;
+        }
+        if (src == target)
+        {
+            Log(App.Current.TryFindResource("S.Msu.UpdateSame") as string ?? "目标版本与当前版本相同。");
+            return;
+        }
+        var root = AppSettings.Instance.GameRoot;
+        var srcDir = Path.Combine(root, "versions", src);
+        if (!Directory.Exists(srcDir))
+        {
+            Log($"✗ 源版本目录不存在：{srcDir}");
+            return;
+        }
+        _busy = true;
+        SetButtonsEnabled(false);
+        try
+        {
+            var loader = VersionUpdateService.DetectLoader(srcDir);
+            Log($"▶ {src}（{loader}）→ {target}：开始安装目标版本…");
+            if (loader == "fabric" || loader == "quilt")
+            {
+                // fabric/quilt：CmlLib 默认版本 id（fabric-loader-<v>-<mc>），由 FindInstalledTargetDir 按结尾匹配
+                await App.LauncherService.FabricInstallAsync(target, null);
+            }
+            else
+            {
+                if (loader == "forge")
+                    Log("· forge 自动换装载器暂不支持：安装原版目标版本，mod 兼容性将逐个询问。");
+                await App.LauncherService.InstallAsync(target, null, null);
+            }
+            var dstDir = VersionUpdateService.FindInstalledTargetDir(target, loader == "quilt" ? "fabric" : loader)
+                ?? throw new InvalidOperationException($"安装完成但未找到目标版本目录（{target}）。");
+            Log($"✓ 目标版本已安装：{Path.GetFileName(dstDir)}");
+
+            // 1) 实例数据迁移（隔离语义：per-version 根 = versions/<name>；非隔离时数据在共享根，无需迁移）
+            var isolation = VersionSettingsStore.EffectiveIsolation(src, AppSettings.Instance.VersionIsolation);
+            if (isolation)
+            {
+                var (copied, items) = VersionUpdateService.MigrateData(srcDir, dstDir);
+                Log($"✓ 实例数据迁移：{copied} 项（{string.Join(" / ", items)}）");
+            }
+            else
+            {
+                Log("· 非隔离模式：存档/配置位于共享根目录，无需迁移。");
+            }
+
+            // 2) mods 迁移 + 更新（未匹配 → 依赖范围评估 → 询问）
+            var mods = VersionUpdateService.ListMods(srcDir);
+            var dstMods = Path.Combine(dstDir, "mods");
+            Directory.CreateDirectory(dstMods);
+            var okUp = 0;
+            var keepOld = 0;
+            var skipped = 0;
+            VersionUpdateService.ModChoice? sessionChoice = null;
+            foreach (var jar in mods)
+            {
+                var fileName = Path.GetFileName(jar);
+                try
+                {
+                    var sha1 = VersionUpdateService.ComputeSha1(jar);
+                    var hit = await App.Modrinth.GetProjectBySha1Async(sha1);
+                    if (hit != null)
+                    {
+                        var compat = await App.Modrinth.GetLatestCompatibleFileAsync(hit.Slug, target,
+                            loader is "fabric" or "quilt" ? "fabric" : null);
+                        if (compat?.File != null)
+                        {
+                            var dest = Path.Combine(dstMods, compat.Value.File.Filename);
+                            if (!File.Exists(dest))
+                            {
+                                Log($"▶ {fileName} → 更新为 {compat.Value.File.Filename}（{hit.Title}）");
+                                await App.Modrinth.DownloadAsync(compat.Value.File.Url, dest, null);
+                            }
+                            else Log($"↷ {hit.Title} 已是最新（{compat.Value.File.Filename}）");
+                            okUp++;
+                            continue;
+                        }
+                    }
+                    // 未收录 / 无兼容文件：依赖范围评估
+                    var dep = VersionUpdateService.ReadFabricMcDep(jar);
+                    if (VersionUpdateService.IsMcDepSatisfied(dep, target))
+                    {
+                        File.Copy(jar, Path.Combine(dstMods, fileName), overwrite: false);
+                        Log($"↷ {fileName} 依赖范围兼容，直接沿用");
+                        keepOld++;
+                        continue;
+                    }
+                    // 询问（会话级“全部执行”短路）
+                    var reason = hit != null
+                        ? (App.Current.TryFindResource("S.Msu.AskReasonNoCompat") as string
+                            ?? "Modrinth 上没有兼容目标版本的文件。")
+                        : (App.Current.TryFindResource("S.Msu.AskReasonUnknown") as string
+                            ?? "未收录到 Modrinth，无法自动匹配新版本文件。");
+                    VersionUpdateService.ModChoice choice;
+                    if (sessionChoice.HasValue)
+                    {
+                        choice = sessionChoice.Value;
+                    }
+                    else
+                    {
+                        var asked = UpdateModAskDialog.Show(Window.GetWindow(this), fileName, reason);
+                        choice = asked.Choice;
+                        if (asked.ApplyAll) sessionChoice = asked.Choice;
+                    }
+                    if (choice == VersionUpdateService.ModChoice.KeepOld)
+                    {
+                        File.Copy(jar, Path.Combine(dstMods, fileName), overwrite: false);
+                        Log($"↷ {fileName} 按选择保留旧版本");
+                        keepOld++;
+                    }
+                    else
+                    {
+                        Log($"✗ {fileName} 按选择不安装");
+                        skipped++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"✗ {fileName}: {ex.Message}");
+                }
+            }
+            Log($"✔ 更新完成：自动更新 {okUp} · 沿用旧版 {keepOld} · 不安装 {skipped}（共 {mods.Count} 个 mod）");
+            Log(App.Current.TryFindResource("S.Msu.UpdateDoneHint") as string
+                ?? "新版本已就绪——请在启动页选择它开始游戏。");
+        }
+        catch (Exception ex)
+        {
+            Log($"✗ 更新失败：{ex.Message}");
+        }
+        finally
+        {
+            _busy = false;
+            SetButtonsEnabled(true);
+        }
+    }
+
     private string TargetDir(string type)
     {
         var isolation = VersionSettingsStore.EffectiveIsolation(

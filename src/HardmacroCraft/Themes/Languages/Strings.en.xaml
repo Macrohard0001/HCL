@@ -764,4 +764,26 @@
     <sys:String x:Key="S.Tool.LeviHint">Instance isolation / mod management / LeviLamina loader / CurseForge integration. Note: LeviLauncher officially requires "a legitimate licensed copy + Microsoft account sign-in", same as us; grab the latest release or read the docs.</sys:String>
     <sys:String x:Key="S.Tool.LeviDownload">Download latest LeviLauncher</sys:String>
     <sys:String x:Key="S.Tool.LeviDocs">Open official docs</sys:String>
+    <sys:String x:Key="S.Tool.HorizonLaunch">Launch Horizon</sys:String>
+    <sys:String x:Key="S.Tool.MigTitle">Import from other launchers</sys:String>
+    <sys:String x:Key="S.Tool.MigHint">Scans known locations of vanilla .minecraft and common launchers (Prism / PolyMC / MultiMC etc.) and brings versions over: with isolation, saves / mods / config / resource packs / shaders are merged into the per-instance directory.</sys:String>
+    <sys:String x:Key="S.Tool.MigScan">Scan</sys:String>
+    <sys:String x:Key="S.Tool.MigImport">Import selected</sys:String>
+    <sys:String x:Key="S.Tool.MigIsolation">Import data with version isolation</sys:String>
+    <sys:String x:Key="S.Tool.DoctorTitle">One-click diagnostics</sys:String>
+    <sys:String x:Key="S.Tool.DoctorHint">Collects system / game root / disk / memory / Java / download source / installed versions / Horizon &amp; Bedrock detection into HmDoctor-report.txt for troubleshooting.</sys:String>
+    <sys:String x:Key="S.Tool.DoctorGo">Generate report</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTitle">One-click version update</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTargetPh">Target, e.g. 1.21.4</sys:String>
+    <sys:String x:Key="S.Msu.UpdateGo">Update to new version with data</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTip">Installs the target version and migrates saves / config / resource packs / mods (auto-matched on Modrinth; unmatched mods ask one by one: keep old / skip, with apply-to-all).</sys:String>
+    <sys:String x:Key="S.Msu.UpdateBadTarget">Enter a valid MC version, e.g. 1.21.4.</sys:String>
+    <sys:String x:Key="S.Msu.UpdateSame">Target equals the current version.</sys:String>
+    <sys:String x:Key="S.Msu.UpdateDoneHint">The new version is ready — pick it on the launch page to play.</sys:String>
+    <sys:String x:Key="S.Msu.AskTitle">No compatible new-version mod found</sys:String>
+    <sys:String x:Key="S.Msu.AskApplyAll">Apply this choice to all remaining unmatched mods</sys:String>
+    <sys:String x:Key="S.Msu.AskKeep">Keep old version</sys:String>
+    <sys:String x:Key="S.Msu.AskSkip">Skip this mod</sys:String>
+    <sys:String x:Key="S.Msu.AskReasonNoCompat">No file on Modrinth is compatible with the target version.</sys:String>
+    <sys:String x:Key="S.Msu.AskReasonUnknown">Not listed on Modrinth; cannot auto-match a new-version file.</sys:String>
 </ResourceDictionary>

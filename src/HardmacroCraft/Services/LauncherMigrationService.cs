@@ -135,12 +135,15 @@ public static class LauncherMigrationService
         return name;
     }
 
-    private static void CopyDirectory(string src, string dst)
+    private static void CopyDirectory(string src, string dst) => CopyDir(src, dst, overwrite: false);
+
+    /// <summary>v0.16.4：公开目录复制（一键更新版本的数据迁移复用；merge 语义 = 同名文件按 overwrite 决定）。</summary>
+    public static void CopyDir(string src, string dst, bool overwrite)
     {
         Directory.CreateDirectory(dst);
         foreach (var file in Directory.GetFiles(src))
-            File.Copy(file, Path.Combine(dst, Path.GetFileName(file)), overwrite: false);
+            File.Copy(file, Path.Combine(dst, Path.GetFileName(file)), overwrite);
         foreach (var dir in Directory.GetDirectories(src))
-            CopyDirectory(dir, Path.Combine(dst, Path.GetFileName(dir)));
+            CopyDir(dir, Path.Combine(dst, Path.GetFileName(dir)), overwrite);
     }
 }

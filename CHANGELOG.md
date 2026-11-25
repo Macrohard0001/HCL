@@ -2,6 +2,38 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.4
+
+**侧栏滚轮彻底修复 + Metro 对齐 Win10 设置 + Horizon 启动 + 迁移向导 + 一键更新版本 + 诊断报告**
+
+### 侧栏滚轮（终于）
+
+- 根因：NavList 自带内部 ScrollViewer（Auto）——内容不超过视口时它"吞掉"滚轮（标记 Handled）却没有可滚内容，外层又没有能滚的容器。现在内部滚动 Disabled + 外置 PaneScroll（DockPanel 填充子项）统一承担，滚轮事件自然冒泡到能滚的容器。
+
+### Metro 对齐《Windows 10 设置界面》
+
+- 浅色：窗口/导航 #F2F2F2、卡片白底 + #E6E6E6 描边、悬停 #DADADA、选中 #CCCCCC + 左侧强调条；深色同步调校
+- 页面标题 28px Light 字重、卡片与列表项全部方角（仅 Metro 模式覆盖，Fluent 不受影响）
+
+### Horizon 启动 + 实用功能
+
+- **启动 Horizon**：候选 exe 定位（候选名 + 唯一顶层 exe 兜底）+ 下载目录版本包扫描兜底，一键拉起
+- **一键诊断报告（doctor）**：系统/根目录/磁盘/内存/Java/源/代理/已装版本/Horizon 与基岩版检测 → HmDoctor-report.txt
+
+### 从其他启动器导入（用户友好迁移）
+
+- 工具页向导：一键扫描内置位置（官方 .minecraft / Prism / PolyMC / MultiMC / 二级版本目录布局）→ 下拉选候选 → 隔离语义导入（saves/mods/config/资源包/光影/options.txt 并入实例目录）→ 后台复制不卡 UI
+
+### 一键更新版本（一键配置页）
+
+- 输入目标 MC 版本 → 安装（fabric 自动带最新 loader）→ 隔离语义迁移实例数据
+- mods 逐个 SHA1 反查 Modrinth 自动匹配最新兼容文件；未收录/无兼容文件时先按 jar 内 fabric.mod.json 的 minecraft 依赖范围评估能否沿用；仍不行弹窗询问：**保留旧版本 / 不安装此 mod**，可勾选**对余下未匹配项全部执行此操作**（仅当前/全部）
+- 依赖范围评估器（* / = / >= / > / <= / < / 空格 AND / 1.21.x 前缀）配 13 项运行期断言——实跑抓出并修掉两处方向性 bug（比较参数反序、运算符未剥即参与比较）
+
+### 质量
+
+- 回归测试 702 → **710 全绿**（+8）
+
 ## v0.16.3
 
 **MCBE 启动推进（LeviLauncher 对标）+ 多包检测 + 深链一键加服**

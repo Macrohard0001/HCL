@@ -764,4 +764,26 @@
     <sys:String x:Key="S.Tool.LeviHint">实例隔离 / mod 管理 / LeviLamina 加载器 / CurseForge 集成。注意：LeviLauncher 官方要求「正版授权副本 + 微软账号登录」，与我们一致；下载最新 Release 或查看文档。</sys:String>
     <sys:String x:Key="S.Tool.LeviDownload">下载最新 LeviLauncher</sys:String>
     <sys:String x:Key="S.Tool.LeviDocs">打开官方文档</sys:String>
+    <sys:String x:Key="S.Tool.HorizonLaunch">启动 Horizon</sys:String>
+    <sys:String x:Key="S.Tool.MigTitle">从其他启动器导入</sys:String>
+    <sys:String x:Key="S.Tool.MigHint">扫描官方 .minecraft 与 Prism / PolyMC / MultiMC 等常见启动器位置，把版本（含整合数据）搬进来：隔离导入时存档 / mods / 配置 / 资源包 / 光影并入对应实例目录。</sys:String>
+    <sys:String x:Key="S.Tool.MigScan">扫描</sys:String>
+    <sys:String x:Key="S.Tool.MigImport">导入所选</sys:String>
+    <sys:String x:Key="S.Tool.MigIsolation">按版本隔离导入数据</sys:String>
+    <sys:String x:Key="S.Tool.DoctorTitle">一键诊断报告</sys:String>
+    <sys:String x:Key="S.Tool.DoctorHint">汇总系统 / 游戏根目录 / 磁盘 / 内存 / Java / 下载源 / 已装版本 / Horizon 与基岩版检测，生成 HmDoctor-report.txt 供排障与求助。</sys:String>
+    <sys:String x:Key="S.Tool.DoctorGo">生成报告</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTitle">一键更新版本</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTargetPh">目标版本，如 1.21.4</sys:String>
+    <sys:String x:Key="S.Msu.UpdateGo">带数据更新到新版本</sys:String>
+    <sys:String x:Key="S.Msu.UpdateTip">安装目标版本并迁移存档 / 配置 / 资源包 / mods（Modrinth 自动匹配最新兼容文件，未匹配时逐个询问：保留旧版本 / 不安装此 mod，可全选）。</sys:String>
+    <sys:String x:Key="S.Msu.UpdateBadTarget">请输入有效的 MC 版本号，例如 1.21.4。</sys:String>
+    <sys:String x:Key="S.Msu.UpdateSame">目标版本与当前版本相同。</sys:String>
+    <sys:String x:Key="S.Msu.UpdateDoneHint">新版本已就绪——请在启动页选择它开始游戏。</sys:String>
+    <sys:String x:Key="S.Msu.AskTitle">未匹配到兼容的新版本 mod</sys:String>
+    <sys:String x:Key="S.Msu.AskApplyAll">对余下未匹配项全部执行此操作</sys:String>
+    <sys:String x:Key="S.Msu.AskKeep">保留旧版本</sys:String>
+    <sys:String x:Key="S.Msu.AskSkip">不安装此 mod</sys:String>
+    <sys:String x:Key="S.Msu.AskReasonNoCompat">Modrinth 上没有兼容目标版本的文件。</sys:String>
+    <sys:String x:Key="S.Msu.AskReasonUnknown">未收录到 Modrinth，无法自动匹配新版本文件。</sys:String>
 </ResourceDictionary>

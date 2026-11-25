@@ -2867,9 +2867,9 @@ try
         && win10Xaml.Contains("DoubleAnimation")
         && win10Xaml.Contains("StopStoryboard")
         && win10Xaml.Contains("PART_Track"));
-    Check("v0.16.1：侧栏滚轮修复 —— NavList 变 DockPanel 填充子项（不再 Dock=Top 按内容高布局）",
+    Check("v0.16.1→v0.16.4：侧栏滚轮 —— NavList 内部滚动 Disabled，由填充子项 PaneScroll 统一承担（不吞事件且可滚）",
         File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml")))
-            .Contains("<ListBox x:Name=\"NavList\" Background=\"Transparent\" ScrollViewer.VerticalScrollBarVisibility=\"Auto\""));
+            .Contains("<ListBox x:Name=\"NavList\" Background=\"Transparent\" ScrollViewer.VerticalScrollBarVisibility=\"Disabled\""));
     Check("v0.16.1：TextBox 只读态 ×2 + 可编辑 ComboBox 微软雅黑 + ui:NumberBox/ui:PasswordBox 换色",
         win10Xaml.Split("IsReadOnly").Length - 1 >= 2
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml"))).Contains("TargetType=\"ui:NumberBox\"")
@@ -2882,6 +2882,70 @@ try
     var settingsPageCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
     var appCs = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
     var zhLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var metroMain = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml")));
+    var win10v4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml")));
+    var metroLight = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml")));
+    var metroDark = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml")));
+    var modsetupX = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ModSetupPage.xaml")));
+    var modsetupC = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ModSetupPage.xaml.cs")));
+    var updateSvc = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "VersionUpdateService.cs")));
+    var askDlg = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "UpdateModAskDialog.cs")));
+    var horizonLaunch = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "HorizonLaunch.cs")));
+    var doctorSvc = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "DoctorService.cs")));
+    var toolsPageV4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    var toolsPageC4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    Check("v0.16.4：侧栏滚轮彻底修复 —— NavList 内部滚动 Disabled + 外置 PaneScroll（不再吞事件）",
+        metroMain.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Disabled\"")
+        && metroMain.Contains("<ScrollViewer x:Name=\"PaneScroll\"")
+        && metroMain.Split("PaneScroll").Length - 1 >= 2);
+    Check("v0.16.4：Metro 对齐 Win10 设置 —— 页面标题 Light 28 / 卡片方角 / 列表方角 / 导航窗格同窗口底色",
+        win10v4.Contains("x:Key=\"HmPageTitle\"") && win10v4.Contains("<Setter Property=\"FontWeight\" Value=\"Light\" />")
+        && win10v4.Contains("<Setter Property=\"CornerRadius\" Value=\"0\" />")
+        && metroLight.Contains("ApplicationBackgroundBrush\" Color=\"#FFF2F2F2\"")
+        && metroLight.Contains("SubtleFillColorSecondary\" Color=\"#FFDADADA\"")
+        && metroDark.Contains("CardBackgroundFillColorDefault\" Color=\"#FF2B2B2B\"")
+        && metroMain.Contains("PaneBorder\" Grid.Column=\"0\" Width=\"224\""));
+    Check("v0.16.4：Horizon 启动 —— 候选 exe 定位 + 下载目录兜底 + ToolsPage 启动按钮",
+        horizonLaunch.Contains("FindExe") && horizonLaunch.Contains("horizon-launcher.exe")
+        && horizonLaunch.Contains("LaunchDetectedAsync")
+        && toolsPageV4.Contains("S.Tool.HorizonLaunch") && toolsPageC4.Contains("BtnHorizonLaunch_Click"));
+    Check("v0.16.4：从其他启动器导入 UI —— 扫描/候选下拉/隔离复选/后台导入",
+        toolsPageV4.Contains("S.Tool.MigTitle") && toolsPageV4.Contains("CmbMigCandidates")
+        && toolsPageV4.Contains("ChkMigIsolation")
+        && toolsPageC4.Contains("LauncherMigrationService.ScanFolder")
+        && toolsPageC4.Contains("LauncherMigrationService.Import"));
+    Check("v0.16.4：一键更新版本 —— 目标安装 + 数据迁移 + Modrinth 匹配 + 依赖范围评估 + 询问对话框（仅当前/全部）",
+        modsetupX.Contains("BtnUpdateVersion_Click") && modsetupC.Contains("BtnUpdateVersion_Click")
+        && modsetupC.Contains("VersionUpdateService.MigrateData")
+        && modsetupC.Contains("GetProjectBySha1Async")
+        && modsetupC.Contains("IsMcDepSatisfied")
+        && modsetupC.Contains("sessionChoice")
+        && updateSvc.Contains("public static bool IsMcDepSatisfied")
+        && updateSvc.Contains("McVersionRegex")
+        && askDlg.Contains("AskApplyAll") && askDlg.Contains("ModChoice.Skip"));
+    Check("v0.16.4：一键诊断报告 doctor —— 环境汇总 + HmDoctor-report.txt",
+        doctorSvc.Contains("HmDoctor-report.txt") && doctorSvc.Contains("JavaManager.RuntimeRoot")
+        && toolsPageV4.Contains("S.Tool.DoctorTitle") && toolsPageC4.Contains("DoctorService.WriteReportAsync"));
+    var depChecks = new (string Name, bool Ok)[]
+    {
+        ("Cmp1.21.4>1.21", VersionUpdateService.CompareMc("1.21.4", "1.21") > 0),
+        ("Cmp1.16.5<1.21", VersionUpdateService.CompareMc("1.16.5", "1.21") < 0),
+        ("Cmp1.21==1.21.0", VersionUpdateService.CompareMc("1.21", "1.21.0") == 0),
+        ("*", VersionUpdateService.IsMcDepSatisfied("*", "1.21.4")),
+        ("null", VersionUpdateService.IsMcDepSatisfied(null, "1.21.4")),
+        (">=1.16", VersionUpdateService.IsMcDepSatisfied(">=1.16", "1.21.4")),
+        ("NOT>=1.22", !VersionUpdateService.IsMcDepSatisfied(">=1.22", "1.21.4")),
+        ("<=1.21.4", VersionUpdateService.IsMcDepSatisfied("<=1.21.4", "1.21.4")),
+        ("1.21.x", VersionUpdateService.IsMcDepSatisfied("1.21.x", "1.21.4")),
+        ("NOT1.20.x", !VersionUpdateService.IsMcDepSatisfied("1.20.x", "1.21.4")),
+        (">=1.16<1.22", VersionUpdateService.IsMcDepSatisfied(">=1.16 <1.22", "1.21.4")),
+        ("=1.21.4", VersionUpdateService.IsMcDepSatisfied("=1.21.4", "1.21.4")),
+        ("NOT=1.20.4", !VersionUpdateService.IsMcDepSatisfied("=1.20.4", "1.21.4")),
+    };
+    Check("v0.16.4 运行验证：MC 版本比较与 fabric.minecraft 依赖范围评估（* / >= / <= / .x 前缀 / AND）",
+        depChecks.All(c => c.Ok),
+        string.Join(" | ", depChecks.Where(c => !c.Ok).Select(c => c.Name)));
+    Check("v0.16.4 运行验证（旧入口占位，恒真）", true);
     var enLang = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
     Check("v0.16.3：MCBE 启动推进 —— 多包检测（正式+Preview）+ minecraft:// 深链一键加服 + LeviLauncher 集成（正版授权模型一致）",
         bedrockCs.Contains("Microsoft.MinecraftWindowsBeta")

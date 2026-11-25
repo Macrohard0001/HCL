@@ -42,15 +42,15 @@
     <SolidColorBrush x:Key="ControlStrongFillColorDefault" Color="#FF333333" />
 
     <!-- 微妙填充（卡片 / 列表项悬停）：实色深灰 -->
-    <SolidColorBrush x:Key="SubtleFillColorSecondary" Color="#FF3A3A3A" />
-    <SolidColorBrush x:Key="SubtleFillColorTertiary" Color="#FF404040" />
+    <SolidColorBrush x:Key="SubtleFillColorSecondary" Color="#FF333333" />
+    <SolidColorBrush x:Key="SubtleFillColorTertiary" Color="#FF3B3B3B" />
 
     <!-- 卡片：实色 -->
     <SolidColorBrush x:Key="CardBackgroundFillColorDefault" Color="#FF2B2B2B" />
     <SolidColorBrush x:Key="CardBackgroundFillColorSecondary" Color="#FF333333" />
 
     <!-- 描边：Win10 式硬边 -->
-    <SolidColorBrush x:Key="ControlStrokeColorDefault" Color="#FF454545" />
+    <SolidColorBrush x:Key="ControlStrokeColorDefault" Color="#FF3D3D3D" />
     <SolidColorBrush x:Key="ControlStrokeColorSecondary" Color="#FF5A5A5A" />
     <SolidColorBrush x:Key="ControlStrokeColorTertiary" Color="#FF4A4A4A" />
     <SolidColorBrush x:Key="CardStrokeColorDefaultSolid" Color="#FF3D3D3D" />

@@ -82,7 +82,7 @@
 
         <!-- 左侧导航窗格（Win10 NavigationView 式） -->
         <Border x:Name="PaneBorder" Grid.Column="0" Width="224"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                 BorderThickness="0,0,1,0">
             <DockPanel>
@@ -116,15 +116,20 @@
                     </ListBoxItem>
                 </ListBox>
 
-                <!-- 主导航（Win10 式：分组 + 项） -->
-                <ListBox x:Name="NavList" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                <!-- 主导航（Win10 式：分组 + 项）。
+                     v0.16.4 滚轮彻底修复：此前 ListBox 自带内部 ScrollViewer（Auto）——
+                     内容不超过视口时它"吞掉"滚轮（标记 Handled）却没有可滚内容，外层
+                     又没有能滚的容器 → 侧栏滚轮失效。现在禁用内部滚动（Disabled 不再
+                     Handled），外置 PaneScroll 统一承担滚动；侧栏项数少，放弃虚拟化无碍。 -->
+                <ScrollViewer x:Name="PaneScroll" VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <ListBox x:Name="NavList" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                          BorderThickness="0" SelectionMode="Single"
                          ItemContainerStyle="{StaticResource MetroNavItem}"
-                         SelectionChanged="NavList_SelectionChanged"
-                         VirtualizingPanel.ScrollUnit="Pixel">
+                         SelectionChanged="NavList_SelectionChanged">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <VirtualizingStackPanel />
+                            <StackPanel />
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBoxItem Tag="{x:Type views:HomePage}">
@@ -259,6 +264,7 @@
                         </DockPanel>
                     </ListBoxItem>
                 </ListBox>
+                </ScrollViewer>
 
             </DockPanel>
         </Border>
