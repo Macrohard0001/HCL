@@ -1,0 +1,61 @@
+<!--
+    v0.16.7：种子地图工具（独立窗口版，自 ToolsPage 卡片迁移）。
+    史莱姆区块算法图层 + 拖动平移 / 滚轮缩放 / 光标坐标 / 大图导出。
+-->
+<UserControl x:Class="HardmacroCraft.Views.Tools.SeedMapTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.SlimeTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,8" />
+        <TextBlock Text="{DynamicResource S.Tool.SlimeHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,12" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBox x:Name="TxtSeed" Grid.Column="0" Height="34"
+                        PlaceholderText="{DynamicResource S.Tool.SeedPlaceholder}" />
+            <ui:TextBox x:Name="TxtRange" Grid.Column="2" Height="34"
+                        PlaceholderText="{DynamicResource S.Tool.RangePlaceholder}" />
+            <ui:Button x:Name="BtnGenerate" Grid.Column="4" Appearance="Primary" Height="34"
+                       Padding="18,0" Content="{DynamicResource S.Tool.Generate}"
+                       Click="BtnGenerate_Click" />
+        </Grid>
+        <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,10,0,0"
+                   TextWrapping="Wrap" />
+        <TextBlock x:Name="TxtSeedPos" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" FontWeight="Medium" Visibility="Collapsed" />
+        <!-- 内置种子地图 —— 拖动平移 / 滚轮缩放 / 光标实时区块与方块坐标；
+             地图本体是纯算法生成的史莱姆区块图层（无地形生成依赖），最佳挂机点黄色高亮 -->
+        <Grid x:Name="SeedMapHost" MaxHeight="460" Margin="0,10,0,0"
+              Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+              ClipToBounds="True" Cursor="Cross" Visibility="Collapsed"
+              MouseLeftButtonDown="SeedMap_MouseDown" MouseMove="SeedMap_MouseMove"
+              MouseLeftButtonUp="SeedMap_MouseUp" MouseLeave="SeedMap_MouseLeave"
+              MouseWheel="SeedMap_MouseWheel">
+            <Image x:Name="SeedMapImage" HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="SeedMapScale" />
+                        <TranslateTransform x:Name="SeedMapTranslate" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+        </Grid>
+        <WrapPanel Margin="0,10,0,0">
+            <ui:Button x:Name="BtnSeedBig" MinHeight="30" MinWidth="130" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.SeedBig}" Click="BtnSeedBig_Click" />
+            <ui:Button x:Name="BtnSeedReset" MinHeight="30" MinWidth="110" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.SeedReset}" Click="BtnSeedReset_Click" />
+            <TextBlock Text="{DynamicResource S.Tool.SeedLegend}" Style="{StaticResource HmHint}"
+                       VerticalAlignment="Center" Margin="8,0,0,6" TextWrapping="Wrap" />
+        </WrapPanel>
+    </StackPanel>
+</UserControl>

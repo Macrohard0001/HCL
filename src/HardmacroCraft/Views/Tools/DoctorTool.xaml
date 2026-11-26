@@ -1,0 +1,18 @@
+<!-- v0.16.7：一键诊断（独立窗口版） -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.DoctorTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.DoctorTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.DoctorHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal">
+            <ui:Button x:Name="BtnDoctor" MinHeight="32" MinWidth="130" Appearance="Primary"
+                       Content="{DynamicResource S.Tool.DoctorGo}" Click="BtnDoctor_Click" />
+        </StackPanel>
+        <TextBlock x:Name="TxtDoctorStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

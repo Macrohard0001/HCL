@@ -1,0 +1,22 @@
+<!-- v0.16.7：实例备份 / 恢复（独立窗口版） -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.BackupTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.BackupTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.BackupHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <WrapPanel>
+            <ComboBox x:Name="CmbBackupVersion" MinWidth="220" MinHeight="32" Margin="0,0,8,6" />
+            <ui:Button x:Name="BtnBackupDo" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.BackupDo}" Click="BtnBackupDo_Click" />
+            <ui:Button x:Name="BtnBackupRestore" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.BackupRestore}" Click="BtnBackupRestore_Click" />
+        </WrapPanel>
+        <TextBlock x:Name="TxtBackupStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

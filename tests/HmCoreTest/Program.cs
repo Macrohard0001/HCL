@@ -2790,9 +2790,13 @@ try
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("TextBoxBorderBrushFocused")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml"))).Contains("ListBoxItemSelectedBackground"));
     // ===== v0.15.15：页面级换骨（用户截图实证 Frame/Page 隔离挡住 app 级隐式样式） =====
-    Check("v0.15.15：standard Button 隐式样式已从换骨层移除（窗控钮回归 MahApps 无边框，v0.15.14 截图实证漏样式）",
-        !win10Xaml.Contains("<Style TargetType=\"Button\">")
-        && !win10Xaml.Contains("Win10.Button.Template")
+    // v0.16.15→v0.16.7：standard Button 隐式样式回归 —— Win10 扁平无框规格
+    //（v0.15.15 曾因实底样式漏到窗控钮而注销；v0.16.7 查明"右上角按钮边框"真因 =
+    // 无样式默认态落到 Wpf.Ui Win11 隐式 Button（1px 描边），透明扁平样式才是正解）
+    Check("v0.16.7：standard Button 隐式样式 = Win10 扁平无框（窗控钮默认态不再落 Win11 描边样式）",
+        win10Xaml.Contains("<Style TargetType=\"Button\">")
+        && win10Xaml.Contains("<Setter Property=\"BorderThickness\" Value=\"0\" />")
+        && win10Xaml.Contains("<Setter Property=\"Background\" Value=\"Transparent\" />")
         && win10Xaml.Contains("<Style TargetType=\"ui:Button\">"));
     Check("v0.15.15：换骨层合并进页面级资源（Navigate 创建页时 page.Resources.MergedDictionaries）+ 首航建立导航选中态",
         metroMainCs.Contains("page.Resources.MergedDictionaries.Add")
@@ -2806,7 +2810,9 @@ try
     var playTime = ReadSrc("Services", "PlayTimeStore.cs");
     var proxyHelper = ReadSrc("Services", "ProxyHelper.cs");
     var toolsPageXaml = ReadSrc("Views", "ToolsPage.xaml");
-    var toolsPageCs = ReadSrc("Views", "ToolsPage.xaml.cs");
+    // v0.16.7：Horizon 工具 UI 迁移到 Views/Tools/HorizonTool.xaml(.cs)
+    var horizonToolXaml = ReadSrc("Views", "Tools", "HorizonTool.xaml");
+    var horizonToolCs = ReadSrc("Views", "Tools", "HorizonTool.xaml.cs");
     var settingsXaml = ReadSrc("Views", "SettingsPage.xaml");
     var launcherSvc = ReadSrc("Services", "LauncherService.cs");
     Check("v0.16.0/0.16.1：Horizon 下载入口（出处标注 + 去广告化：加载即爬取最新版 + 应用内/手动下载）",
@@ -2816,15 +2822,15 @@ try
         && horizonSvc.Contains("差分测试")
         && horizonSvc.Contains("Java 运行时")
         && horizonSvc.Contains("DownloadEngine.DownloadFileAsync")
-        && toolsPageXaml.Contains("S.Tool.HorizonHint")
-        && toolsPageXaml.Contains("S.Tool.HorizonManual")
-        && !toolsPageXaml.Contains("S.Tool.HorizonSource")
-        && !toolsPageXaml.Contains("S.Tool.HorizonSite")
-        && toolsPageCs.Contains("FetchHorizonInfoAsync")
-        && toolsPageCs.Contains("HorizonService.DetectInstall")
-        && toolsPageCs.Contains("HorizonService.ReleasesUrl")
-        && toolsPageCs.Contains("S.Tool.HorizonDone")
-        && toolsPageXaml.Contains("HorizonProgress"));
+        && horizonToolXaml.Contains("S.Tool.HorizonHint")
+        && horizonToolXaml.Contains("S.Tool.HorizonManual")
+        && !horizonToolXaml.Contains("S.Tool.HorizonSource")
+        && !horizonToolXaml.Contains("S.Tool.HorizonSite")
+        && horizonToolCs.Contains("FetchHorizonInfoAsync")
+        && horizonToolCs.Contains("HorizonService.DetectInstall")
+        && horizonToolCs.Contains("HorizonService.ReleasesUrl")
+        && horizonToolCs.Contains("S.Tool.HorizonDone")
+        && horizonToolXaml.Contains("HorizonProgress"));
     Check("v0.16.0：崩溃智能分析（本地规则引擎 + HomePage 异常退出自动诊断 + PCL2/HMCL 出处）",
         crashAnalyzer.Contains("DiagnoseLatest")
         && crashAnalyzer.Contains("UnsupportedClassVersionError")
@@ -2893,7 +2899,12 @@ try
     var horizonLaunch = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "HorizonLaunch.cs")));
     var doctorSvc = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "DoctorService.cs")));
     var toolsPageV4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
-    var toolsPageC4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    var horizonToolV4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "HorizonTool.xaml")));
+    var horizonToolC4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "HorizonTool.xaml.cs")));
+    var migrationToolX4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "MigrationTool.xaml")));
+    var migrationToolC4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "MigrationTool.xaml.cs")));
+    var doctorToolX4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "DoctorTool.xaml")));
+    var doctorToolC4 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "DoctorTool.xaml.cs")));
     Check("v0.16.4：侧栏滚轮彻底修复 —— NavList 内部滚动 Disabled + 外置 PaneScroll（不再吞事件）",
         metroMain.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Disabled\"")
         && metroMain.Contains("<ScrollViewer x:Name=\"PaneScroll\"")
@@ -2905,15 +2916,15 @@ try
         && metroLight.Contains("SubtleFillColorSecondary\" Color=\"#FFDADADA\"")
         && metroDark.Contains("CardBackgroundFillColorDefault\" Color=\"#FF2B2B2B\"")
         && metroMain.Contains("PaneBorder\" Grid.Column=\"0\" Width=\"224\""));
-    Check("v0.16.4：Horizon 启动 —— 候选 exe 定位 + 下载目录兜底 + ToolsPage 启动按钮",
+    Check("v0.16.4：Horizon 启动 —— 候选 exe 定位 + 下载目录兜底 + 工具启动按钮（v0.16.7 迁移 HorizonTool）",
         horizonLaunch.Contains("FindExe") && horizonLaunch.Contains("horizon-launcher.exe")
         && horizonLaunch.Contains("LaunchDetectedAsync")
-        && toolsPageV4.Contains("S.Tool.HorizonLaunch") && toolsPageC4.Contains("BtnHorizonLaunch_Click"));
-    Check("v0.16.4：从其他启动器导入 UI —— 扫描/候选下拉/隔离复选/后台导入",
-        toolsPageV4.Contains("S.Tool.MigTitle") && toolsPageV4.Contains("CmbMigCandidates")
-        && toolsPageV4.Contains("ChkMigIsolation")
-        && toolsPageC4.Contains("LauncherMigrationService.ScanFolder")
-        && toolsPageC4.Contains("LauncherMigrationService.Import"));
+        && horizonToolV4.Contains("S.Tool.HorizonLaunch") && horizonToolC4.Contains("BtnHorizonLaunch_Click"));
+    Check("v0.16.4：从其他启动器导入 UI —— 扫描/候选下拉/隔离复选/后台导入（v0.16.7 迁移 MigrationTool）",
+        migrationToolX4.Contains("S.Tool.MigTitle") && migrationToolX4.Contains("CmbMigCandidates")
+        && migrationToolX4.Contains("ChkMigIsolation")
+        && migrationToolC4.Contains("LauncherMigrationService.ScanFolder")
+        && migrationToolC4.Contains("LauncherMigrationService.Import"));
     Check("v0.16.4：一键更新版本 —— 目标安装 + 数据迁移 + Modrinth 匹配 + 依赖范围评估 + 询问对话框（仅当前/全部）",
         modsetupX.Contains("BtnUpdateVersion_Click") && modsetupC.Contains("BtnUpdateVersion_Click")
         && modsetupC.Contains("VersionUpdateService.MigrateData")
@@ -2923,9 +2934,9 @@ try
         && updateSvc.Contains("public static bool IsMcDepSatisfied")
         && updateSvc.Contains("McVersionRegex")
         && askDlg.Contains("AskApplyAll") && askDlg.Contains("ModChoice.Skip"));
-    Check("v0.16.4：一键诊断报告 doctor —— 环境汇总 + HmDoctor-report.txt",
+    Check("v0.16.4：一键诊断报告 doctor —— 环境汇总 + HmDoctor-report.txt（v0.16.7 迁移 DoctorTool）",
         doctorSvc.Contains("HmDoctor-report.txt") && doctorSvc.Contains("JavaManager.RuntimeRoot")
-        && toolsPageV4.Contains("S.Tool.DoctorTitle") && toolsPageC4.Contains("DoctorService.WriteReportAsync"));
+        && doctorToolX4.Contains("S.Tool.DoctorTitle") && doctorToolC4.Contains("DoctorService.WriteReportAsync"));
     var depChecks = new (string Name, bool Ok)[]
     {
         ("Cmp1.21.4>1.21", VersionUpdateService.CompareMc("1.21.4", "1.21") > 0),
@@ -2950,13 +2961,15 @@ try
     // ================= v0.16.5：世界地图渲染 + 实例备份/恢复（KAMUCL 实用功能整合） =================
     var mapR = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "WorldMapRenderer.cs")));
     var bkS = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Services", "InstanceBackupService.cs")));
-    var toolsX5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
-    var toolsC5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
-    Check("v0.16.5：世界地图卡（扫描/下拉/渲染）+ 实例备份卡（备份/恢复）进《工具》页",
-        toolsX5.Contains("S.Tool.MapTitle") && toolsX5.Contains("CmbMapWorlds") && toolsX5.Contains("BtnMapRender")
-        && toolsX5.Contains("S.Tool.BackupTitle") && toolsX5.Contains("BtnBackupRestore")
-        && toolsC5.Contains("WorldMapRenderer.RenderWorld") && toolsC5.Contains("MapViewerWindow.Show")
-        && toolsC5.Contains("InstanceBackupService.Restore")
+    var worldToolX5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "WorldMapTool.xaml")));
+    var worldToolC5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "WorldMapTool.xaml.cs")));
+    var backupToolX5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "BackupTool.xaml")));
+    var backupToolC5 = File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "BackupTool.xaml.cs")));
+    Check("v0.16.5：世界地图卡（扫描/下拉/渲染）+ 实例备份卡（备份/恢复）进《工具》页（v0.16.7 迁移独立窗口）",
+        worldToolX5.Contains("S.Tool.MapTitle") && worldToolX5.Contains("CmbMapWorlds") && worldToolX5.Contains("BtnMapRender")
+        && backupToolX5.Contains("S.Tool.BackupTitle") && backupToolX5.Contains("BtnBackupRestore")
+        && worldToolC5.Contains("WorldMapRenderer.RenderWorld") && worldToolC5.Contains("MapViewerWindow.Show")
+        && backupToolC5.Contains("InstanceBackupService.Restore")
         && File.ReadAllText(FindRepoFile(Path.Combine("src", "HardmacroCraft", "Views", "MapViewerWindow.cs"))).Contains("PreviewMouseWheel"));
 
     // —— 合成 chunk NBT：1 个 section，palette = [grass_block, stone, air]，3bit→4bit 打包
@@ -3080,13 +3093,13 @@ try
         && bedrockCs.Contains("levilauncher.levimc.org")
         && bedrockCs.Contains("FetchLatestLeviAsync")
         && bedrockCs.Contains("legitimate licensed copy")
-        && toolsPageXaml.Contains("TxtJoinAddr")
-        && toolsPageXaml.Contains("BtnBedrockJoin_Click")
-        && toolsPageXaml.Contains("S.Tool.LeviTitle")
-        && toolsPageXaml.Contains("BtnLeviDownload_Click")
-        && toolsPageCs.Contains("BedrockService.JoinServerAsync")
-        && toolsPageCs.Contains("BedrockService.FetchLatestLeviAsync")
-        && toolsPageCs.Contains("BedrockService.LeviDocsUrl")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("TxtJoinAddr")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("BtnBedrockJoin_Click")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("S.Tool.LeviTitle")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("BtnLeviDownload_Click")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BedrockService.JoinServerAsync")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BedrockService.FetchLatestLeviAsync")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BedrockService.LeviDocsUrl")
         && zhLang.Contains("S.Tool.LeviTitle") && enLang.Contains("S.Tool.LeviTitle")
         && zhLang.Contains("S.Tool.BedrockJoin") && enLang.Contains("S.Tool.BedrockJoin")
         && zhLang.Contains("正版授权副本"));
@@ -3118,13 +3131,13 @@ try
         && bedrockCs.Contains("download/server/bedrock")
         && bedrockCs.Contains("DownloadEngine.DownloadFileAsync")
         && bedrockCs.Contains("绕过正版验证")
-        && toolsPageXaml.Contains("S.Tool.BedrockTitle")
-        && toolsPageXaml.Contains("S.Tool.BedrockBds")
-        && toolsPageXaml.Contains("BtnBedrockLaunch_Click")
-        && toolsPageXaml.Contains("BedrockProgress")
-        && toolsPageCs.Contains("BtnBedrockDetect_Click")
-        && toolsPageCs.Contains("BedrockService.FetchLatestBdsAsync")
-        && toolsPageCs.Contains("BedrockService.LaunchStoreAsync"));
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("S.Tool.BedrockTitle")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("S.Tool.BedrockBds")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("BtnBedrockLaunch_Click")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml").Contains("BedrockProgress")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BtnBedrockDetect_Click")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BedrockService.FetchLatestBdsAsync")
+        && ReadSrc("Views", "Tools", "BedrockTool.xaml.cs").Contains("BedrockService.LaunchStoreAsync"));
     Check("v0.15.12：MahApps 主题字典带颜色段（Light.Blue/Dark.Blue，资源实测存在）",
         appText.Contains(".Blue.xaml")           // ApplyMetroOverlay（插值里写作 {{variant}}）
         && appText.Contains("Styles/Themes/{variant}.Blue") // SwapMetroVariant
@@ -3395,9 +3408,9 @@ try
     Check("HorizonLaunch：一级子目录 exe 搜索（自动解压的内层结构可启动）",
         horizonLaunchSrc.Contains("GetDirectories(dir)")
         && horizonLaunchSrc.Contains("subExes"));
-    var toolsPageSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
-    Check("Horizon 下载流：自动解压 + 运行安装包按钮接线",
-        toolsPageSrc.Contains("ExtractIfArchiveAsync") && toolsPageSrc.Contains("BtnHorizonRun_Click"));
+    var horizonToolCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "HorizonTool.xaml.cs")));
+    Check("Horizon 下载流：自动解压 + 运行安装包按钮接线（v0.16.7 迁移到 HorizonTool）",
+        horizonToolCs.Contains("ExtractIfArchiveAsync") && horizonToolCs.Contains("BtnHorizonRun_Click"));
 
     // --- AppSettings：滚轮设置字段默认值 + JSON roundtrip ---
     var fresh = new AppSettings();
@@ -3447,23 +3460,35 @@ try
         && settingsXaml.Contains("TxtSaveHint")
         && settingsXaml.Contains("S.Set.WheelSystem") && settingsXaml.Contains("S.Set.WheelManual"));
 
-    // --- 工具页：内置种子地图（交互） + 截图管理卡 ---
+    // --- 工具页 v0.16.7 重构：主窗口入口网格 + 独立窗口工具 ---
     var toolsXaml37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
-    Check("工具页：种子地图交互容器（平移/缩放/坐标追踪 + 大图导出 + 重置）",
-        toolsXaml37.Contains("SeedMapHost") && toolsXaml37.Contains("SeedMapScale")
-        && toolsXaml37.Contains("SeedMap_MouseWheel") && toolsXaml37.Contains("BtnSeedBig_Click")
-        && toolsPageSrc.Contains("ClampTranslate") && toolsPageSrc.Contains("MapViewerWindow.Show"));
+    var toolsPageCs37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    var seedMapXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "SeedMapTool.xaml")));
+    var seedMapCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "SeedMapTool.xaml.cs")));
+    Check("工具页重构：主窗口只留入口网格（10 入口 → ToolHostWindow，不再承载工具本体）",
+        toolsPageCs37.Contains("ToolHostWindow.Show") && toolsPageCs37.Contains("new SeedMapTool()")
+        && toolsXaml37.Contains("OpenSpeedrun_Click") && toolsXaml37.Contains("OpenServer_Click")
+        && toolsXaml37.Contains("UniformGrid Columns=\"2\"")
+        && !toolsXaml37.Contains("SeedMapHost") && !toolsPageCs37.Contains("SlimeChunkFinder"));
+    Check("工具页：种子地图交互容器（平移/缩放/坐标追踪 + 大图导出 + 重置，已迁移 SeedMapTool）",
+        seedMapXaml.Contains("SeedMapHost") && seedMapXaml.Contains("SeedMapScale")
+        && seedMapXaml.Contains("SeedMap_MouseWheel") && seedMapXaml.Contains("BtnSeedBig_Click")
+        && seedMapCs.Contains("ClampTranslate") && seedMapCs.Contains("MapViewerWindow.Show"));
     Check("工具页：截图管理卡 + 查看窗口（缩略图墙 / 删除确认 / 定位文件夹）",
-        toolsXaml37.Contains("S.Tool.ShotsTitle") && toolsPageSrc.Contains("ScreenshotViewerWindow.Show")
+        toolsXaml37.Contains("S.Tool.ShotsTitle")
+        && File.Exists(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "ScreenshotsTool.xaml.cs")))
+        && File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "ScreenshotsTool.xaml.cs")))
+            .Contains("ScreenshotViewerWindow.Show")
         && File.Exists(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ScreenshotViewerWindow.cs")))
         && File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ScreenshotViewerWindow.cs")))
             .Contains("ShotsDeleteConfirm"));
 
-    // --- 基岩卡闭合修复（v0.16.3 漏标签导致的嵌套卡片） ---
-    Check("ToolsPage：基岩卡正确闭合（导入/地图/备份/诊断卡不再是其子元素）",
-        toolsXaml37.Contains("Content=\"{DynamicResource S.Tool.LeviDocs}\" Click=\"BtnLeviDocs_Click\" />")
-        && System.Text.RegularExpressions.Regex.Matches(toolsXaml37, "<Border Style=\"\\{StaticResource HmCard\\}\"").Count
-            == System.Text.RegularExpressions.Regex.Matches(toolsXaml37, "</Border>").Count);
+    // --- 基岩卡闭合修复（v0.16.3 漏标签导致的嵌套卡片；v0.16.7 随迁移落在 BedrockTool） ---
+    var bedrockXaml37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "BedrockTool.xaml")));
+    Check("BedrockTool：LeviLauncher 区块结构完整（含闭合修复后的层级）",
+        bedrockXaml37.Contains("Content=\"{DynamicResource S.Tool.LeviDocs}\" Click=\"BtnLeviDocs_Click\" />")
+        && System.Text.RegularExpressions.Regex.Matches(bedrockXaml37, "<StackPanel[ >]").Count
+            == System.Text.RegularExpressions.Regex.Matches(bedrockXaml37, "</StackPanel>").Count);
 
     // --- 双语词条成对 ---
     var zh37 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
@@ -3476,6 +3501,117 @@ try
         newKeys37.All(k => zh37.Contains(k) && en37.Contains(k)));
 }
 catch (Exception ex) { Check("第 37 节 v0.16.6（种子地图 / 滚轮 / 截图 / Horizon / Win10）", false, ex.Message); }
+
+// ==================== 第 38 节 v0.16.7：速通工具 / 服务器状态 / 工具窗口化 / Metro 蓝 ====================
+Console.WriteLine("\n---- 第 38 节 · v0.16.7（速通 / 服务器 / 窗口化 / Metro 蓝）----");
+try
+{
+    // --- SpeedrunUtil：传送门换算（含负数向零取整） ---
+    Check("SpeedrunUtil：传送门 1:8 双向换算（含负数向零取整）",
+        SpeedrunUtil.PortalConvert(800, false) == 100
+        && SpeedrunUtil.PortalConvert(-16, false) == -2
+        && SpeedrunUtil.PortalConvert(3, false) == 0
+        && SpeedrunUtil.PortalConvert(100, true) == 800
+        && SpeedrunUtil.PortalConvert(-8, true) == -64);
+
+    // --- SpeedrunUtil：计时格式 ---
+    Check("SpeedrunUtil：计时格式（MM:SS.mmm 与 H:MM:SS.mmm）",
+        SpeedrunUtil.FormatTimer(TimeSpan.FromSeconds(65.5)) == "01:05.500"
+        && SpeedrunUtil.FormatTimer(TimeSpan.FromSeconds(3661) + TimeSpan.FromMilliseconds(250)) == "1:01:01.250");
+
+    // --- SpeedrunUtil：末影之眼三角定位（手算实例：投掷1=(0,0) yaw270 向东；投掷2=(0,100) yaw225 → 交汇 (100,0)） ---
+    var hit = SpeedrunUtil.Triangulate((0, 0, 270), (0, 100, 225))
+        ?? throw new InvalidOperationException("三角定位应命中");
+    Check("SpeedrunUtil：三角定位交汇点与距离（手算实例）",
+        Math.Abs(hit.X - 100) < 0.1 && Math.Abs(hit.Z - 0) < 0.1
+        && Math.Abs(hit.Dist1 - 100) < 0.1 && Math.Abs(hit.Dist2 - Math.Sqrt(100 * 100 * 2)) < 0.1);
+    Check("SpeedrunUtil：平行射线返回 null（两条同向投掷无唯一交点）",
+        SpeedrunUtil.Triangulate((0, 0, 270), (0, 100, 270)) is null);
+    Check("SpeedrunUtil：yaw→方向向量（0=南(0,1)，90=西(-1,0)）",
+        Math.Abs(SpeedrunUtil.DirectionFromYaw(0).Dz - 1) < 1e-9
+        && Math.Abs(SpeedrunUtil.DirectionFromYaw(90).Dx + 1) < 1e-9);
+
+    // --- ServerStatusService：地址解析 / VarInt / 状态 JSON 解析 ---
+    Check("ServerStatusService.ParseAddress：host 默认 25565、host:port",
+        ServerStatusService.ParseAddress("mc.example.net") is ("mc.example.net", 25565)
+        && ServerStatusService.ParseAddress("host:19132") is ("host", 19132));
+    bool badPort = false;
+    try { ServerStatusService.ParseAddress("host:99999"); }
+    catch (FormatException) { badPort = true; }
+    Check("ServerStatusService.ParseAddress：端口越界抛 FormatException", badPort);
+
+    var varintRoundtrip = new[] { 0, 1, 127, 128, 300, 65535, int.MaxValue }
+        .All(v =>
+        {
+            var bytes = ServerStatusService.WriteVarInt(v);
+            return ServerStatusService.ReadVarInt(new MemoryStream(bytes.ToArray())) == v;
+        });
+    Check("ServerStatusService：VarInt 编解码 roundtrip（含边界值）",
+        varintRoundtrip && ServerStatusService.WriteVarInt(300) is { Length: 2 } b2 && b2[0] == 0xAC && b2[1] == 0x02);
+
+    const string statusJson = """{"description":{"text":"Hello ","extra":[{"text":"World","color":"red","bold":true}]},"version":{"name":"1.20.4"},"players":{"online":3,"max":100,"sample":[{"name":"Alice"},{"name":"Bob"}]},"favicon":"data:image/png;base64,AAA"}""";
+    var st = ServerStatusService.ParseStatusJson(statusJson);
+    Check("ServerStatusService：状态 JSON 解析（chat 组件 MOTD / 版本 / 人数 / 玩家样本 / 图标）",
+        st.Motd == "Hello §c§lWorld" && st.Version == "1.20.4"
+        && st.PlayersOnline == 3 && st.PlayersMax == 100
+        && st.PlayerSample == "Alice, Bob" && st.FaviconBase64 == "data:image/png;base64,AAA");
+    var legacy = ServerStatusService.ParseStatusJson("""{"description":"Legacy MOTD","version":{"name":"1.16.5"},"players":{"online":0,"max":20}}""");
+    Check("ServerStatusService：旧式字符串 MOTD 兼容",
+        legacy.Motd == "Legacy MOTD" && legacy.Version == "1.16.5");
+    var srvSrc = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Services", "ServerStatusService.cs")));
+    Check("ServerStatusService：SLP 握手协议（nextState=1 + 5s 超时）",
+        srvSrc.Contains("Concat(WriteVarInt(1))") && srvSrc.Contains("TimeoutException") && srvSrc.Contains("new byte[] { 0x01, 0x00 }"));
+
+    // --- 工具窗口化 + 新工具窗口文件 ---
+    var speedXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "SpeedrunTool.xaml")));
+    var speedCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "SpeedrunTool.xaml.cs")));
+    Check("速通工具箱：计时器（空格/R 热键）+ 传送门双向换算 + 三角定位 + 计数器四区齐备",
+        speedXaml.Contains("TxtTimer") && speedXaml.Contains("TxtOwX") && speedXaml.Contains("TxtE1Yaw")
+        && speedXaml.Contains("TxtPearls")
+        && speedCs.Contains("Key.Space") && speedCs.Contains("SpeedrunUtil.Triangulate")
+        && speedCs.Contains("SpeedrunUtil.PortalConvert"));
+    var srvToolXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "ServerStatusTool.xaml")));
+    Check("服务器状态查询：工具窗口就位（地址解析 → 查询 → MOTD/人数/延迟展示）",
+        srvToolXaml.Contains("TxtAddress") && srvToolXaml.Contains("S.Tool.SrvQuery")
+        && File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "ServerStatusTool.xaml.cs")))
+            .Contains("ServerStatusService.QueryAsync"));
+    var toolHost = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "ToolHostWindow.cs")));
+    Check("ToolHostWindow：独立窗口宿主（880×660 FluentWindow + 居中 owner）",
+        toolHost.Contains("FluentWindow") && toolHost.Contains("WindowStartupLocation.CenterOwner"));
+
+    // --- Metro v0.16.7：Win10 蓝 accent + 窗控无框 + 导航选中蓝 ---
+    var win10_38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Win10Controls.xaml")));
+    var skinL38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Light.xaml")));
+    var skinD38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "MetroSkin.Dark.xaml")));
+    Check("Metro：standard Button 隐式样式 = Win10 扁平无框（窗控钮默认态不再落 Win11 描边样式）",
+        win10_38.Contains("<Style TargetType=\"Button\">")
+        && win10_38.Contains("<Setter Property=\"BorderThickness\" Value=\"0\" />")
+        && win10_38.Contains("<Setter Property=\"Background\" Value=\"Transparent\" />"));
+    Check("Metro：accent 补齐键双变体齐全（AccentFillColorDefault / AccentControlElevationBorder / AccentTextFillColor）",
+        skinL38.Contains("AccentFillColorDefaultBrush") && skinD38.Contains("AccentFillColorDefaultBrush")
+        && skinL38.Contains("AccentControlElevationBorderBrush") && skinD38.Contains("AccentControlElevationBorderBrush")
+        && skinL38.Contains("AccentTextFillColorPrimaryBrush") && skinD38.Contains("AccentTextFillColorPrimaryBrush"));
+    Check("Metro：导航选中项经典蓝底（浅 CCE4F7 / 深 3A4E63）",
+        skinL38.Contains("NavItemSelectedBackground\" Color=\"#FFCCE4F7\"")
+        && skinD38.Contains("NavItemSelectedBackground\" Color=\"#FF3A4E63\""));
+    var metroWinXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml")));
+    var metroWinCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "MetroMainWindow.xaml.cs")));
+    var appSrc38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "App.xaml.cs")));
+    Check("Metro：窗控钮 Light/Dark 变体同步（SyncWindowButtonsTheme + App.MetroVariantChanged 广播）",
+        metroWinXaml.Contains("NavItemSelectedBackground")
+        && metroWinCs.Contains("SyncWindowButtonsTheme") && metroWinCs.Contains("WindowButtonCommands.Theme")
+        && appSrc38.Contains("MetroVariantChanged") && appSrc38.Contains("CurrentDarkVariant"));
+
+    // --- 双语词条成对（v0.16.7 新增键） ---
+    var zh38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var en38 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    var newKeys38 = new[] { "S.Tool.SpeedTitle", "S.Tool.SpeedTimerTitle", "S.Tool.PortalTitle",
+        "S.Tool.EyesTitle", "S.Tool.EyesCalc", "S.Tool.CountTitle", "S.Tool.SrvTitle",
+        "S.Tool.SrvQuery", "S.Tool.CountAdvice" };
+    Check("v0.16.7：新增词条双语成对（9 个关键键 zh/en 都在）",
+        newKeys38.All(k => zh38.Contains(k) && en38.Contains(k)));
+}
+catch (Exception ex) { Check("第 38 节 v0.16.7（速通 / 服务器 / 窗口化 / Metro 蓝）", false, ex.Message); }
 
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");

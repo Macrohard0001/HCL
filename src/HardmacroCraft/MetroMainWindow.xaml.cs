@@ -50,6 +50,11 @@ public partial class MetroMainWindow : MetroWindow
         // 从未亮过 —— Navigate 只切内容不选中 ListBoxItem，选中条触发器空转）
         Loaded += (_, _) =>
         {
+            // v0.16.7：窗控钮（右上角）按深浅色变体显式套用 MahApps 窗控样式
+            //（Win10 规格：无框扁平，close 悬停红）—— 此前 WindowButtonCommands.Theme
+            // 走默认值，按钮在样式触发器不匹配时落到 Wpf.Ui Win11 隐式 Button（带 1px
+            // 描边），用户反馈"右上角按钮边框都露出来了"。
+            SyncWindowButtonsTheme();
             try
             {
                 Navigate(typeof(Views.HomePage));
@@ -58,6 +63,9 @@ public partial class MetroMainWindow : MetroWindow
             catch (Exception navEx)
             { Services.BootLogger.Error("首页导航失败: " + Services.BootLogger.Format(navEx)); }
         };
+
+        // v0.16.7：运行中深浅色切换（设置页 / 跟随系统）同步窗控钮样式
+        App.MetroVariantChanged += _ => SyncWindowButtonsTheme();
 
         // fix7：Esc 返回主页（与 Fluent 壳同款）
         PreviewKeyDown += (_, e) =>
@@ -126,5 +134,21 @@ public partial class MetroMainWindow : MetroWindow
     private void Hamburger_Click(object sender, RoutedEventArgs e)
     {
         PaneBorder.Width = PaneBorder.Width > 48 ? 48 : 224;
+    }
+
+    /// <summary>
+    /// v0.16.7：窗控钮样式随深浅色变体切换（Light/Dark 触发样式 = Win10 规格：
+    /// 无框扁平 + close 悬停红 #E81123）。
+    /// </summary>
+    private void SyncWindowButtonsTheme()
+    {
+        try
+        {
+            var dark = App.CurrentDarkVariant;
+            if (WindowButtonCommands.Theme != (dark ? "Dark" : "Light"))
+                WindowButtonCommands.Theme = dark ? "Dark" : "Light";
+        }
+        catch (Exception ex)
+        { Services.BootLogger.Error("窗控钮样式切换失败: " + Services.BootLogger.Format(ex)); }
     }
 }

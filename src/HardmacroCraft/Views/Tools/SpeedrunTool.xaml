@@ -1,0 +1,103 @@
+<!-- v0.16.7：速通工具箱（独立窗口）—— 计时器 / 传送门换算 / 末影之眼三角定位 / 资源计数 -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.SpeedrunTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <UserControl.Resources>
+        <Style x:Key="SpeedBox" TargetType="ui:TextBox">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="MinWidth" Value="90" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <!-- ===== 计时器 ===== -->
+        <TextBlock Text="{DynamicResource S.Tool.SpeedTimerTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.SpeedSpaceHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" />
+        <TextBlock x:Name="TxtTimer" Text="00:00.000" FontFamily="Consolas, Cascadia Mono, monospace"
+                   FontSize="52" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="0,0,0,10" />
+        <WrapPanel>
+            <ui:Button x:Name="BtnTimerStart" MinHeight="34" MinWidth="130" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.SpeedStart}" Click="BtnTimerStart_Click" />
+            <ui:Button x:Name="BtnTimerLap" MinHeight="34" MinWidth="130" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.SpeedLap}" Click="BtnTimerLap_Click" />
+            <ui:Button x:Name="BtnTimerReset" MinHeight="34" MinWidth="110" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.SpeedReset}" Click="BtnTimerReset_Click" />
+        </WrapPanel>
+        <TextBlock x:Name="TxtLaps" Style="{StaticResource HmHint}" Margin="0,6,0,0"
+                   TextWrapping="Wrap" FontFamily="Consolas, Cascadia Mono, monospace" />
+
+        <!-- ===== 传送门坐标换算 ===== -->
+        <TextBlock Text="{DynamicResource S.Tool.PortalTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,22,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.PortalHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource S.Tool.PortalOW}" VerticalAlignment="Center" Width="120" />
+            <ui:TextBox x:Name="TxtOwX" Style="{StaticResource SpeedBox}" TextChanged="Portal_TextChanged" />
+            <ui:TextBox x:Name="TxtOwZ" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" TextChanged="Portal_TextChanged" />
+            <TextBlock Text="{DynamicResource S.Tool.PortalArrow}" VerticalAlignment="Center" Margin="10,0" />
+            <TextBlock x:Name="TxtPortalToNether" VerticalAlignment="Center" FontWeight="Medium"
+                       FontFamily="Consolas, Cascadia Mono, monospace" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{DynamicResource S.Tool.PortalNether}" VerticalAlignment="Center" Width="120" />
+            <ui:TextBox x:Name="TxtNeX" Style="{StaticResource SpeedBox}" TextChanged="Portal_TextChanged" />
+            <ui:TextBox x:Name="TxtNeZ" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" TextChanged="Portal_TextChanged" />
+            <TextBlock Text="{DynamicResource S.Tool.PortalArrow}" VerticalAlignment="Center" Margin="10,0" />
+            <TextBlock x:Name="TxtPortalToOverworld" VerticalAlignment="Center" FontWeight="Medium"
+                       FontFamily="Consolas, Cascadia Mono, monospace" />
+        </StackPanel>
+
+        <!-- ===== 末影之眼三角定位 ===== -->
+        <TextBlock Text="{DynamicResource S.Tool.EyesTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,22,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.EyesHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource S.Tool.EyesThrow1}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ui:TextBox x:Name="TxtE1X" Style="{StaticResource SpeedBox}" />
+            <ui:TextBox x:Name="TxtE1Z" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" />
+            <ui:TextBox x:Name="TxtE1Yaw" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="{DynamicResource S.Tool.EyesThrow2}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ui:TextBox x:Name="TxtE2X" Style="{StaticResource SpeedBox}" />
+            <ui:TextBox x:Name="TxtE2Z" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" />
+            <ui:TextBox x:Name="TxtE2Yaw" Style="{StaticResource SpeedBox}" Margin="8,0,0,0" />
+            <ui:Button x:Name="BtnEyesCalc" MinHeight="32" MinWidth="130" Margin="12,0,0,0"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.EyesCalc}" Click="BtnEyesCalc_Click" />
+        </StackPanel>
+        <TextBlock x:Name="TxtEyesResult" Style="{StaticResource HmHint}" Margin="0,0,0,0"
+                   TextWrapping="Wrap" FontWeight="Medium" />
+
+        <!-- ===== 速通资源计数器 ===== -->
+        <TextBlock Text="{DynamicResource S.Tool.CountTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,22,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.CountHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Text="{DynamicResource S.Tool.CountPearls}" VerticalAlignment="Center" Width="150" />
+            <ui:Button x:Name="BtnPearlMinus" MinHeight="30" MinWidth="44" Content="−" Click="BtnPearlMinus_Click" />
+            <TextBlock x:Name="TxtPearls" Text="0" Width="48" TextAlignment="Center" VerticalAlignment="Center"
+                       FontFamily="Consolas, Cascadia Mono, monospace" FontSize="18" FontWeight="SemiBold" />
+            <ui:Button x:Name="BtnPearlPlus" MinHeight="30" MinWidth="44" Margin="0,0,0,0" Content="+"
+                       Appearance="Primary" Click="BtnPearlPlus_Click" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Text="{DynamicResource S.Tool.CountRods}" VerticalAlignment="Center" Width="150" />
+            <ui:Button x:Name="BtnRodMinus" MinHeight="30" MinWidth="44" Content="−" Click="BtnRodMinus_Click" />
+            <TextBlock x:Name="TxtRods" Text="0" Width="48" TextAlignment="Center" VerticalAlignment="Center"
+                       FontFamily="Consolas, Cascadia Mono, monospace" FontSize="18" FontWeight="SemiBold" />
+            <ui:Button x:Name="BtnRodPlus" MinHeight="30" MinWidth="44" Content="+" Appearance="Primary"
+                       Click="BtnRodPlus_Click" />
+        </StackPanel>
+        <TextBlock x:Name="TxtCountAdvice" Style="{StaticResource HmHint}" Margin="0,4,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

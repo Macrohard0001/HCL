@@ -1,0 +1,48 @@
+<!-- v0.16.7：基岩版工具（独立窗口版，含 LeviLauncher 区块） -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.BedrockTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.BedrockTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.BedrockHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,12" TextWrapping="Wrap" />
+        <WrapPanel>
+            <ui:Button x:Name="BtnBedrockDetect" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.BedrockDetect}" Click="BtnBedrockDetect_Click" />
+            <ui:Button x:Name="BtnBedrockLaunch" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.BedrockLaunch}" Click="BtnBedrockLaunch_Click" />
+            <ui:Button x:Name="BtnBedrockBds" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.BedrockBds}" Click="BtnBedrockBds_Click" />
+            <ui:Button x:Name="BtnBedrockStore" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.BedrockStore}" Click="BtnBedrockStore_Click" />
+        </WrapPanel>
+        <!-- minecraft:// 深链一键注册外部服务器并启动（官方协议，LeviLauncher 同款思路） -->
+        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <ui:TextBox x:Name="TxtJoinName" MinWidth="130" MinHeight="32"
+                        PlaceholderText="{DynamicResource S.Tool.JoinNamePh}" />
+            <ui:TextBox x:Name="TxtJoinAddr" MinWidth="190" MinHeight="32" Margin="8,0,0,0"
+                        PlaceholderText="{DynamicResource S.Tool.JoinAddrPh}" />
+            <ui:Button x:Name="BtnBedrockJoin" MinHeight="32" MinWidth="130" Margin="8,0,0,0"
+                       Content="{DynamicResource S.Tool.BedrockJoin}" Click="BtnBedrockJoin_Click" />
+        </StackPanel>
+        <ProgressBar x:Name="BedrockProgress" Height="4" Minimum="0" Maximum="100"
+                     Margin="0,8,0,0" Visibility="Collapsed" />
+        <TextBlock x:Name="TxtBedrockStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+
+        <!-- LeviLauncher 集成（LiteLDev 开源 GPL-3.0；README 要求正版授权副本，授权模型一致） -->
+        <TextBlock Text="{DynamicResource S.Tool.LeviTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,14,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.LeviHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,8" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal">
+            <ui:Button x:Name="BtnLeviDownload" MinHeight="32" MinWidth="150" Margin="0,0,8,0"
+                       Content="{DynamicResource S.Tool.LeviDownload}" Click="BtnLeviDownload_Click" />
+            <ui:Button x:Name="BtnLeviDocs" MinHeight="32" MinWidth="110"
+                       Content="{DynamicResource S.Tool.LeviDocs}" Click="BtnLeviDocs_Click" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

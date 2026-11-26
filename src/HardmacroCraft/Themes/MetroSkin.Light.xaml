@@ -33,6 +33,21 @@
     <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#FFFFFFFF" />
 
+    <!-- v0.16.7：Win10 蓝 accent 补齐 —— 此前漏铸的 Wpf.Ui accent 填充/文字键
+         （Button Primary 描边键、Slider/ProgressRing/CheckBox 等内部用键）
+         统一钉死经典蓝，不再让系统主题色渗进 Metro -->
+    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#FF106EBE" />
+    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#FF005A9E" />
+    <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Color="#FF9DC4E2" />
+    <SolidColorBrush x:Key="AccentControlElevationBorderBrush" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#FF0063B1" />
+    <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#FF004278" />
+
+    <!-- v0.16.7：导航选中项 Win10 蓝（经典高亮浅蓝底） -->
+    <SolidColorBrush x:Key="NavItemSelectedBackground" Color="#FFCCE4F7" />
+
     <!-- 通用控件填充：Win8/Win10 式实底（取代 WinUI 半透明层） -->
     <SolidColorBrush x:Key="ControlFillColorDefault" Color="#FFE1E1E1" />
     <SolidColorBrush x:Key="ControlFillColorSecondary" Color="#FFD9D9D9" />

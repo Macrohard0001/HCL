@@ -1,8 +1,7 @@
 <!--
-    v0.15.10：种子工具页（第一步：史莱姆挂机点查询）。
-    输入世界种子 → 按原版算法整片预览史莱姆区块（WriteableBitmap 网格），
-    统计占比并推荐 3×3 / 2×2 全绿连片中心作挂机塔位置。
-    纯本地计算，无需读取世界文件。样式复用全局 HmPageTitle / HmCard / HmHint。
+    v0.16.7：工具页重构 —— 主窗口只保留入口网格，全部工具在独立窗口打开
+    （ToolHostWindow + Views/Tools/*），不影响主窗口，可多开并排。
+    入口卡片：图标 + 标题 + 一句说明，整卡可点。
 -->
 <Page x:Class="HardmacroCraft.Views.ToolsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -10,241 +9,133 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource HmScrollViewer}">
-        <StackPanel Margin="24,12,24,16" MaxWidth="760">
+        <StackPanel Margin="24,12,24,16" MaxWidth="820">
 
             <TextBlock Text="{DynamicResource S.Tool.Title}" Style="{StaticResource HmPageTitle}" />
             <TextBlock Text="{DynamicResource S.Tool.Hint}" Style="{StaticResource HmHint}"
                        Margin="0,4,0,18" />
 
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.SlimeTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,8" />
-                    <TextBlock Text="{DynamicResource S.Tool.SlimeHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,12" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="140" />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ui:TextBox x:Name="TxtSeed" Grid.Column="0" Height="34"
-                                    PlaceholderText="{DynamicResource S.Tool.SeedPlaceholder}" />
-                        <ui:TextBox x:Name="TxtRange" Grid.Column="2" Height="34"
-                                    PlaceholderText="{DynamicResource S.Tool.RangePlaceholder}" />
-                        <ui:Button x:Name="BtnGenerate" Grid.Column="4" Appearance="Primary" Height="34"
-                                   Padding="18,0" Content="{DynamicResource S.Tool.Generate}"
-                                   Click="BtnGenerate_Click" />
-                    </Grid>
-                    <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,10,0,0"
-                               TextWrapping="Wrap" />
-                    <TextBlock x:Name="TxtSeedPos" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" FontWeight="Medium" Visibility="Collapsed" />
-                    <!-- v0.16.6：内置种子地图 —— 拖动平移 / 滚轮缩放 / 光标实时区块与方块坐标；
-                         地图本体仍是纯算法生成的史莱姆区块图层（无地形生成依赖），最佳挂机点黄色高亮 -->
-                    <Grid x:Name="SeedMapHost" MaxHeight="420" Margin="0,10,0,0"
-                          Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
-                          ClipToBounds="True" Cursor="Cross" Visibility="Collapsed"
-                          MouseLeftButtonDown="SeedMap_MouseDown" MouseMove="SeedMap_MouseMove"
-                          MouseLeftButtonUp="SeedMap_MouseUp" MouseLeave="SeedMap_MouseLeave"
-                          MouseWheel="SeedMap_MouseWheel">
-                        <Image x:Name="SeedMapImage" HorizontalAlignment="Left" VerticalAlignment="Top"
-                               Stretch="None" RenderOptions.BitmapScalingMode="NearestNeighbor">
-                            <Image.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform x:Name="SeedMapScale" />
-                                    <TranslateTransform x:Name="SeedMapTranslate" />
-                                </TransformGroup>
-                            </Image.RenderTransform>
-                        </Image>
-                    </Grid>
-                    <WrapPanel Margin="0,10,0,0">
-                        <ui:Button x:Name="BtnSeedBig" MinHeight="30" MinWidth="130" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.SeedBig}" Click="BtnSeedBig_Click" />
-                        <ui:Button x:Name="BtnSeedReset" MinHeight="30" MinWidth="110" Margin="0,0,0,6"
-                                   Content="{DynamicResource S.Tool.SeedReset}" Click="BtnSeedReset_Click" />
-                        <TextBlock Text="{DynamicResource S.Tool.SeedLegend}" Style="{StaticResource HmHint}"
-                                   VerticalAlignment="Center" Margin="8,0,0,6" TextWrapping="Wrap" />
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- ===== v0.16.1：Horizon 下载入口（去广告化） =====
-                 出处：github.com/horizon-rust/horizon（LGPL-3.0）。
-                 加载即爬取 GitHub 最新 release 显示版本/体积，一键应用内下载或浏览器手动下载。 -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.HorizonTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.HorizonHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,12" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnHorizonDetect" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.HorizonDetect}" Click="BtnHorizonDetect_Click" />
-                        <ui:Button x:Name="BtnHorizonDownload" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.HorizonDownload}" Click="BtnHorizonDownload_Click" />
-                        <ui:Button x:Name="BtnHorizonManual" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
-                                   Content="{DynamicResource S.Tool.HorizonManual}" Click="BtnHorizonManual_Click" />
-                    </WrapPanel>
-                    <ProgressBar x:Name="HorizonProgress" Height="4" Minimum="0" Maximum="100"
-                                 Margin="0,8,0,0" Visibility="Collapsed" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnHorizonLaunch" MinHeight="32" MinWidth="130" Margin="0,0,8,0"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.HorizonLaunch}" Click="BtnHorizonLaunch_Click" />
-                        <ui:Button x:Name="BtnHorizonRun" MinHeight="32" MinWidth="130" Margin="0,0,8,0"
-                                   Visibility="Collapsed"
-                                   Content="{DynamicResource S.Tool.HorizonRun}" Click="BtnHorizonRun_Click" />
-                    </WrapPanel>
-                    <TextBlock x:Name="TxtHorizonStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
-            <!-- ===== v0.16.2：基岩版（Bedrock）—— 正版路径：Store 版检测/启动 + 官方 BDS 服务端下载 ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.BedrockTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.BedrockHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,12" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnBedrockDetect" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.BedrockDetect}" Click="BtnBedrockDetect_Click" />
-                        <ui:Button x:Name="BtnBedrockLaunch" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.BedrockLaunch}" Click="BtnBedrockLaunch_Click" />
-                        <ui:Button x:Name="BtnBedrockBds" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.BedrockBds}" Click="BtnBedrockBds_Click" />
-                        <ui:Button x:Name="BtnBedrockStore" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
-                                   Content="{DynamicResource S.Tool.BedrockStore}" Click="BtnBedrockStore_Click" />
-                    </WrapPanel>
-                    <!-- v0.16.3：minecraft:// 深链一键注册外部服务器并启动（官方协议，LeviLauncher 同款思路） -->
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <ui:TextBox x:Name="TxtJoinName" MinWidth="130" MinHeight="32"
-                                    PlaceholderText="{DynamicResource S.Tool.JoinNamePh}" />
-                        <ui:TextBox x:Name="TxtJoinAddr" MinWidth="190" MinHeight="32" Margin="8,0,0,0"
-                                    PlaceholderText="{DynamicResource S.Tool.JoinAddrPh}" />
-                        <ui:Button x:Name="BtnBedrockJoin" MinHeight="32" MinWidth="130" Margin="8,0,0,0"
-                                   Content="{DynamicResource S.Tool.BedrockJoin}" Click="BtnBedrockJoin_Click" />
+            <UniformGrid Columns="2">
+                <Border x:Name="EntrySeed" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenSeed_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Map24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.SlimeTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.SlimeHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                    <ProgressBar x:Name="BedrockProgress" Height="4" Minimum="0" Maximum="100"
-                                 Margin="0,8,0,0" Visibility="Collapsed" />
-                    <TextBlock x:Name="TxtBedrockStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
+                </Border>
 
-                    <!-- v0.16.3：LeviLauncher 集成（LiteLDev 开源 GPL-3.0；README 要求正版授权副本，授权模型一致） -->
-                    <TextBlock Text="{DynamicResource S.Tool.LeviTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,14,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.LeviHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,8" TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal">
-                        <ui:Button x:Name="BtnLeviDownload" MinHeight="32" MinWidth="150" Margin="0,0,8,0"
-                                   Content="{DynamicResource S.Tool.LeviDownload}" Click="BtnLeviDownload_Click" />
-                        <ui:Button x:Name="BtnLeviDocs" MinHeight="32" MinWidth="110"
-                                   Content="{DynamicResource S.Tool.LeviDocs}" Click="BtnLeviDocs_Click" />
+                <Border x:Name="EntryWorldMap" Style="{StaticResource HmCard}" Margin="8,0,0,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenWorldMap_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Globe20" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.MapTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.MapHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- ===== v0.16.4：从其他启动器导入（扫描内置位置 → 选择候选 → 隔离语义导入） ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.MigTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.MigHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,10" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnMigScan" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.MigScan}" Click="BtnMigScan_Click" />
-                        <ComboBox x:Name="CmbMigCandidates" MinWidth="260" MinHeight="32" Margin="0,0,8,6" />
-                        <ui:Button x:Name="BtnMigImport" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.MigImport}" Click="BtnMigImport_Click" />
-                        <CheckBox x:Name="ChkMigIsolation" VerticalAlignment="Center" Margin="0,0,0,6"
-                                  Content="{DynamicResource S.Tool.MigIsolation}" />
-                    </WrapPanel>
-                    <TextBlock x:Name="TxtMigStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
-            <!-- ===== v0.16.5：世界地图（KAMUCL 式地图查看）：扫描存档 → 顶视图渲染 → 查看窗口 ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.MapTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.MapHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,10" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnMapScan" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.MapScan}" Click="BtnMapScan_Click" />
-                        <ComboBox x:Name="CmbMapWorlds" MinWidth="240" MinHeight="32" Margin="0,0,8,6" />
-                        <ui:Button x:Name="BtnMapRender" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.MapRender}" Click="BtnMapRender_Click" />
-                    </WrapPanel>
-                    <TextBlock x:Name="TxtMapStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
-            <!-- ===== v0.16.5：实例备份 / 恢复（KAMUCL 实例管理中心同款） ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.BackupTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.BackupHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,10" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ComboBox x:Name="CmbBackupVersion" MinWidth="200" MinHeight="32" Margin="0,0,8,6" />
-                        <ui:Button x:Name="BtnBackupDo" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.BackupDo}" Click="BtnBackupDo_Click" />
-                        <ui:Button x:Name="BtnBackupRestore" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.BackupRestore}" Click="BtnBackupRestore_Click" />
-                    </WrapPanel>
-                    <TextBlock x:Name="TxtBackupStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
-
-            <!-- ===== v0.16.4：一键诊断报告（doctor） ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.DoctorTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.DoctorHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,10" TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal">
-                        <ui:Button x:Name="BtnDoctor" MinHeight="32" MinWidth="130"
-                                   Content="{DynamicResource S.Tool.DoctorGo}" Click="BtnDoctor_Click" />
+                <Border x:Name="EntrySpeedrun" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenSpeedrun_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Timer24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.SpeedTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.SpeedHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                    <TextBlock x:Name="TxtDoctorStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- ===== v0.16.6：截图管理（KAMUCL 同类实用功能）：扫描 screenshots → 缩略图墙查看 ===== -->
-            <Border Style="{StaticResource HmCard}">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Tool.ShotsTitle}" Style="{StaticResource HmSectionTitle}"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{DynamicResource S.Tool.ShotsHint}" Style="{StaticResource HmHint}"
-                               Margin="0,0,0,10" TextWrapping="Wrap" />
-                    <WrapPanel>
-                        <ui:Button x:Name="BtnShotsScan" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
-                                   Content="{DynamicResource S.Tool.ShotsScan}" Click="BtnShotsScan_Click" />
-                        <ui:Button x:Name="BtnShotsView" MinHeight="32" MinWidth="130" Margin="0,0,0,6"
-                                   Appearance="Primary"
-                                   Content="{DynamicResource S.Tool.ShotsView}" Click="BtnShotsView_Click" />
-                    </WrapPanel>
-                    <TextBlock x:Name="TxtShotsStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </Border>
+                <Border x:Name="EntryServer" Style="{StaticResource HmCard}" Margin="8,0,0,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenServer_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Server24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.SrvTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.SrvHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryShots" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenShots_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Camera24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.ShotsTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.ShotsHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryBackup" Style="{StaticResource HmCard}" Margin="8,0,0,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenBackup_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Shield20" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.BackupTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.BackupHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryMigration" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenMigration_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="ArrowTransfer24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.MigTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.MigHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryHorizon" Style="{StaticResource HmCard}" Margin="8,0,0,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenHorizon_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Play24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.HorizonTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.HorizonHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryBedrock" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenBedrock_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Apps24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.BedrockTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.BedrockHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EntryDoctor" Style="{StaticResource HmCard}" Margin="8,0,0,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenDoctor_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="HeartPulse20" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.DoctorTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.DoctorHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
         </StackPanel>
     </ScrollViewer>
 </Page>

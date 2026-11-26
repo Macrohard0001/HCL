@@ -49,9 +49,44 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <!-- v0.15.15：不再定义 standard Button 模板/隐式样式 —— 页面不用标准 Button，
-         而它只漏到 MahApps 窗控钮（截图实证：窗控变灰底方框；真 Win10 窗控是无边框的）。
-         窗控钮回归 MahApps 默认（扁平无框，close 悬停红 = Win10 规格）。 -->
+    <!-- v0.16.7：standard Button（隐式）—— Win10 扁平无框规格。
+         v0.15.15 曾注销隐式样式：当时页内误用了标准 Button + 我们的样式带 #E1E1E1 实底，
+         漏到 MahApps 窗控钮 = 灰底方框。但注销后窗控钮的无样式默认态反而落到
+         Wpf.Ui 主字典的 Win11 隐式 Button（DefaultButtonStyle，1px 描边）——
+         用户实测右上角窗控钮"边框都露出来了"。现按 Win10 规格重铸为透明扁平：
+         页面全部用 ui:Button（不受影响），标准 Button 仅剩窗控钮 —— 无框透明 +
+         悬停淡灰、按下蓝底白字（与 MahApps 窗控 Light/Dark 触发样式同规格）。 -->
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI, Microsoft YaHei, Segoe UI" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="0"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource AccentButtonForeground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <Style TargetType="ui:Button">
         <Setter Property="Background" Value="{DynamicResource ButtonBackground}" />

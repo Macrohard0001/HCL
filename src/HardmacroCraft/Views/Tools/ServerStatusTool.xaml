@@ -1,0 +1,21 @@
+<!-- v0.16.7：服务器状态查询（独立窗口）—— Server List Ping -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.ServerStatusTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.SrvTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.SrvHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,12" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <ui:TextBox x:Name="TxtAddress" MinWidth="260" MinHeight="34"
+                        PlaceholderText="{DynamicResource S.Tool.SrvPlaceholder}" />
+            <ui:Button x:Name="BtnQuery" MinHeight="34" MinWidth="120" Margin="8,0,0,0"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.SrvQuery}" Click="BtnQuery_Click" />
+        </StackPanel>
+        <TextBlock x:Name="TxtStatus" Style="{StaticResource HmHint}" Margin="0,0,0,0"
+                   TextWrapping="Wrap" FontFamily="Consolas, Cascadia Mono, monospace" />
+    </StackPanel>
+</UserControl>

@@ -2,6 +2,43 @@
 
 所有 notable 变更记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循语义化。
 
+## v0.16.7
+
+**Metro 完美复刻 Win10（配色蓝 + 窗控无框）+ 《工具》页全面窗口化 + 速通工具箱 + 服务器状态查询**
+
+### Metro（Win10 怀旧）样式完善
+
+- 配色钉死经典 Win10 蓝 #0078D7：补齐此前漏铸的 Wpf.Ui accent 填充/描边/文字键（AccentFillColorDefault / AccentControlElevationBorder / AccentTextFillColor 等，浅/深双变体），系统主题色不再渗进 Metro
+- 右上角窗控钮"边框露出来"根治：真因 = MahApps 窗控钮在样式触发器不匹配的无样式默认态落到 Wpf.Ui 主字典的 Win11 隐式 Button（1px 描边）。standard Button 隐式样式以 Win10 扁平无框规格回归换骨层（透明底 + 悬停淡灰 + 按下蓝底白字，v0.15.15 注销理由已失效），并随深浅色变体显式同步 WindowButtonCommands Theme（Light/Dark 触发样式 = close 悬停红 #E81123 的 Win10 规格）
+- 导航选中项从灰色改为经典蓝底（浅 #CCE4F7 / 深 #3A4E63）+ 保留 3px 圆头强调条
+- 浅色窗格 #F2F2F2 经查证与 Win10 设置 NavigationView 一致，维持不变
+
+### 《工具》页全面窗口化
+
+- 主窗口只留 10 宫格入口（图标 + 标题 + 一句说明，整卡可点）；种子地图 / 世界地图 / 速通工具箱 / 服务器状态查询 / 截图管理 / 实例备份 / 导入其他启动器 / Horizon（Rust 版 MC）/ 基岩版 / 一键诊断全部迁移到独立 FluentWindow（ToolHostWindow 宿主，880×660 可多开并排，不影响主窗口）
+- 工具 UI 迁入 Views/Tools/*（XAML UserControl），逻辑原样搬移；工具窗口吃应用级 Metro 换骨样式（窗口内容不受 Frame 隔离限制）
+
+### 速通工具箱（新）
+
+- 计时器：空格 开始/暂停、R 重置、随时记段（MM:SS.mmm / H:MM:SS.mmm）
+- 传送门坐标换算：主世界 ↔ 下界 1:8 双向即时换算（含负数向零取整）
+- 末影之眼三角定位：两次投掷点 + F3 yaw 角 → 射线交汇 = 要塞位置与距离（平行射线给出提示）
+- 资源计数器：珍珠 / 烈焰棒 +−计数，实时提示可合成几颗末影之眼
+- 纯数学独立成 SpeedrunUtil（传送门换算、三角定位、计时格式 headless 可测）
+
+### 服务器状态查询（新）
+
+- Server List Ping（TCP 1.7+ 协议）：输入 host[:port] → MOTD（含 chat 组件颜色还原）/ 版本 / 在线人数 / 玩家样本 / 延迟；连接与响应各 5s 超时
+- VarInt 编解码、地址解析、JSON 解析为纯函数 headless 可测
+
+### 修复
+
+- 整合包页 9 个从未定义的 S.Mp.* 词条补齐（此前对应位置显示原始键名）——check_lang_keys 从此全仓 exit 0
+
+### 其他
+
+- 测试 737 → 757 全绿（净 +20：速通纯数学、SLP 解析、窗口化源断言、Metro 蓝/窗控断言；v0.16.0-0.16.6 的工具页旧断言随迁移更新到 Tools/* 路径）
+
 ## v0.16.6
 
 **Metro/Win10 风格整体重铸（下拉菜单根治）+ 设置自动保存 + 内置种子地图 + 截图管理 + Horizon 下载/启动完善**

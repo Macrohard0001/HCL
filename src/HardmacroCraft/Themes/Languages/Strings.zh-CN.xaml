@@ -756,6 +756,47 @@
     <sys:String x:Key="S.Tool.ShotsDeleteConfirm">确定删除这张截图？删除后无法恢复。</sys:String>
     <sys:String x:Key="S.Tool.ShotsNone">没有找到截图——进游戏按 F2 截图后重试（共享与隔离版本的 screenshots/ 都会扫描）。</sys:String>
     <sys:String x:Key="S.Tool.ShotsFound">找到 {0} 张截图（{1} 个目录）——点「查看截图」打开缩略图墙。</sys:String>
+    <sys:String x:Key="S.Tool.SpeedTitle">速通工具箱</sys:String>
+    <sys:String x:Key="S.Tool.SpeedHint">计时器（空格开始/暂停）、传送门 1:8 换算、末影之眼三角定位、珍珠/烈焰棒计数——速通党的百宝箱。</sys:String>
+    <sys:String x:Key="S.Tool.SpeedTimerTitle">计时器</sys:String>
+    <sys:String x:Key="S.Tool.SpeedSpaceHint">空格 = 开始 / 暂停，R = 重置；「记段」随时留下分段成绩。</sys:String>
+    <sys:String x:Key="S.Tool.SpeedStart">开始</sys:String>
+    <sys:String x:Key="S.Tool.SpeedPause">暂停</sys:String>
+    <sys:String x:Key="S.Tool.SpeedReset">重置</sys:String>
+    <sys:String x:Key="S.Tool.SpeedLap">记段</sys:String>
+    <sys:String x:Key="S.Tool.PortalTitle">传送门坐标换算</sys:String>
+    <sys:String x:Key="S.Tool.PortalHint">主世界 ↔ 下界 1:8（Y 坐标不变）。输入任意一侧坐标，另一侧即时换算——速通找下界要塞 / 回主世界都够用。</sys:String>
+    <sys:String x:Key="S.Tool.PortalOW">主世界 (X, Z)</sys:String>
+    <sys:String x:Key="S.Tool.PortalNether">下界 (X, Z)</sys:String>
+    <sys:String x:Key="S.Tool.PortalArrow">→</sys:String>
+    <sys:String x:Key="S.Tool.EyesTitle">末影之眼三角定位</sys:String>
+    <sys:String x:Key="S.Tool.EyesHint">两次投掷末影之眼，各记录投掷点 X/Z 与 F3「Facing」行的 yaw 角度——两条射线交汇处即要塞位置。</sys:String>
+    <sys:String x:Key="S.Tool.EyesThrow1">投掷 1</sys:String>
+    <sys:String x:Key="S.Tool.EyesThrow2">投掷 2</sys:String>
+    <sys:String x:Key="S.Tool.EyesCalc">计算要塞</sys:String>
+    <sys:String x:Key="S.Tool.EyesInvalid">请填写两组投掷数据：X、Z 坐标和 F3 的 yaw 角度。</sys:String>
+    <sys:String x:Key="S.Tool.EyesParallel">两条投掷方向接近平行（或重合）——请走到另一个位置再投一次。</sys:String>
+    <sys:String x:Key="S.Tool.EyesResult">要塞 ≈ ({0}, {1})\n距投掷点 1：{2} 格 · 距投掷点 2：{3} 格</sys:String>
+    <sys:String x:Key="S.Tool.CountTitle">速通资源计数器</sys:String>
+    <sys:String x:Key="S.Tool.CountHint">边跑边记：珍珠和烈焰棒各点了多少，随时提醒离「够 8 眼」还差多少。</sys:String>
+    <sys:String x:Key="S.Tool.CountPearls">末影珍珠</sys:String>
+    <sys:String x:Key="S.Tool.CountRods">烈焰棒</sys:String>
+    <sys:String x:Key="S.Tool.CountAdvice">可合成 {0} 颗末影之眼（珍珠 {1} / 烈焰棒 {2}）——速通一般需要 8 颗左右。</sys:String>
+    <sys:String x:Key="S.Tool.SrvTitle">服务器状态查询</sys:String>
+    <sys:String x:Key="S.Tool.SrvHint">输入 Java 版服务器地址（host 或 host:端口），查询 MOTD / 版本 / 在线人数 / 延迟——进服前先看一眼有没有被挤爆。</sys:String>
+    <sys:String x:Key="S.Tool.SrvPlaceholder">服务器地址（例如 mc.example.net:25565）</sys:String>
+    <sys:String x:Key="S.Tool.SrvQuery">查询状态</sys:String>
+    <sys:String x:Key="S.Tool.SrvQuerying">正在查询…</sys:String>
+    <sys:String x:Key="S.Tool.SrvPlayers">在线 {0} / {1}</sys:String>
+    <sys:String x:Key="S.Mp.Subtitle">整合包一站式下载与安装（Modrinth / CurseForge），安装即出现在版本列表</sys:String>
+    <sys:String x:Key="S.Mp.SearchHint">搜索整合包名称</sys:String>
+    <sys:String x:Key="S.Mp.Search">搜索</sys:String>
+    <sys:String x:Key="S.Mp.LocalInstall">本地安装</sys:String>
+    <sys:String x:Key="S.Mp.Install">下载安装</sys:String>
+    <sys:String x:Key="S.Mp.Searching">正在搜索整合包…</sys:String>
+    <sys:String x:Key="S.Mp.LoadingRecommend">正在获取推荐整合包...</sys:String>
+    <sys:String x:Key="S.Mp.TaskTitle">整合包下载：{0}</sys:String>
+    <sys:String x:Key="S.Mp.TaskInstall">安装整合包：{0}</sys:String>
 
     <!-- ===== v0.16.0：网络代理 + 启动前/退出后命令 ===== -->
     <sys:String x:Key="S.Set.ProxyTitle">网络代理</sys:String>

@@ -33,6 +33,19 @@
     <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#FFFFFFFF" />
 
+    <!-- v0.16.7：Win10 蓝 accent 补齐（暗色：文字用亮蓝保证对比度） -->
+    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#FF106EBE" />
+    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#FF005A9E" />
+    <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Color="#FF4A5C6E" />
+    <SolidColorBrush x:Key="AccentControlElevationBorderBrush" Color="#FF0078D7" />
+    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FF429CE3" />
+    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#FF2E7BC0" />
+    <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#FF1D5A94" />
+
+    <!-- v0.16.7：导航选中项 Win10 蓝（暗色：蓝灰底 + 白字） -->
+    <SolidColorBrush x:Key="NavItemSelectedBackground" Color="#FF3A4E63" />
+
     <!-- 通用控件填充：Win10 深色实底 -->
     <SolidColorBrush x:Key="ControlFillColorDefault" Color="#FF333333" />
     <SolidColorBrush x:Key="ControlFillColorSecondary" Color="#FF3A3A3A" />

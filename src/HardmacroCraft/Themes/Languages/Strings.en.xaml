@@ -756,6 +756,47 @@
     <sys:String x:Key="S.Tool.ShotsDeleteConfirm">Delete this screenshot? This cannot be undone.</sys:String>
     <sys:String x:Key="S.Tool.ShotsNone">No screenshots found — take one in game with F2 and scan again (both shared and isolated versions' screenshots/ are scanned).</sys:String>
     <sys:String x:Key="S.Tool.ShotsFound">Found {0} screenshots in {1} folders — click "View screenshots" to open the thumbnail wall.</sys:String>
+    <sys:String x:Key="S.Tool.SpeedTitle">Speedrun toolbox</sys:String>
+    <sys:String x:Key="S.Tool.SpeedHint">Timer (space to start/pause), 1:8 portal conversion, eye-of-ender triangulation, pearl &amp; blaze rod counter — everything a runner needs.</sys:String>
+    <sys:String x:Key="S.Tool.SpeedTimerTitle">Timer</sys:String>
+    <sys:String x:Key="S.Tool.SpeedSpaceHint">Space = start / pause, R = reset; "Lap" drops a split time anytime.</sys:String>
+    <sys:String x:Key="S.Tool.SpeedStart">Start</sys:String>
+    <sys:String x:Key="S.Tool.SpeedPause">Pause</sys:String>
+    <sys:String x:Key="S.Tool.SpeedReset">Reset</sys:String>
+    <sys:String x:Key="S.Tool.SpeedLap">Lap</sys:String>
+    <sys:String x:Key="S.Tool.PortalTitle">Portal coordinate converter</sys:String>
+    <sys:String x:Key="S.Tool.PortalHint">Overworld ↔ Nether 1:8 (Y stays the same). Type one side and the other converts instantly — for finding nether fortresses or heading back home.</sys:String>
+    <sys:String x:Key="S.Tool.PortalOW">Overworld (X, Z)</sys:String>
+    <sys:String x:Key="S.Tool.PortalNether">Nether (X, Z)</sys:String>
+    <sys:String x:Key="S.Tool.PortalArrow">→</sys:String>
+    <sys:String x:Key="S.Tool.EyesTitle">Eye of ender triangulation</sys:String>
+    <sys:String x:Key="S.Tool.EyesHint">Throw an eye twice, note each thrower's X/Z and the yaw from the F3 "Facing" line — the two rays meet at the stronghold.</sys:String>
+    <sys:String x:Key="S.Tool.EyesThrow1">Throw 1</sys:String>
+    <sys:String x:Key="S.Tool.EyesThrow2">Throw 2</sys:String>
+    <sys:String x:Key="S.Tool.EyesCalc">Locate stronghold</sys:String>
+    <sys:String x:Key="S.Tool.EyesInvalid">Fill both throws: X, Z coordinates and the F3 yaw angle.</sys:String>
+    <sys:String x:Key="S.Tool.EyesParallel">The two throws are nearly parallel (or identical) — walk to another spot and throw again.</sys:String>
+    <sys:String x:Key="S.Tool.EyesResult">Stronghold ≈ ({0}, {1})\nDistance from throw 1: {2} blocks · from throw 2: {3} blocks</sys:String>
+    <sys:String x:Key="S.Tool.CountTitle">Speedrun resource counter</sys:String>
+    <sys:String x:Key="S.Tool.CountHint">Count pearls and blaze rods as you go — see how far you are from the ~8 eyes you need.</sys:String>
+    <sys:String x:Key="S.Tool.CountPearls">Ender pearls</sys:String>
+    <sys:String x:Key="S.Tool.CountRods">Blaze rods</sys:String>
+    <sys:String x:Key="S.Tool.CountAdvice">Can craft {0} eyes of ender (pearls {1} / blaze rods {2}) — speedruns usually need about 8.</sys:String>
+    <sys:String x:Key="S.Tool.SrvTitle">Server status lookup</sys:String>
+    <sys:String x:Key="S.Tool.SrvHint">Enter a Java server address (host or host:port) to query MOTD / version / players / latency — check before you join.</sys:String>
+    <sys:String x:Key="S.Tool.SrvPlaceholder">Server address (e.g. mc.example.net:25565)</sys:String>
+    <sys:String x:Key="S.Tool.SrvQuery">Query status</sys:String>
+    <sys:String x:Key="S.Tool.SrvQuerying">Querying…</sys:String>
+    <sys:String x:Key="S.Tool.SrvPlayers">Players {0} / {1}</sys:String>
+    <sys:String x:Key="S.Mp.Subtitle">One-stop modpack download &amp; install (Modrinth / CurseForge) — installed packs appear in the version list</sys:String>
+    <sys:String x:Key="S.Mp.SearchHint">Search modpacks</sys:String>
+    <sys:String x:Key="S.Mp.Search">Search</sys:String>
+    <sys:String x:Key="S.Mp.LocalInstall">Install local</sys:String>
+    <sys:String x:Key="S.Mp.Install">Download &amp; install</sys:String>
+    <sys:String x:Key="S.Mp.Searching">Searching modpacks…</sys:String>
+    <sys:String x:Key="S.Mp.LoadingRecommend">Fetching featured modpacks...</sys:String>
+    <sys:String x:Key="S.Mp.TaskTitle">Modpack download: {0}</sys:String>
+    <sys:String x:Key="S.Mp.TaskInstall">Install modpack: {0}</sys:String>
 
     <!-- ===== v0.16.0: proxy + pre/post commands ===== -->
     <sys:String x:Key="S.Set.ProxyTitle">Network proxy</sys:String>

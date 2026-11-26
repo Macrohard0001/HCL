@@ -64,7 +64,7 @@
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Root" Property="Background"
-                                        Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                        Value="{DynamicResource NavItemSelectedBackground}" />
                                 <Setter TargetName="SelPill" Property="Visibility" Value="Visible" />
                             </Trigger>
                         </ControlTemplate.Triggers>

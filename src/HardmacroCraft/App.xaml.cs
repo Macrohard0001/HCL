@@ -586,12 +586,21 @@ public partial class App : Application
             // v0.15.9：Metro 皮肤变体同步切换（MetroSkin.Light / MetroSkin.Dark）
             SwapThemeDictInPlace(md, "Themes/MetroSkin.",
                 $"pack://application:,,,/Themes/MetroSkin.{variant}");
+            // v0.16.7：广播变体变化（MetroMainWindow 同步窗控钮 Light/Dark 样式等）
+            MetroVariantChanged?.Invoke(dark);
         }
         catch (Exception ex)
         {
             Services.BootLogger.Error("Metro 深浅色变体切换失败: " + ex.Message);
         }
     }
+
+    /// <summary>v0.16.7：Metro 深浅色变体变化广播（参数 = 是否深色）。</summary>
+    public static event Action<bool>? MetroVariantChanged;
+
+    /// <summary>v0.16.7：当前解析出的深浅色变体（Metro 壳 / 工具窗口配色用）。</summary>
+    public static bool CurrentDarkVariant =>
+        ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Dark;
 
     /// <summary>在合并字典列表里把含 contains 的主题字典原地换成 newSource（保持索引位置）。</summary>
     private static void SwapThemeDictInPlace(System.Collections.ObjectModel.Collection<ResourceDictionary> md,
