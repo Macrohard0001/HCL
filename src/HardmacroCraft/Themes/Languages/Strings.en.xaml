@@ -375,6 +375,11 @@
     <sys:String x:Key="S.Set.GameRoot">Game directory (.minecraft)</sys:String>
     <sys:String x:Key="S.Set.GameRootHint">Defaults to the launcher folder so it travels with your installation.</sys:String>
     <sys:String x:Key="S.Set.Browse">Browse…</sys:String>
+    <!-- v0.16.9: multiple game directories -->
+    <sys:String x:Key="S.Set.RootsTitle">Multiple game directories</sys:String>
+    <sys:String x:Key="S.Set.RootsHint">Save several .minecraft root directories and switch with one click (up to 8); switching fills the path box above and auto-saves — version / saves / mod pages refresh on next visit.</sys:String>
+    <sys:String x:Key="S.Set.RootsSave">Save current</sys:String>
+    <sys:String x:Key="S.Set.RootsRemove">Remove selected</sys:String>
     <sys:String x:Key="S.Set.BrowseFolder">Folder</sys:String>
     <sys:String x:Key="S.Set.JavaPathHint">Accepts javaw.exe / java.exe / a Java folder (javaw.exe is searched automatically).</sys:String>
     <sys:String x:Key="S.Set.JavaDir">Java download location</sys:String>
@@ -443,6 +448,11 @@
     <sys:String x:Key="S.About.Developer">Developer · Fox_Ryn (Macrohard0001)</sys:String>
     <sys:String x:Key="S.About.What">What is this?</sys:String>
     <sys:String x:Key="S.About.WhatBody">Hardmacro Craft Launcher is an independent open-source Minecraft launcher with Windows 11 Fluent design and a side navigation bar. It supports Microsoft / offline login, one-click vanilla and Forge / NeoForge / Fabric / Quilt installs, Modrinth modpacks and mods, version isolation, and mirror acceleration.</sys:String>
+    <!-- v0.16.9: self-update -->
+    <sys:String x:Key="S.About.UpdateTitle">Check for updates</sys:String>
+    <sys:String x:Key="S.About.UpdateHint">Detects new versions from GitHub Releases; downloads the portable bundle and upgrades in place, then restarts automatically (no manual file replacement).</sys:String>
+    <sys:String x:Key="S.About.UpdateCheck">Check for updates</sys:String>
+    <sys:String x:Key="S.About.UpdateDownload">Download &amp; update</sys:String>
     <sys:String x:Key="S.About.License">License</sys:String>
     <sys:String x:Key="S.About.LicenseBody">Released under the MIT license with fully public source. This is an independent project that neither uses nor distributes code from third-party launchers under restrictive licenses.</sys:String>
     <sys:String x:Key="S.About.Thanks">Credits</sys:String>

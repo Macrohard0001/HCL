@@ -135,6 +135,11 @@ public class AppSettings
     public bool HideLauncherOnGameStart { get; set; }
     /// <summary>游戏退出后自动关闭启动器（HMCL 同款）。</summary>
     public bool ExitLauncherOnGameExit { get; set; }
+    /// <summary>
+    /// v0.16.9：多游戏目录列表（HMCL 标配）—— 已保存的 .minecraft 根目录，一键切换。
+    /// 当前生效目录仍是 GameRoot（不必在列表里）；「保存当前」入列，上限 GameRootsStore.MaxRoots。
+    /// </summary>
+    public List<string> GameRoots { get; set; } = new();
     /// <summary>主页「快速进服」上次使用的服务器地址（host:port，fix6，PCL 同款记忆）。</summary>
     public string LastQuickServer { get; set; } = "";
 

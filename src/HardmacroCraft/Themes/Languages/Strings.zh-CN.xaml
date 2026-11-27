@@ -375,6 +375,11 @@
     <sys:String x:Key="S.Set.GameRoot">游戏目录（.minecraft）</sys:String>
     <sys:String x:Key="S.Set.GameRootHint">默认位于启动器同目录，随目录一起携带。</sys:String>
     <sys:String x:Key="S.Set.Browse">浏览…</sys:String>
+    <!-- v0.16.9：多游戏目录 -->
+    <sys:String x:Key="S.Set.RootsTitle">多游戏目录</sys:String>
+    <sys:String x:Key="S.Set.RootsHint">保存多个 .minecraft 根目录并在下拉列表一键切换（上限 8 个）；切换 = 写入上方目录框并自动保存，版本 / 存档 / mod 等页面在下次进入时按新目录刷新。</sys:String>
+    <sys:String x:Key="S.Set.RootsSave">保存当前</sys:String>
+    <sys:String x:Key="S.Set.RootsRemove">移除所选</sys:String>
     <sys:String x:Key="S.Set.BrowseFolder">文件夹</sys:String>
     <sys:String x:Key="S.Set.JavaPathHint">支持填写 javaw.exe / java.exe / Java 所在文件夹（自动搜索 javaw.exe）。</sys:String>
     <sys:String x:Key="S.Set.JavaDir">Java 下载位置</sys:String>
@@ -443,6 +448,11 @@
     <sys:String x:Key="S.About.Developer">开发者 · Fox_Ryn (Macrohard0001)</sys:String>
     <sys:String x:Key="S.About.What">这是什么？</sys:String>
     <sys:String x:Key="S.About.WhatBody">Hardmacro Craft Launcher 是一个独立的开源 Minecraft 启动器，采用 Windows 11 Fluent 设计语言与侧边导航栏。支持微软正版 / 离线登录、原版与 Forge / NeoForge / Fabric / Quilt 一键安装、Modrinth 整合包与 Mod 下载、版本隔离与国内镜像加速。</sys:String>
+    <!-- v0.16.9：启动器自更新 -->
+    <sys:String x:Key="S.About.UpdateTitle">检查更新</sys:String>
+    <sys:String x:Key="S.About.UpdateHint">从 GitHub Releases 检测新版本；下载便携全量包后自动覆盖升级并重启（无需手动替换文件）。</sys:String>
+    <sys:String x:Key="S.About.UpdateCheck">检查更新</sys:String>
+    <sys:String x:Key="S.About.UpdateDownload">下载并更新</sys:String>
     <sys:String x:Key="S.About.License">开源协议</sys:String>
     <sys:String x:Key="S.About.LicenseBody">本项目以 MIT 协议发布，源码完全公开。这是一个独立项目，未使用、未分发任何第三方闭源或限制性许可启动器的代码。</sys:String>
     <sys:String x:Key="S.About.Thanks">致谢</sys:String>

@@ -3820,6 +3820,132 @@ try
 }
 catch (Exception ex) { Check("第 39 节 v0.16.8（世界存档 / 日志查看 / 性能档位）", false, ex.Message); }
 
+// ==================== 40. 启动器自更新 + 多游戏目录（v0.16.9） ====================
+try
+{
+    const string GhLatestJson = """
+{
+  "tag_name": "v0.16.9",
+  "body": "更新说明",
+  "assets": [
+    {"name": "HardmacroCraft-Launcher-v0.16.9-SingleFile.zip",
+     "browser_download_url": "https://github.com/Macrohard0001/HCL/releases/download/v0.16.9/HardmacroCraft-Launcher-v0.16.9-SingleFile.zip",
+     "size": 66102643},
+    {"name": "HardmacroCraft-Launcher-v0.16.9-Portable.zip",
+     "browser_download_url": "https://github.com/Macrohard0001/HCL/releases/download/v0.16.9/HardmacroCraft-Launcher-v0.16.9-Portable.zip",
+     "size": 70764279}
+  ]
+}
+""";
+    const string GhOldJson = """
+{"tag_name":"v0.16.8","assets":[{"name":"HardmacroCraft-Launcher-v0.16.8-Portable.zip","browser_download_url":"https://x/z.zip","size":1}]}
+""";
+    const string GhSingleOnlyJson = """
+{"tag_name":"v0.17.0","assets":[{"name":"HardmacroCraft-Launcher-v0.17.0-SingleFile.zip","browser_download_url":"https://x/sf.zip","size":2}]}
+""";
+
+    // --- 版本比较 ---
+    Check("CompareVersions：升 / 同（v 前缀与段数不齐补零）/ 降 / 多段进位 / 预发布与构建后缀清洗",
+        SelfUpdateService.CompareVersions("0.16.8", "0.16.9") < 0
+        && SelfUpdateService.CompareVersions("v0.16.9", "0.16.9") == 0
+        && SelfUpdateService.CompareVersions("1.20", "1.20.0") == 0
+        && SelfUpdateService.CompareVersions("0.17.0", "0.16.99") > 0
+        && SelfUpdateService.CompareVersions("0.16.10", "0.16.9") > 0
+        && SelfUpdateService.CompareVersions("0.16.9-beta", "0.16.9") == 0
+        && SelfUpdateService.CompareVersions("0.16.8+abc123", "0.16.8") == 0);
+
+    // --- release JSON 解析 ---
+    var latest = SelfUpdateService.ParseReleaseJson(GhLatestJson, "0.16.8");
+    Check("ParseReleaseJson：新版本命中且便携全量包优先（非 SingleFile）",
+        latest != null && latest.Version == "0.16.9"
+        && latest.AssetUrl.EndsWith("HardmacroCraft-Launcher-v0.16.9-Portable.zip")
+        && latest.SizeBytes == 70764279);
+    Check("ParseReleaseJson：同版本 / 更旧 / 无 zip 资产 / 坏 JSON 都返回 null",
+        SelfUpdateService.ParseReleaseJson(GhLatestJson, "0.16.9") == null
+        && SelfUpdateService.ParseReleaseJson(GhOldJson, "0.16.8") == null
+        && SelfUpdateService.ParseReleaseJson(GhOldJson, "0.16.9") == null
+        && SelfUpdateService.ParseReleaseJson("not json{", "0.16.8") == null);
+    var sfOnly = SelfUpdateService.ParseReleaseJson(GhSingleOnlyJson, "0.16.8");
+    Check("ParseReleaseJson：只有单文件包时兜底命中", sfOnly != null && sfOnly.AssetName.EndsWith("SingleFile.zip"));
+
+    // --- CheckAsync（拦截式 HttpClient）---
+    string? checkUrl = null;
+    var httpUpd = new HttpClient(new InterceptingHandler((req, _) =>
+    {
+        checkUrl = req.RequestUri?.ToString();
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        { Content = new StringContent(GhLatestJson) });
+    }));
+    var viaHttp = SelfUpdateService.CheckAsync(httpUpd, "0.16.8").Result;
+    Check("CheckAsync：GET latest release API 且解析出新版本", checkUrl == SelfUpdateService.ReleaseApiUrl
+        && viaHttp != null && viaHttp.Version == "0.16.9");
+
+    // --- 解压 zip-slip + 升级脚本 ---
+    var updRoot = Directory.CreateTempSubdirectory("hcl-update-").FullName;
+    var updZip = Path.Combine(updRoot, "update.zip");
+    using (var fs = File.Create(updZip))
+    using (var ar = new ZipArchive(fs, ZipArchiveMode.Create))
+    {
+        var e1 = ar.CreateEntry("HardmacroCraftLauncher.exe");
+        using (var w = e1.Open()) w.Write(new byte[] { 0x4D, 0x5A, 1, 2 });
+        var e2 = ar.CreateEntry("assemblies/Some.dll");
+        using (var w = e2.Open()) w.Write(new byte[] { 3, 4 });
+        var e3 = ar.CreateEntry("../evil.txt");
+        using (var w = e3.Open()) w.Write("bad"u8.ToArray());
+    }
+    var staging = Path.Combine(updRoot, "staging");
+    SelfUpdateService.ExtractUpdate(updZip, staging);
+    Check("ExtractUpdate：扁平 + 子目录条目落地，zip-slip 条目被拒",
+        File.Exists(Path.Combine(staging, "HardmacroCraftLauncher.exe"))
+        && File.Exists(Path.Combine(staging, "assemblies", "Some.dll"))
+        && !File.Exists(Path.Combine(updRoot, "evil.txt")) && !File.Exists(Path.Combine(staging, "evil.txt")));
+    var batText = SelfUpdateService.BuildUpdateScriptText(staging, updRoot);
+    Check("BuildUpdateScriptText：等进程退出 → xcopy 覆盖 → 重启 → 自删 四要素齐备",
+        batText.Contains("tasklist") && batText.Contains("xcopy /e /y /i")
+        && batText.Contains("start \"\"") && batText.Contains("del \"%~f0\"")
+        && batText.Contains(SelfUpdateService.ExeName));
+    var batPath = SelfUpdateService.WriteUpdateScript(staging, updRoot);
+    Check("WriteUpdateScript：落盘且内容与纯函数一致",
+        File.Exists(batPath) && File.ReadAllText(batPath) == batText);
+
+    // --- 多游戏目录 ---
+    var roots = new List<string>();
+    Check("GameRootsStore.Add：归一化入列 / 重复拒绝 / 相对路径按 AppDir 补全",
+        GameRootsStore.Add(roots, "/tmp/game-a/") && roots.Count == 1 && roots[0] == "/tmp/game-a"
+        && !GameRootsStore.Add(roots, "/tmp/game-a")
+        && GameRootsStore.Add(roots, "/tmp/game-b")
+        && GameRootsStore.Add(roots, "relative-path") && roots[2].StartsWith(AppSettings.AppDir));
+    for (var i = 0; i < 10; i++) GameRootsStore.Add(roots, $"/tmp/g{i:00}");
+    Check("GameRootsStore：上限截断到 8 个", roots.Count == GameRootsStore.MaxRoots);
+    Check("GameRootsStore.Remove：大小写不敏感移除命中",
+        GameRootsStore.Remove(roots, "/TMP/GAME-A") && !GameRootsStore.Remove(roots, "/tmp/game-a")
+        && roots.Count == GameRootsStore.MaxRoots - 1);
+    Check("NormalizeList：去重 + 非空过滤 + 顺序保持",
+        GameRootsStore.NormalizeList(new[] { "/x", "", "/x/", "/Y", "/y" }).SequenceEqual(new[] { "/x", "/Y" }));
+    Check("AppSettings.GameRoots 默认空列表（旧配置兼容）", new AppSettings().GameRoots.Count == 0);
+
+    // --- 源码断言 ---
+    var aboutXaml40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "AboutPage.xaml")));
+    var aboutCs40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "AboutPage.xaml.cs")));
+    Check("AboutPage：检查更新卡（检查 + 下载并更新 + 状态行）接入 SelfUpdateService",
+        aboutXaml40.Contains("BtnUpdateCheck") && aboutXaml40.Contains("S.About.UpdateTitle")
+        && aboutCs40.Contains("SelfUpdateService.CheckAsync") && aboutCs40.Contains("SelfUpdateService.ApplyUpdate"));
+    var setXaml40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml")));
+    var setCs40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
+    Check("SettingsPage：多游戏目录卡（下拉切换 / 保存当前 / 移除所选）",
+        setXaml40.Contains("CmbGameRoots") && setXaml40.Contains("BtnRootSave")
+        && setCs40.Contains("GameRootsStore.Add") && setCs40.Contains("GameRootsStore.Remove"));
+    var zh40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var en40 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    var keys40 = new[] { "S.About.UpdateTitle", "S.About.UpdateDownload", "S.Set.RootsTitle", "S.Set.RootsRemove" };
+    Check("v0.16.9：新增词条双语成对（4 个关键键 zh/en 都在）", keys40.All(k => zh40.Contains(k) && en40.Contains(k)));
+    var csproj40 = File.ReadAllText(RepoFile(Path.Combine("tests", "HmCoreTest", "HmCoreTest.csproj")));
+    Check("测试工程链接 SelfUpdateService / GameRootsStore",
+        csproj40.Contains("Services/SelfUpdateService.cs") && csproj40.Contains("Services/GameRootsStore.cs"));
+    Directory.Delete(updRoot, true);
+}
+catch (Exception ex) { Check("第 40 节 v0.16.9（自更新 / 多游戏目录）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

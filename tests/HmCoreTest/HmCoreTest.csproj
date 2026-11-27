@@ -62,6 +62,9 @@
     <!-- v0.16.8：世界存档管理 + 日志查看器（纯文件系统逻辑 / 注入式上传） -->
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/WorldsService.cs" Link="Services/WorldsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LogViewerService.cs" Link="Services/LogViewerService.cs" />
+    <!-- v0.16.9：自更新（版本比较 / release 解析 / 升级脚本纯逻辑）+ 多游戏目录 -->
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SelfUpdateService.cs" Link="Services/SelfUpdateService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameRootsStore.cs" Link="Services/GameRootsStore.cs" />
   </ItemGroup>
 
   <ItemGroup>

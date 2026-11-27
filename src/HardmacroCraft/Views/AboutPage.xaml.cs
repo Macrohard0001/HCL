@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using HardmacroCraft.Services;
 using System.Windows;
@@ -26,5 +27,63 @@ public partial class AboutPage : Page
         if (string.IsNullOrEmpty(template))
             template = "v{0} · MIT License";
         TxtVersion.Text = string.Format(template, shown);
+    }
+
+    // ===== v0.16.9：启动器自更新 =====
+    private SelfUpdateService.LatestInfo? _pendingUpdate;
+
+    private async void BtnUpdateCheck_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            BtnUpdateCheck.IsEnabled = false;
+            BtnUpdateApply.IsEnabled = false;
+            TxtUpdateStatus.Text = "正在检查更新（GitHub Releases latest）…";
+            var latest = await SelfUpdateService.CheckAsync(App.LauncherService.Http, LauncherService.LauncherVersion);
+            if (latest == null)
+            {
+                TxtUpdateStatus.Text = $"✓ 已是最新版本（v{LauncherService.LauncherVersion}）。";
+            }
+            else
+            {
+                _pendingUpdate = latest;
+                BtnUpdateApply.IsEnabled = true;
+                TxtUpdateStatus.Text = $"发现新版本 v{latest.Version}（{latest.AssetName}，{latest.SizeBytes / 1024.0 / 1024.0:0.#} MB）——点「下载并更新」开始，更新完成后启动器会自动重启。";
+            }
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateStatus.Text = "检查更新失败：" + ex.Message;
+        }
+        finally { BtnUpdateCheck.IsEnabled = true; }
+    }
+
+    private async void BtnUpdateApply_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingUpdate is not { } info) return;
+        var confirm = MessageBox.Show(Window.GetWindow(this),
+            $"下载 v{info.Version} 并更新？\n\n更新完成后启动器会自动重启（当前窗口将关闭）。",
+            "Hardmacro Craft Launcher", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.OK) return;
+        try
+        {
+            BtnUpdateApply.IsEnabled = false;
+            var zipPath = Path.Combine(Path.GetTempPath(), info.AssetName);
+            var staging = Path.Combine(Path.GetTempPath(), "HCL-update-staging");
+            var progress = new Progress<long>(p =>
+                TxtUpdateStatus.Text = $"下载中… {p / 1024.0 / 1024.0:0.#} / {info.SizeBytes / 1024.0 / 1024.0:0.#} MB");
+            await SelfUpdateService.DownloadAsync(App.LauncherService.Http, info, zipPath, progress);
+            TxtUpdateStatus.Text = "解压更新包并准备升级脚本…";
+            var appDir = AppContext.BaseDirectory;
+            SelfUpdateService.ApplyUpdate(zipPath, staging, appDir);
+            TxtUpdateStatus.Text = "✓ 更新就绪——启动器即将关闭并自动重启。";
+            await Task.Delay(800);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateStatus.Text = "更新失败：" + ex.Message;
+            BtnUpdateApply.IsEnabled = true;
+        }
     }
 }

@@ -98,6 +98,20 @@
                                    Click="BtnBrowseRoot_Click" />
                     </Grid>
 
+                    <!-- v0.16.9：多游戏目录（HMCL 标配）—— 已保存目录一键切换 -->
+                    <TextBlock Text="{DynamicResource S.Set.RootsTitle}" FontWeight="Medium" Margin="0,14,0,4" />
+                    <TextBlock Text="{DynamicResource S.Set.RootsHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <WrapPanel>
+                        <ComboBox x:Name="CmbGameRoots" MinWidth="320" MinHeight="30" Margin="0,0,8,6"
+                                  SelectionChanged="CmbGameRoots_Changed" />
+                        <ui:Button x:Name="BtnRootSave" MinHeight="30" MinWidth="100" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.Set.RootsSave}" Click="BtnRootSave_Click" />
+                        <ui:Button x:Name="BtnRootRemove" MinHeight="30" MinWidth="100" Margin="0,0,0,6"
+                                   Appearance="Danger"
+                                   Content="{DynamicResource S.Set.RootsRemove}" Click="BtnRootRemove_Click" />
+                    </WrapPanel>
+
                     <!-- v0.1.11：相对路径增强（移动磁盘 / 整目录迁移友好） -->
                     <CheckBox x:Name="ChkRelativePaths" Content="{DynamicResource S.Set.RelativePaths}" Margin="0,14,0,2" />
                     <TextBlock Text="{DynamicResource S.Set.RelativePathsHint}" Style="{StaticResource HmHint}"

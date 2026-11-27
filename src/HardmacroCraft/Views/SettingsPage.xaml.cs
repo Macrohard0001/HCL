@@ -26,6 +26,9 @@ public partial class SettingsPage : Page
             PerfProfileItems();
             foreach (ComboBoxItem i in CmbPerfProfile.Items)
                 if ((string)i.Tag == AppSettings.Instance.PerfProfile) { CmbPerfProfile.SelectedItem = i; break; }
+            // v0.16.9：多游戏目录回放（先于 TxtGameRoot 实际值回放——选择切换会联动写
+            // TxtGameRoot，顺序颠倒会把已保存目录覆盖回初始值）
+            RefreshGameRootsBox(selectCurrent: true);
             TxtGameRoot.Text = AppSettings.Instance.GameRoot;
             TxtJava.Text = AppSettings.Instance.JavaPath;
             TxtJavaDir.Text = AppSettings.Instance.JavaRuntimeDir;
@@ -326,6 +329,50 @@ public partial class SettingsPage : Page
         TxtSaveHint.Text = "✓ 已自动保存 " + DateTime.Now.ToString("HH:mm:ss") +
             "（" + (s.GameRoot != oldRoot ? "游戏目录已变更，建议重启启动器刷新版本列表 · " : "") +
             "config/settings.json）";
+    }
+
+    // v0.16.9：多游戏目录（HMCL 同款）—— 下拉切换 = 写入目录输入框，自动保存钩子随后落盘，
+    // 各页面按 Loaded 用新根目录刷新
+    private void RefreshGameRootsBox(bool selectCurrent = false)
+    {
+        var roots = AppSettings.Instance.GameRoots;
+        CmbGameRoots.ItemsSource = roots.ToList();
+        if (selectCurrent && roots.Count > 0)
+        {
+            var cur = GameRootsStore.NormalizeRoot(AppSettings.Instance.GameRoot);
+            var idx = roots.FindIndex(r =>
+                string.Equals(GameRootsStore.NormalizeRoot(r), cur, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0) CmbGameRoots.SelectedIndex = idx;
+        }
+    }
+
+    private void CmbGameRoots_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbGameRoots.SelectedItem is string root && TxtGameRoot != null)
+            TxtGameRoot.Text = root;
+    }
+
+    private void BtnRootSave_Click(object sender, RoutedEventArgs e)
+    {
+        var root = TxtGameRoot.Text.Trim();
+        if (root.Length == 0)
+        {
+            TxtSaveHint.Text = "目录为空——先在上方填好游戏目录再保存。";
+            return;
+        }
+        if (GameRootsStore.Add(AppSettings.Instance.GameRoots, root))
+            AppSettings.Instance.Save();
+        RefreshGameRootsBox(selectCurrent: true);
+        TxtSaveHint.Text = $"✓ 已保存到多游戏目录列表（共 {AppSettings.Instance.GameRoots.Count} 个）。";
+    }
+
+    private void BtnRootRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (CmbGameRoots.SelectedItem is not string sel) return;
+        if (GameRootsStore.Remove(AppSettings.Instance.GameRoots, sel))
+            AppSettings.Instance.Save();
+        RefreshGameRootsBox();
+        TxtSaveHint.Text = $"✓ 已从列表移除（当前生效目录不变，共 {AppSettings.Instance.GameRoots.Count} 个）。";
     }
 
     // v0.16.8：性能档位 —— 下拉项（自定义 + LaunchArgs.PerfProfiles，标题走词条）

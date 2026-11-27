@@ -51,6 +51,24 @@
                 </StackPanel>
             </Border>
 
+            <!-- v0.16.9：启动器自更新（HMCL / PCL 标配） -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.About.UpdateTitle}" Margin="0,0,0,6" />
+                    <TextBlock Text="{DynamicResource S.About.UpdateHint}" TextWrapping="Wrap" LineHeight="22"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <WrapPanel Margin="0,10,0,0">
+                        <ui:Button x:Name="BtnUpdateCheck" MinHeight="32" MinWidth="120" Margin="0,0,8,6"
+                                   Content="{DynamicResource S.About.UpdateCheck}" Click="BtnUpdateCheck_Click" />
+                        <ui:Button x:Name="BtnUpdateApply" MinHeight="32" MinWidth="150" Margin="0,0,0,6"
+                                   Appearance="Primary" IsEnabled="False"
+                                   Content="{DynamicResource S.About.UpdateDownload}" Click="BtnUpdateApply_Click" />
+                    </WrapPanel>
+                    <TextBlock x:Name="TxtUpdateStatus" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.About.License}" Margin="0,0,0,6" />
