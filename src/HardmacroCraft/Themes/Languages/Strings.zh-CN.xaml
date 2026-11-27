@@ -915,4 +915,17 @@
     <sys:String x:Key="S.Tool.LogCopy">复制内容</sys:String>
     <sys:String x:Key="S.Tool.LogUpload">上传 mclo.gs</sys:String>
     <sys:String x:Key="S.Tool.LogReveal">打开位置</sys:String>
+    <!-- v0.16.10：回收站 + 启动前存档备份 -->
+    <sys:String x:Key="S.Tool.TrashTitle">回收站</sys:String>
+    <sys:String x:Key="S.Tool.TrashHint">统一管理删除进 .hcl-trash 的内容（目前是世界存档）：恢复回 saves / 游戏根、永久删除、一键清空、定位到文件管理器。</sys:String>
+    <sys:String x:Key="S.Tool.TrashRefresh">刷新</sys:String>
+    <sys:String x:Key="S.Tool.TrashRestore">恢复所选</sys:String>
+    <sys:String x:Key="S.Tool.TrashDelete">永久删除</sys:String>
+    <sys:String x:Key="S.Tool.TrashEmpty">清空回收站</sys:String>
+    <sys:String x:Key="S.Tool.TrashReveal">打开位置</sys:String>
+    <sys:String x:Key="S.Set.AutoBackup">启动前存档自动备份</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupHint">每次启动游戏前把存档打成 zip 存到游戏目录 .hcl-backups/saves，手滑删档 / 新存档翻车有后悔药。</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupChk">启动游戏前自动备份存档（共享 saves 与各隔离版本的存档）</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupChkHint">备份在后台进行，失败不影响启动；没有存档时不产空备份。</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupKeep">滚动保留</sys:String>
 </ResourceDictionary>

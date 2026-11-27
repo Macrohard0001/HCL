@@ -3946,6 +3946,111 @@ try
 }
 catch (Exception ex) { Check("第 40 节 v0.16.9（自更新 / 多游戏目录）", false, ex.Message); }
 
+// ==================== 41. 回收站管理 + 启动前存档备份（v0.16.10） ====================
+try
+{
+    // --- TrashService ---
+    var tRoot = Directory.CreateTempSubdirectory("hcl-trash-").FullName;
+    var wDir = Directory.CreateDirectory(Path.Combine(tRoot, ".hcl-trash", "OldWorld-20261127-120000")).FullName;
+    File.WriteAllBytes(Path.Combine(wDir, "level.dat"), [1, 2, 3]);
+    var jDir = Directory.CreateDirectory(Path.Combine(tRoot, ".hcl-trash", "Junk-20261127-130000")).FullName;
+    File.WriteAllText(Path.Combine(jDir, "a.txt"), "x");
+    var entries = TrashService.ListTrash(tRoot);
+    Check("ListTrash：条目数 + 世界判定 + 移入时间倒序",
+        entries.Count == 2 && entries.Count(e => e.LooksLikeWorld) == 1
+        && entries[0].Name.StartsWith("Junk-")); // 后移入的排前
+
+    var worldEntry = entries.First(e => e.LooksLikeWorld);
+    var dest = TrashService.Restore(worldEntry, tRoot);
+    Check("Restore：世界条目移回共享 saves 且 level.dat 完好",
+        dest == Path.Combine(tRoot, "saves", worldEntry.Name) && File.Exists(Path.Combine(dest, "level.dat")));
+    var junkEntry = entries.First(e => !e.LooksLikeWorld);
+    var dest2 = TrashService.Restore(junkEntry, tRoot);
+    Check("Restore：非世界条目移回游戏根", Path.GetDirectoryName(dest2) == tRoot && File.Exists(Path.Combine(dest2, "a.txt")));
+
+    // 重名不覆盖：再造同名世界条目再恢复 → -restored-2
+    var again = Directory.CreateDirectory(Path.Combine(tRoot, ".hcl-trash", worldEntry.Name)).FullName;
+    File.WriteAllBytes(Path.Combine(again, "level.dat"), [9, 9]);
+    var dest3 = TrashService.Restore(TrashService.ListTrash(tRoot).First(e => e.LooksLikeWorld), tRoot);
+    Check("Restore：重名自动 -restored-2 不覆盖", dest3.EndsWith("-restored-2") && File.Exists(Path.Combine(dest3, "level.dat")));
+
+    Directory.CreateDirectory(Path.Combine(tRoot, ".hcl-trash", "Extra")); // 补条目供删除测试
+    TrashService.DeletePermanently(TrashService.ListTrash(tRoot)[0]);
+    Check("DeletePermanently：指定删除后列表变短", TrashService.ListTrash(tRoot).Count == 0);
+    Check("TrashDir：从未创建过回收站返回 null，条目删光后列表空（目录可留）",
+        TrashService.TrashDir(Path.Combine(tRoot, "fresh-root")) == null
+        && TrashService.ListTrash(tRoot).Count == 0);
+
+    // --- SaveBackupService ---
+    var bRoot = Directory.CreateTempSubdirectory("hcl-bak-").FullName;
+    Directory.CreateDirectory(Path.Combine(bRoot, "saves", "A"));
+    File.WriteAllText(Path.Combine(bRoot, "saves", "A", "level.dat"), "A");
+    Directory.CreateDirectory(Path.Combine(bRoot, "versions", "1.20.1", "saves", "B"));
+    File.WriteAllText(Path.Combine(bRoot, "versions", "1.20.1", "saves", "B", "level.dat"), "B");
+    Directory.CreateDirectory(Path.Combine(bRoot, "versions", "novs")); // 无 saves → 跳过
+    var made = SaveBackupService.BackupAll(bRoot);
+    Check("BackupAll：共享 + 隔离各一份，无 saves 的版本跳过",
+        made.Count == 2
+        && made.Any(f => Path.GetFileName(f).StartsWith("saves-shared-"))
+        && made.Any(f => Path.GetFileName(f).StartsWith("saves-1.20.1-")));
+    var sharedZip = made.First(f => Path.GetFileName(f).StartsWith("saves-shared-"));
+    using (var ar = System.IO.Compression.ZipFile.OpenRead(sharedZip))
+        Check("备份 zip 内容：共享包含 A/level.dat", ar.Entries.Any(e => e.FullName.Replace('\\', '/') == "A/level.dat"));
+    var name41 = SaveBackupService.BuildBackupName("shared");
+    Check("BuildBackupName：saves-{标签}-{时间戳}.zip 格式",
+        name41.StartsWith("saves-shared-") && name41.EndsWith(".zip") && name41.Length > "saves-shared-.zip".Length + 14);
+    Check("BackupOne：目录不存在 / 无世界子目录都返回 null",
+        SaveBackupService.BackupOne(Path.Combine(bRoot, "nonexistent"), "x", bRoot) == null
+        && (Directory.CreateDirectory(Path.Combine(bRoot, "emptydir")).FullName is var ed
+            && SaveBackupService.BackupOne(ed, "y", bRoot) == null));
+
+    // 滚动保留：再放 5 个旧备份（mtime 设老）→ 共 7 份，keep=2 删 5
+    var bDir = SaveBackupService.BackupDir(bRoot);
+    for (var i = 0; i < 5; i++)
+    {
+        var f = Path.Combine(bDir, $"saves-x-{i:00}.zip");
+        File.WriteAllText(f, "z");
+        File.SetLastWriteTime(f, new DateTime(2026, 1, 1, 0, i, 0));
+    }
+    var removed = SaveBackupService.PruneKeepN(bDir, 2);
+    var left = Directory.GetFiles(bDir, "*.zip").Select(f => Path.GetFileName(f)!).ToList();
+    Check("PruneKeepN：保留最近 2 份（BackupAll 的新 zip）删最旧 5 份",
+        removed == 5 && left.Count == 2
+        && left.All(l => l.StartsWith("saves-shared-") || l.StartsWith("saves-1.20.1-")));
+    Check("PruneKeepN：keep<1 视为 1 且目录不存在返回 0",
+        SaveBackupService.PruneKeepN(bDir, 0) == 1
+        && SaveBackupService.PruneKeepN(Path.Combine(bRoot, "nope"), 3) == 0);
+
+    // --- 源码断言 ---
+    var launchSrc41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Services", "LauncherService.cs")));
+    Check("启动流程：备份钩子在启动前命令之前（失败不阻断启动）",
+        launchSrc41.Contains("SaveBackupService.BackupAll()") && launchSrc41.Contains("AutoBackupSavesOnLaunch")
+        && launchSrc41.IndexOf("SaveBackupService.BackupAll()") < launchSrc41.IndexOf("RunShellCommand(AppSettings.Instance.PreLaunchCommand"));
+    var toolsXaml41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    var toolsCs41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    Check("ToolsPage：13 宫格（回收站入口 + OpenTrash_Click）",
+        toolsXaml41.Contains("EntryTrash") && toolsCs41.Contains("new TrashTool()"));
+    var trashCs41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "TrashTool.xaml.cs")));
+    Check("TrashTool：恢复 / 永久删除 / 清空三操作 + 二次确认",
+        trashCs41.Contains("TrashService.Restore") && trashCs41.Contains("TrashService.EmptyTrash")
+        && trashCs41.Contains("MessageBoxButton.YesNo"));
+    var setXaml41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml")));
+    var setCs41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "SettingsPage.xaml.cs")));
+    Check("SettingsPage：自动备份卡（开关 + 滚动保留档位）接线 SaveFromUi",
+        setXaml41.Contains("ChkAutoBackup") && setXaml41.Contains("CmbBackupKeep")
+        && setCs41.Contains("AutoBackupSavesOnLaunch") && setCs41.Contains("AutoBackupKeepCount"));
+    var zh41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var en41 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    var keys41 = new[] { "S.Tool.TrashTitle", "S.Tool.TrashEmpty", "S.Set.AutoBackup", "S.Set.AutoBackupKeep" };
+    Check("v0.16.10：新增词条双语成对（4 个关键键 zh/en 都在）", keys41.All(k => zh41.Contains(k) && en41.Contains(k)));
+    var csproj41 = File.ReadAllText(RepoFile(Path.Combine("tests", "HmCoreTest", "HmCoreTest.csproj")));
+    Check("测试工程链接 TrashService / SaveBackupService",
+        csproj41.Contains("Services/TrashService.cs") && csproj41.Contains("Services/SaveBackupService.cs"));
+    Directory.Delete(tRoot, true);
+    Directory.Delete(bRoot, true);
+}
+catch (Exception ex) { Check("第 41 节 v0.16.10（回收站 / 存档自动备份）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;

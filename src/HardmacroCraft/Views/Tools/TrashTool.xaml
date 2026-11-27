@@ -1,0 +1,32 @@
+<!-- v0.16.10：回收站管理（独立窗口）—— 列表 / 恢复 / 永久删除 / 清空 -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.TrashTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.TrashTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.TrashHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <WrapPanel>
+            <ComboBox x:Name="CmbTrash" MinWidth="340" MinHeight="32" Margin="0,0,8,6"
+                      DisplayMemberPath="Display"
+                      SelectionChanged="CmbTrash_SelectionChanged" />
+            <ui:Button x:Name="BtnTrashRefresh" MinHeight="32" MinWidth="90" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.TrashRefresh}" Click="BtnTrashRefresh_Click" />
+            <ui:Button x:Name="BtnTrashRestore" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.TrashRestore}" Click="BtnTrashRestore_Click" />
+            <ui:Button x:Name="BtnTrashDelete" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Appearance="Danger"
+                       Content="{DynamicResource S.Tool.TrashDelete}" Click="BtnTrashDelete_Click" />
+            <ui:Button x:Name="BtnTrashEmpty" MinHeight="32" MinWidth="130" Margin="0,0,8,6"
+                       Appearance="Danger"
+                       Content="{DynamicResource S.Tool.TrashEmpty}" Click="BtnTrashEmpty_Click" />
+            <ui:Button x:Name="BtnTrashReveal" MinHeight="32" MinWidth="110" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.TrashReveal}" Click="BtnTrashReveal_Click" />
+        </WrapPanel>
+        <TextBlock x:Name="TxtTrashStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

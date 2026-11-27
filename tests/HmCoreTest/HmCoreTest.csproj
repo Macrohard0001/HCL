@@ -65,6 +65,9 @@
     <!-- v0.16.9：自更新（版本比较 / release 解析 / 升级脚本纯逻辑）+ 多游戏目录 -->
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SelfUpdateService.cs" Link="Services/SelfUpdateService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/GameRootsStore.cs" Link="Services/GameRootsStore.cs" />
+    <!-- v0.16.10：回收站管理 + 启动前存档备份（纯文件系统逻辑 / 滚动清理纯函数） -->
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/TrashService.cs" Link="Services/TrashService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SaveBackupService.cs" Link="Services/SaveBackupService.cs" />
   </ItemGroup>
 
   <ItemGroup>

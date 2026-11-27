@@ -123,6 +123,32 @@
                 </StackPanel>
             </Border>
 
+            <!-- ===== 2.5 启动前存档自动备份（v0.16.10，可选安全网） ===== -->
+            <Border Style="{StaticResource HmCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource HmSectionTitle}" Text="{DynamicResource S.Set.AutoBackup}" />
+                            <TextBlock Style="{StaticResource HmHint}" Text="{DynamicResource S.Set.AutoBackupHint}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <CheckBox x:Name="ChkAutoBackup" Content="{DynamicResource S.Set.AutoBackupChk}" Margin="0,0,0,2" />
+                    <TextBlock Text="{DynamicResource S.Set.AutoBackupChkHint}" Style="{StaticResource HmHint}"
+                               Margin="24,0,0,10" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource S.Set.AutoBackupKeep}" FontWeight="Medium"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ComboBox x:Name="CmbBackupKeep" MinWidth="160" MinHeight="30">
+                            <ComboBoxItem Content="1 份" Tag="1" />
+                            <ComboBoxItem Content="3 份" Tag="3" />
+                            <ComboBoxItem Content="5 份" Tag="5" />
+                            <ComboBoxItem Content="10 份" Tag="10" />
+                            <ComboBoxItem Content="20 份" Tag="20" />
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- ===== 3. 游戏内存 ===== -->
             <Border Style="{StaticResource HmCard}">
                 <StackPanel>

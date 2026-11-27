@@ -29,7 +29,7 @@ public class LauncherService : IDisposable
     private static readonly SemaphoreSlim InstallGate = new(1, 1);
 
     /// <summary>v0.1.1：应用当前版本号（上报 / 校验缓存戳共用，改版本只改这一处）。</summary>
-    public const string LauncherVersion = "0.16.9";
+    public const string LauncherVersion = "0.16.10";
 
     private static async Task<T> RunInInstallGateAsync<T>(Func<Task<T>> work)
         => await RunInInstallGateAsync(CancellationToken.None, work);
@@ -1069,6 +1069,22 @@ public class LauncherService : IDisposable
         }
         var process = await createTask; // 传播创建阶段的真实异常
         var wrapper = new ProcessWrapper(process);
+        // ===== v0.16.10：启动前自动备份存档（可选安全网；线程池执行，失败不阻断启动） =====
+        if (AppSettings.Instance.AutoBackupSavesOnLaunch)
+        {
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var zips = SaveBackupService.BackupAll();
+                    SaveBackupService.PruneKeepN(SaveBackupService.BackupDir(),
+                        AppSettings.Instance.AutoBackupKeepCount);
+                    if (zips.Count > 0)
+                        onLog?.Invoke($"[备份] 存档已自动备份 {zips.Count} 份（保留最近 {Math.Max(1, AppSettings.Instance.AutoBackupKeepCount)} 份）：{string.Join("、", zips.Select(System.IO.Path.GetFileName))}");
+                }
+                catch (Exception ex) { onLog?.Invoke($"[备份] 自动备份失败（不影响启动）：{ex.Message}"); }
+            });
+        }
         // ===== v0.16.0：启动前命令（Prism 同款；线程池执行避免阻塞 UI 上下文，失败不阻断启动） =====
         await System.Threading.Tasks.Task.Run(() => RunShellCommand(AppSettings.Instance.PreLaunchCommand, "启动前", onLog));
         // v0.16.0：游戏时长统计（HMCL/PCL2 同款）——进程退出即落账 + 执行退出后命令

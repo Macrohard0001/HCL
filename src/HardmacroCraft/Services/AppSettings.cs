@@ -140,6 +140,10 @@ public class AppSettings
     /// 当前生效目录仍是 GameRoot（不必在列表里）；「保存当前」入列，上限 GameRootsStore.MaxRoots。
     /// </summary>
     public List<string> GameRoots { get; set; } = new();
+    /// <summary>v0.16.10：启动游戏前自动备份存档（可选安全网，默认关；SaveBackupService）。</summary>
+    public bool AutoBackupSavesOnLaunch { get; set; }
+    /// <summary>v0.16.10：自动备份滚动保留份数（超出删最旧，1-20，默认 5）。</summary>
+    public int AutoBackupKeepCount { get; set; } = 5;
     /// <summary>主页「快速进服」上次使用的服务器地址（host:port，fix6，PCL 同款记忆）。</summary>
     public string LastQuickServer { get; set; } = "";
 

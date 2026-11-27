@@ -72,6 +72,10 @@ public partial class SettingsPage : Page
             RefreshWindowSizePanel();
             SldMemory.Value = AppSettings.Instance.MemoryMb;
             ChkMemAuto.IsChecked = AppSettings.Instance.MemoryAuto;
+            // v0.16.10：启动前自动备份存档
+            ChkAutoBackup.IsChecked = AppSettings.Instance.AutoBackupSavesOnLaunch;
+            foreach (ComboBoxItem i in CmbBackupKeep.Items)
+                if ((string)i.Tag == AppSettings.Instance.AutoBackupKeepCount.ToString()) { CmbBackupKeep.SelectedItem = i; break; }
             // fix6：自动检测模式下滑杆禁用，显示检测到的物理内存与推荐值
             RefreshMemoryDetected();
             // v0.1.14：下载源三档（auto / mirror / official），替代旧镜像开关
@@ -254,6 +258,10 @@ public partial class SettingsPage : Page
         s.CustomJvmArgs = TxtJvmArgs.Text.Trim();
         // v0.16.8：性能档位（Key 存盘；空串 = 自定义）
         s.PerfProfile = CmbPerfProfile.SelectedItem is ComboBoxItem pit ? pit.Tag as string ?? "" : "";
+        // v0.16.10：启动前自动备份存档（开关 + 滚动保留份数，非法回退 5）
+        s.AutoBackupSavesOnLaunch = ChkAutoBackup.IsChecked == true;
+        s.AutoBackupKeepCount = CmbBackupKeep.SelectedItem is ComboBoxItem bk && int.TryParse((string)bk.Tag, out var keepN)
+            ? keepN : 5;
         // fix8：JVM 优化开关 / 游戏参数 / 全屏启动
         s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
         s.CustomGameArgs = TxtGameArgs.Text.Trim();

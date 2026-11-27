@@ -915,4 +915,17 @@ Path: {7}</sys:String>
     <sys:String x:Key="S.Tool.LogCopy">Copy content</sys:String>
     <sys:String x:Key="S.Tool.LogUpload">Upload to mclo.gs</sys:String>
     <sys:String x:Key="S.Tool.LogReveal">Show in folder</sys:String>
+    <!-- v0.16.10: trash + pre-launch save backup -->
+    <sys:String x:Key="S.Tool.TrashTitle">Recycle Bin</sys:String>
+    <sys:String x:Key="S.Tool.TrashHint">Manages everything moved into .hcl-trash (currently deleted worlds): restore to saves / game root, delete permanently, empty all, reveal in Explorer.</sys:String>
+    <sys:String x:Key="S.Tool.TrashRefresh">Refresh</sys:String>
+    <sys:String x:Key="S.Tool.TrashRestore">Restore selected</sys:String>
+    <sys:String x:Key="S.Tool.TrashDelete">Delete permanently</sys:String>
+    <sys:String x:Key="S.Tool.TrashEmpty">Empty bin</sys:String>
+    <sys:String x:Key="S.Tool.TrashReveal">Show in folder</sys:String>
+    <sys:String x:Key="S.Set.AutoBackup">Pre-launch save auto-backup</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupHint">Zips your saves before every game launch into .hcl-backups/saves under the game root — a safety net for accidental deletions and borked new worlds.</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupChk">Auto-backup saves before launching (shared saves + each isolated version)</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupChkHint">Backups run in the background; failures never block launching; no empty zips when there are no saves.</sys:String>
+    <sys:String x:Key="S.Set.AutoBackupKeep">Keep</sys:String>
 </ResourceDictionary>

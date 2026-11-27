@@ -159,6 +159,18 @@
                                    TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
+
+                <Border x:Name="EntryTrash" Style="{StaticResource HmCard}" Margin="0,0,8,8" Cursor="Hand"
+                        MouseLeftButtonDown="OpenTrash_Click">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <ui:SymbolIcon Symbol="Delete24" FontSize="18" Margin="0,0,8,0" />
+                            <TextBlock Text="{DynamicResource S.Tool.TrashTitle}" Style="{StaticResource HmSectionTitle}" />
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource S.Tool.TrashHint}" Style="{StaticResource HmHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
             </UniformGrid>
         </StackPanel>
     </ScrollViewer>

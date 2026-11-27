@@ -63,4 +63,7 @@ public partial class ToolsPage : Page
     private void OpenLog_Click(object sender, MouseButtonEventArgs e) =>
         ToolHostWindow.Show(Window.GetWindow(this),
             (string?)TryFindResource("S.Tool.LogTitle") ?? "日志查看器", new LogTool());
+    private void OpenTrash_Click(object sender, MouseButtonEventArgs e) =>
+        ToolHostWindow.Show(Window.GetWindow(this),
+            (string?)TryFindResource("S.Tool.TrashTitle") ?? "回收站", new TrashTool());
 }
