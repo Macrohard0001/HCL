@@ -59,6 +59,9 @@
     <!-- v0.16.7：速通纯数学 + 服务器状态解析（协议纯函数） -->
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/SpeedrunUtil.cs" Link="Services/SpeedrunUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/ServerStatusService.cs" Link="Services/ServerStatusService.cs" />
+    <!-- v0.16.8：世界存档管理 + 日志查看器（纯文件系统逻辑 / 注入式上传） -->
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/WorldsService.cs" Link="Services/WorldsService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../../src/HardmacroCraft/Services/LogViewerService.cs" Link="Services/LogViewerService.cs" />
   </ItemGroup>
 
   <ItemGroup>

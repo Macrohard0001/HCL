@@ -132,6 +132,13 @@
 
                     <Slider x:Name="SldMemory" Minimum="1024" Maximum="32768" TickFrequency="512"
                             IsSnapToTickEnabled="True" Margin="0,0,0,8" ValueChanged="SldMemory_ValueChanged" />
+
+                    <!-- v0.16.8：性能档位（内存 + GC 一键预设，PCL「内存/JVM 预设」同款思路） -->
+                    <TextBlock Text="{DynamicResource S.Set.PerfProfile}" FontWeight="Medium" Margin="0,12,0,6" />
+                    <TextBlock Text="{DynamicResource S.Set.PerfProfileHint}" Style="{StaticResource HmHint}"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <ComboBox x:Name="CmbPerfProfile" MinWidth="220" MinHeight="30"
+                              SelectionChanged="CmbPerfProfile_Changed" />
                 </StackPanel>
             </Border>
 

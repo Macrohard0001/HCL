@@ -75,6 +75,11 @@ public class AppSettings
     /// <summary>JVM 自定义参数（PCL 的“JVM 参数”）：空格分隔，支持双引号包裹含空格参数，留空用默认。</summary>
     public string CustomJvmArgs { get; set; } = "";
     /// <summary>
+    /// v0.16.8：性能档位（LaunchArgs.PerfProfiles 的 Key）："low" / "balanced" / "high"；
+    /// 空串 = 自定义（用户手动改过内存或 JVM 参数后不再归属任何档位）。
+    /// </summary>
+    public string PerfProfile { get; set; } = "";
+    /// <summary>
     /// 默认 JVM 优化参数（fix8，PCL 同款推荐开启）：G1GC / 关闭自适应SizePolicy /
     /// Forge 兼容性 -D / Log4Shell 缓解。与自定义 JVM 参数冲突时自定义在后、优先生效。
     /// </summary>

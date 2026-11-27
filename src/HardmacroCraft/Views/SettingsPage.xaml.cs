@@ -21,6 +21,11 @@ public partial class SettingsPage : Page
         {
             if (_loaded) return;
             _loaded = true;
+            // v0.16.8：性能档位（先回放档位选择 → 联动改滑杆 / JVM 参数，随后下方的
+            // 实际值回放会覆盖联动结果 —— 顺序不能颠倒，否则预设在回放后覆盖真实参数）
+            PerfProfileItems();
+            foreach (ComboBoxItem i in CmbPerfProfile.Items)
+                if ((string)i.Tag == AppSettings.Instance.PerfProfile) { CmbPerfProfile.SelectedItem = i; break; }
             TxtGameRoot.Text = AppSettings.Instance.GameRoot;
             TxtJava.Text = AppSettings.Instance.JavaPath;
             TxtJavaDir.Text = AppSettings.Instance.JavaRuntimeDir;
@@ -244,6 +249,8 @@ public partial class SettingsPage : Page
         s.JavaPath = TxtJava.Text.Trim();
         s.JavaRuntimeDir = TxtJavaDir.Text.Trim();
         s.CustomJvmArgs = TxtJvmArgs.Text.Trim();
+        // v0.16.8：性能档位（Key 存盘；空串 = 自定义）
+        s.PerfProfile = CmbPerfProfile.SelectedItem is ComboBoxItem pit ? pit.Tag as string ?? "" : "";
         // fix8：JVM 优化开关 / 游戏参数 / 全屏启动
         s.JvmOptimize = ChkJvmOptimize.IsChecked == true;
         s.CustomGameArgs = TxtGameArgs.Text.Trim();
@@ -319,6 +326,32 @@ public partial class SettingsPage : Page
         TxtSaveHint.Text = "✓ 已自动保存 " + DateTime.Now.ToString("HH:mm:ss") +
             "（" + (s.GameRoot != oldRoot ? "游戏目录已变更，建议重启启动器刷新版本列表 · " : "") +
             "config/settings.json）";
+    }
+
+    // v0.16.8：性能档位 —— 下拉项（自定义 + LaunchArgs.PerfProfiles，标题走词条）
+    private void PerfProfileItems()
+    {
+        string L(string key, string fallback) => (string?)TryFindResource(key) ?? fallback;
+        CmbPerfProfile.ItemsSource = new[]
+        {
+            new ComboBoxItem { Content = L("S.Set.PerfCustom", "自定义"), Tag = "" },
+            new ComboBoxItem { Content = L("S.Set.PerfLow", "低内存"), Tag = "low" },
+            new ComboBoxItem { Content = L("S.Set.PerfBalanced", "均衡"), Tag = "balanced" },
+            new ComboBoxItem { Content = L("S.Set.PerfHigh", "高性能"), Tag = "high" },
+        };
+    }
+
+    // 选择档位 → 关内存自动检测 + 套推荐内存 + 填预设 JVM 参数（自动保存钩子随后落盘；
+    // 回放期触发无害：实际值回放在后面会覆盖联动结果）
+    private void CmbPerfProfile_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbPerfProfile.SelectedItem is not ComboBoxItem it) return;
+        var p = LaunchArgs.FindPerfProfile(it.Tag as string);
+        if (p == null) return; // 自定义：不动内存 / JVM 参数
+        if (ChkMemAuto != null) ChkMemAuto.IsChecked = false;
+        if (SldMemory != null)
+            SldMemory.Value = Math.Clamp(p.MemoryMb, (int)SldMemory.Minimum, (int)SldMemory.Maximum);
+        if (TxtJvmArgs != null) TxtJvmArgs.Text = p.Args;
     }
 
     private void SldMemory_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

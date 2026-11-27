@@ -1,0 +1,32 @@
+<!-- v0.16.8：日志查看器（独立窗口）—— 日志/崩溃列表 + 查看 + mclo.gs 上传 -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.LogTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.LogTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.LogHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <WrapPanel>
+            <ComboBox x:Name="CmbLogs" MinWidth="340" MinHeight="32" Margin="0,0,8,6"
+                      DisplayMemberPath="Display"
+                      SelectionChanged="CmbLogs_SelectionChanged" />
+            <ui:Button x:Name="BtnLogsRefresh" MinHeight="32" MinWidth="90" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.LogRefresh}" Click="BtnLogsRefresh_Click" />
+            <ui:Button x:Name="BtnLogsCopy" MinHeight="32" MinWidth="100" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.LogCopy}" Click="BtnLogsCopy_Click" />
+            <ui:Button x:Name="BtnLogsUpload" MinHeight="32" MinWidth="150" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.LogUpload}" Click="BtnLogsUpload_Click" />
+            <ui:Button x:Name="BtnLogsReveal" MinHeight="32" MinWidth="100" Margin="0,0,0,6"
+                       Content="{DynamicResource S.Tool.LogReveal}" Click="BtnLogsReveal_Click" />
+        </WrapPanel>
+        <TextBox x:Name="TxtLogContent" MinHeight="300" MaxHeight="380" Margin="0,8,0,0"
+                 IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                 FontFamily="Consolas, Cascadia Mono, monospace" FontSize="12" />
+        <TextBlock x:Name="TxtLogsStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

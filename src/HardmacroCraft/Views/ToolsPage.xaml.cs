@@ -55,4 +55,12 @@ public partial class ToolsPage : Page
     private void OpenDoctor_Click(object sender, MouseButtonEventArgs e) =>
         ToolHostWindow.Show(Window.GetWindow(this),
             (string?)TryFindResource("S.Tool.DoctorTitle") ?? "一键诊断", new DoctorTool());
+
+    private void OpenWorlds_Click(object sender, MouseButtonEventArgs e) =>
+        ToolHostWindow.Show(Window.GetWindow(this),
+            (string?)TryFindResource("S.Tool.WorldsTitle") ?? "世界存档管理", new WorldsTool());
+
+    private void OpenLog_Click(object sender, MouseButtonEventArgs e) =>
+        ToolHostWindow.Show(Window.GetWindow(this),
+            (string?)TryFindResource("S.Tool.LogTitle") ?? "日志查看器", new LogTool());
 }

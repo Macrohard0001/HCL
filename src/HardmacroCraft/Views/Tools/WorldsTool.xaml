@@ -1,0 +1,33 @@
+<!-- v0.16.8：世界存档管理（独立窗口）—— level.dat 解析 + 备份 / 恢复 / 删除 -->
+<UserControl x:Class="HardmacroCraft.Views.Tools.WorldsTool"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel>
+        <TextBlock Text="{DynamicResource S.Tool.WorldsTitle}" Style="{StaticResource HmSectionTitle}"
+                   Margin="0,0,0,4" />
+        <TextBlock Text="{DynamicResource S.Tool.WorldsHint}" Style="{StaticResource HmHint}"
+                   Margin="0,0,0,10" TextWrapping="Wrap" />
+        <WrapPanel>
+            <ComboBox x:Name="CmbWorlds" MinWidth="260" MinHeight="32" Margin="0,0,8,6"
+                      DisplayMemberPath="Display"
+                      SelectionChanged="CmbWorlds_SelectionChanged" />
+            <ui:Button x:Name="BtnWorldsRefresh" MinHeight="32" MinWidth="90" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.WorldsRefresh}" Click="BtnWorldsRefresh_Click" />
+            <ui:Button x:Name="BtnWorldsBackup" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Appearance="Primary"
+                       Content="{DynamicResource S.Tool.WorldsBackup}" Click="BtnWorldsBackup_Click" />
+            <ui:Button x:Name="BtnWorldsRestore" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.WorldsRestore}" Click="BtnWorldsRestore_Click" />
+            <ui:Button x:Name="BtnWorldsOpen" MinHeight="32" MinWidth="110" Margin="0,0,8,6"
+                       Content="{DynamicResource S.Tool.WorldsOpen}" Click="BtnWorldsOpen_Click" />
+            <ui:Button x:Name="BtnWorldsDelete" MinHeight="32" MinWidth="110" Margin="0,0,0,6"
+                       Appearance="Danger"
+                       Content="{DynamicResource S.Tool.WorldsDelete}" Click="BtnWorldsDelete_Click" />
+        </WrapPanel>
+        <TextBlock x:Name="TxtWorldsInfo" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" FontFamily="Consolas, Cascadia Mono, monospace" />
+        <TextBlock x:Name="TxtWorldsStatus" Style="{StaticResource HmHint}" Margin="0,8,0,0"
+                   TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

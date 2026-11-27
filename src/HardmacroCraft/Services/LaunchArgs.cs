@@ -94,4 +94,25 @@ public static class LaunchArgs
 
     /// <summary>构建游戏附加参数（如 --fullscreen --demo），与 JVM 参数同一解析规则。</summary>
     public static List<string> BuildGameExtra(string? customArgs) => ParseArgs(customArgs);
+
+    /// <summary>性能档位条目：Key 存盘标识，MemoryMb 推荐内存，Args 预设自定义 JVM 参数（可空）。</summary>
+    public sealed record PerfProfileItem(string Key, int MemoryMb, string Args);
+
+    /// <summary>
+    /// v0.16.8：性能档位（PCL「内存 / JVM 预设」同款思路）—— 一键按场景配置内存与 GC 参数：
+    /// · low 低内存：SerialGC 单线程回收，自身开销最小，4G 及以下机器不抢主程序内存；
+    /// · balanced 均衡：默认优化参数（G1GC，JvmOptimize 已带），不写自定义参数；
+    /// · high 高性能：G1 调优（压低停顿目标 / 扩大新生代与预留区 / 16M region，Aikar 简化版）。
+    /// 应用档位 = 关内存自动检测 + 设滑杆值 + 填自定义 JVM 参数（用户可再手动微调）。
+    /// </summary>
+    public static readonly PerfProfileItem[] PerfProfiles =
+    {
+        new("low", 2048, "-XX:+UseSerialGC -XX:MaxMetaspaceSize=256M"),
+        new("balanced", 4096, ""),
+        new("high", 6144, "-XX:+UseG1GC -XX:MaxGCPauseMillis=50 -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:G1HeapRegionSize=16M"),
+    };
+
+    /// <summary>按 Key 查档位；空串 / 未知 Key（= 用户自定义或旧配置）返回 null。</summary>
+    public static PerfProfileItem? FindPerfProfile(string? key) =>
+        string.IsNullOrEmpty(key) ? null : PerfProfiles.FirstOrDefault(p => p.Key == key);
 }

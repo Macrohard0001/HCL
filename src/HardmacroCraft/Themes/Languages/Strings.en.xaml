@@ -406,6 +406,13 @@
     <sys:String x:Key="S.Set.JvmArgsHint">Whitespace-separated; use double quotes for arguments containing spaces (e.g. "-Dsome.key=with space"). Leave empty for defaults. Overrides optimization args on conflict.</sys:String>
     <sys:String x:Key="S.Set.JvmOptimize">Optimize JVM arguments by default (recommended)</sys:String>
     <sys:String x:Key="S.Set.JvmOptimizeHint">G1GC for smoother gameplay, Forge compatibility fixes, Log4Shell mitigation; custom args still take priority.</sys:String>
+    <!-- v0.16.8: performance profiles -->
+    <sys:String x:Key="S.Set.PerfProfile">Performance profile (one-click preset)</sys:String>
+    <sys:String x:Key="S.Set.PerfProfileHint">Configure memory and GC per scenario in one click: Low = 2GB + SerialGC (small machines); Balanced = 4GB + default optimization; High = 6GB + low-pause G1 tuning. Selecting a profile disables auto memory detection and fills the slider and JVM args below; manual tweaks still apply (current fields win).</sys:String>
+    <sys:String x:Key="S.Set.PerfCustom">Custom</sys:String>
+    <sys:String x:Key="S.Set.PerfLow">Low (2GB · SerialGC)</sys:String>
+    <sys:String x:Key="S.Set.PerfBalanced">Balanced (4GB · default optimization)</sys:String>
+    <sys:String x:Key="S.Set.PerfHigh">High (6GB · low-pause G1)</sys:String>
     <sys:String x:Key="S.Set.GameArgs">Custom game arguments</sys:String>
     <sys:String x:Key="S.Set.GameArgsHint">Appended to the game command line (e.g. --demo); whitespace-separated, double quotes allowed.</sys:String>
 
@@ -865,4 +872,37 @@
     <sys:String x:Key="S.Tool.BackupHint">Packs a whole version directory (incl. isolated instance data: saves / mods / config) into a zip in the download folder; restoring avoids name clashes (-restored suffix) and never overwrites existing versions.</sys:String>
     <sys:String x:Key="S.Tool.BackupDo">Backup selected</sys:String>
     <sys:String x:Key="S.Tool.BackupRestore">Restore from backup</sys:String>
+    <!-- v0.16.8: world save management -->
+    <sys:String x:Key="S.Tool.WorldsTitle">World Save Manager</sys:String>
+    <sys:String x:Key="S.Tool.WorldsHint">Scans shared saves and isolated per-version worlds: parses level.dat for world name / seed / game mode / last played; backup to zip, restore from zip, delete into a trash folder (no hard delete).</sys:String>
+    <sys:String x:Key="S.Tool.WorldsRefresh">Refresh</sys:String>
+    <sys:String x:Key="S.Tool.WorldsBackup">Backup selected</sys:String>
+    <sys:String x:Key="S.Tool.WorldsRestore">Restore from zip</sys:String>
+    <sys:String x:Key="S.Tool.WorldsOpen">Show in folder</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDelete">Delete (to trash)</sys:String>
+    <sys:String x:Key="S.Tool.WorldsNone">No worlds found (both shared saves and isolated versions/*/saves were scanned) — create a world in-game first.</sys:String>
+    <sys:String x:Key="S.Tool.WorldsStatus">{0} worlds total (shared saves + isolated versions/*/saves)</sys:String>
+    <sys:String x:Key="S.Tool.WorldsInfo">World name: {0}
+Folder: {1}
+Seed: {2}
+Mode: {3}
+Difficulty: {4}
+Last played: {5}
+Game version: {6}
+Path: {7}</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.survival">Survival</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.creative">Creative</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.adventure">Adventure</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.spectator">Spectator</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.peaceful">Peaceful</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.easy">Easy</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.normal">Normal</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.hard">Hard</sys:String>
+    <!-- v0.16.8: log viewer -->
+    <sys:String x:Key="S.Tool.LogTitle">Log Viewer</sys:String>
+    <sys:String x:Key="S.Tool.LogHint">Lists run logs (latest.log / rolled .gz logs) and crash reports, newest first; oversized logs show only the tail; one-click upload to mclo.gs for shareable links (help-post standard).</sys:String>
+    <sys:String x:Key="S.Tool.LogRefresh">Refresh</sys:String>
+    <sys:String x:Key="S.Tool.LogCopy">Copy content</sys:String>
+    <sys:String x:Key="S.Tool.LogUpload">Upload to mclo.gs</sys:String>
+    <sys:String x:Key="S.Tool.LogReveal">Show in folder</sys:String>
 </ResourceDictionary>

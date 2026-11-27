@@ -406,6 +406,13 @@
     <sys:String x:Key="S.Set.JvmArgsHint">空白分隔，双引号可包裹含空格的参数（如 "-Dsome.key=with space"）；留空使用默认参数。与优化参数冲突时此处优先。</sys:String>
     <sys:String x:Key="S.Set.JvmOptimize">默认优化 JVM 参数（推荐）</sys:String>
     <sys:String x:Key="S.Set.JvmOptimizeHint">G1 垃圾回收减少卡顿、Forge 兼容性修正、Log4Shell 漏洞缓解；自定义参数仍可覆盖。</sys:String>
+    <!-- v0.16.8：性能档位 -->
+    <sys:String x:Key="S.Set.PerfProfile">性能档位（一键预设）</sys:String>
+    <sys:String x:Key="S.Set.PerfProfileHint">按场景一键配置内存与 GC 参数：低内存 = 2GB + SerialGC（省内存机器）；均衡 = 4GB + 默认优化参数；高性能 = 6GB + G1 低停顿调优。选择后自动关闭内存自动检测并填充下方滑杆与 JVM 参数，仍可手动微调（以输入框当前值为准）。</sys:String>
+    <sys:String x:Key="S.Set.PerfCustom">自定义</sys:String>
+    <sys:String x:Key="S.Set.PerfLow">低内存（2GB · SerialGC）</sys:String>
+    <sys:String x:Key="S.Set.PerfBalanced">均衡（4GB · 默认优化）</sys:String>
+    <sys:String x:Key="S.Set.PerfHigh">高性能（6GB · G1 低停顿）</sys:String>
     <sys:String x:Key="S.Set.GameArgs">游戏自定义参数</sys:String>
     <sys:String x:Key="S.Set.GameArgsHint">附加到游戏命令行末尾（如 --demo）；空白分隔，双引号可包裹含空格的参数。</sys:String>
 
@@ -865,4 +872,37 @@
     <sys:String x:Key="S.Tool.BackupHint">把整个版本目录（含隔离实例数据：存档 / mods / 配置）打成 zip 存到下载目录；恢复时自动避开重名（-restored 后缀），不会覆盖现有版本。</sys:String>
     <sys:String x:Key="S.Tool.BackupDo">备份所选</sys:String>
     <sys:String x:Key="S.Tool.BackupRestore">从备份恢复</sys:String>
+    <!-- v0.16.8：世界存档管理 -->
+    <sys:String x:Key="S.Tool.WorldsTitle">世界存档管理</sys:String>
+    <sys:String x:Key="S.Tool.WorldsHint">扫描共享 saves 与隔离版本的世界：解析 level.dat 显示世界名 / 种子 / 模式 / 最后游玩时间；支持备份为 zip、从 zip 恢复、删除进回收站目录（不直接物理删除）。</sys:String>
+    <sys:String x:Key="S.Tool.WorldsRefresh">刷新</sys:String>
+    <sys:String x:Key="S.Tool.WorldsBackup">备份所选</sys:String>
+    <sys:String x:Key="S.Tool.WorldsRestore">从 zip 恢复</sys:String>
+    <sys:String x:Key="S.Tool.WorldsOpen">打开位置</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDelete">删除（进回收站）</sys:String>
+    <sys:String x:Key="S.Tool.WorldsNone">没有找到存档（共享 saves 与隔离 versions/*/saves 都扫了）——先进游戏创建世界。</sys:String>
+    <sys:String x:Key="S.Tool.WorldsStatus">共 {0} 个存档（共享 saves + 隔离 versions/*/saves）</sys:String>
+    <sys:String x:Key="S.Tool.WorldsInfo">世界名：{0}
+文件夹：{1}
+种子：{2}
+模式：{3}
+难度：{4}
+最后游玩：{5}
+游戏版本：{6}
+路径：{7}</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.survival">生存</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.creative">创造</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.adventure">冒险</sys:String>
+    <sys:String x:Key="S.Tool.WorldsMode.spectator">旁观</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.peaceful">和平</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.easy">简单</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.normal">普通</sys:String>
+    <sys:String x:Key="S.Tool.WorldsDiff.hard">困难</sys:String>
+    <!-- v0.16.8：日志查看器 -->
+    <sys:String x:Key="S.Tool.LogTitle">日志查看器</sys:String>
+    <sys:String x:Key="S.Tool.LogHint">汇总运行日志（latest.log / .gz 滚动日志）与崩溃报告，新在前；超大日志只显示尾部防卡死；一键上传 mclo.gs 生成分享链接（求助帖标配）。</sys:String>
+    <sys:String x:Key="S.Tool.LogRefresh">刷新</sys:String>
+    <sys:String x:Key="S.Tool.LogCopy">复制内容</sys:String>
+    <sys:String x:Key="S.Tool.LogUpload">上传 mclo.gs</sys:String>
+    <sys:String x:Key="S.Tool.LogReveal">打开位置</sys:String>
 </ResourceDictionary>

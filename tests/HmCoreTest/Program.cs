@@ -3613,6 +3613,213 @@ try
 }
 catch (Exception ex) { Check("第 38 节 v0.16.7（速通 / 服务器 / 窗口化 / Metro 蓝）", false, ex.Message); }
 
+// ==================== 39. 世界存档管理 + 日志查看器 + 性能档位（v0.16.8） ====================
+try
+{
+    // --- WorldsService：level.dat 解析（gzip NBT） ---
+    byte[] BuildLevelDat(long seed, string levelName, long lastPlayed, int gameType, byte diff, bool modern)
+    {
+        var root = NbtTag.NewCompound("");
+        var data = NbtTag.NewCompound("Data");
+        data.Children.Add(NbtTag.NewString("LevelName", levelName));
+        data.Children.Add(new NbtTag { Type = NbtType.Long, Name = "LastPlayed", L = lastPlayed });
+        data.Children.Add(new NbtTag { Type = NbtType.Int, Name = "GameType", I = gameType });
+        data.Children.Add(new NbtTag { Type = NbtType.Byte, Name = "Difficulty", B = diff });
+        data.Children.Add(new NbtTag { Type = NbtType.Byte, Name = "hardcore", B = 0 });
+        var ver = NbtTag.NewCompound("version");
+        ver.Children.Add(NbtTag.NewString("Name", "1.21.1"));
+        data.Children.Add(ver);
+        if (modern)
+        {
+            var wgs = NbtTag.NewCompound("WorldGenSettings");
+            wgs.Children.Add(new NbtTag { Type = NbtType.Long, Name = "seed", L = seed });
+            data.Children.Add(wgs);
+        }
+        else
+        {
+            data.Children.Add(new NbtTag { Type = NbtType.Long, Name = "RandomSeed", L = seed });
+        }
+        root.Children.Add(data);
+        var nbt = Nbt.Write(root);
+        using var ms = new MemoryStream();
+        using (var gz = new GZipStream(ms, CompressionLevel.Optimal, leaveOpen: true)) gz.Write(nbt);
+        return ms.ToArray();
+    }
+
+    var worldsRoot = Directory.CreateTempSubdirectory("hcl-worlds-").FullName;
+    var datLegacy = BuildLevelDat(-4172144997902289642L, "Test World", 1699999999999L, 1, 3, modern: false);
+    var datModern = BuildLevelDat(123456789L, "New World", 1730000000000L, 0, 1, modern: true);
+    Directory.CreateDirectory(Path.Combine(worldsRoot, "saves", "MyWorld"));
+    File.WriteAllBytes(Path.Combine(worldsRoot, "saves", "MyWorld", "level.dat"), datLegacy);
+    Directory.CreateDirectory(Path.Combine(worldsRoot, "saves", "BrokenWorld"));
+    File.WriteAllBytes(Path.Combine(worldsRoot, "saves", "BrokenWorld", "level.dat"), [1, 2, 3, 4, 5]);
+    Directory.CreateDirectory(Path.Combine(worldsRoot, "versions", "1.21.1", "saves", "IsoWorld"));
+    File.WriteAllBytes(Path.Combine(worldsRoot, "versions", "1.21.1", "saves", "IsoWorld", "level.dat"), datModern);
+    Directory.CreateDirectory(Path.Combine(worldsRoot, "saves", "NoLevelDat")); // 无 level.dat 不算世界
+
+    var worlds = WorldsService.ListWorlds(worldsRoot);
+    Check("ListWorlds：共享 saves + 隔离 versions/*/saves，损坏/无 level.dat 目录排除",
+        worlds.Count == 2 && worlds.Any(w => w.Folder == "MyWorld") && worlds.Any(w => w.Folder == "IsoWorld"));
+    var legacy = worlds.First(w => w.Folder == "MyWorld");
+    Check("ParseLevelDat（老字段 RandomSeed）：名称/种子/模式/难度/极限/版本齐备",
+        legacy.LevelName == "Test World" && legacy.Seed == -4172144997902289642L
+        && legacy.GameType == "creative" && legacy.Difficulty == "hard" && !legacy.Hardcore
+        && legacy.VersionName == "1.21.1" && legacy.LastPlayed != null);
+    Check("ParseLevelDat（1.16+ WorldGenSettings.seed 嵌套）种子取新字段",
+        worlds.First(w => w.Folder == "IsoWorld").Seed == 123456789L
+        && worlds.First(w => w.Folder == "IsoWorld").GameType == "survival");
+    Check("WorldInfo.Display：世界名与文件夹名不同时都显示",
+        legacy.Display == "Test World（MyWorld）");
+
+    // --- 备份 / 恢复（zip roundtrip + 重名 -restored + zip-slip + 扁平包） ---
+    var zip = WorldsService.BackupWorld(legacy.Dir);
+    try
+    {
+        Check("BackupWorld：zip 落盘且含世界文件夹前缀", File.Exists(zip) && new FileInfo(zip).Length > 0);
+        var root2 = Directory.CreateTempSubdirectory("hcl-restore-").FullName;
+        var restored = WorldsService.RestoreWorld(zip, root2);
+        Check("RestoreWorld：恢复到共享 saves 且 level.dat 字节一致",
+            File.ReadAllBytes(Path.Combine(restored, "level.dat")).SequenceEqual(datLegacy));
+        var restored2 = WorldsService.RestoreWorld(zip, root2);
+        Check("RestoreWorld：重名自动 -restored-N 不覆盖",
+            restored2.EndsWith("-restored-2") && File.Exists(Path.Combine(restored2, "level.dat")));
+
+        // zip-slip：恶意条目 ../evil.txt 不得越出目标根
+        var slipZip = Path.Combine(root2, "slip.zip");
+        using (var fs = File.Create(slipZip))
+        using (var ar = new ZipArchive(fs, ZipArchiveMode.Create))
+        {
+            var e = ar.CreateEntry("../evil.txt");
+            using var w = e.Open();
+            w.Write("bad"u8.ToArray());
+        }
+        WorldsService.RestoreWorld(slipZip, root2);
+        Check("RestoreWorld：zip-slip 条目被拒（ ../evil.txt 未越出 saves 根）",
+            !File.Exists(Path.Combine(root2, "evil.txt")) && !File.Exists(Path.Combine(root2, "saves", "evil.txt")));
+
+        // 扁平包（level.dat 在 zip 根，无顶层目录）→ 用 zip 文件名做世界文件夹
+        var flatZip = Path.Combine(root2, "FlatPack.zip");
+        using (var fs = File.Create(flatZip))
+        using (var ar = new ZipArchive(fs, ZipArchiveMode.Create))
+        {
+            var e = ar.CreateEntry("level.dat");
+            using var w = e.Open();
+            w.Write(datLegacy);
+        }
+        var flat = WorldsService.RestoreWorld(flatZip, root2);
+        Check("RestoreWorld：扁平包用 zip 文件名建目录且内容完整",
+            Path.GetFileName(flat) == "FlatPack" && File.ReadAllBytes(Path.Combine(flat, "level.dat")).SequenceEqual(datLegacy));
+        Directory.Delete(root2, true);
+    }
+    finally { File.Delete(zip); }
+
+    // --- 删除进回收站 ---
+    var trashWorld = Directory.CreateDirectory(Path.Combine(worldsRoot, "saves", "TrashMe")).FullName;
+    var trashed = WorldsService.MoveToTrash(trashWorld, worldsRoot);
+    Check("MoveToTrash：移入 .hcl-trash 且原目录消失",
+        trashed.Contains(".hcl-trash") && Directory.Exists(trashed) && !Directory.Exists(trashWorld));
+    Check("SanitizeFolder：非法字符替换 / 空名回退 world",
+        WorldsService.SanitizeFolder("bad/name") == "bad_name" && WorldsService.SanitizeFolder("  ") == "world");
+
+    // --- LogViewerService：列表 / .gz 读取 / 尾部截断 / mclo.gs 上传 ---
+    var logRoot = Directory.CreateTempSubdirectory("hcl-logs-").FullName;
+    Directory.CreateDirectory(Path.Combine(logRoot, "logs"));
+    Directory.CreateDirectory(Path.Combine(logRoot, "crash-reports"));
+    Directory.CreateDirectory(Path.Combine(logRoot, "versions", "1.20.1", "logs"));
+    var p1 = Path.Combine(logRoot, "logs", "latest.log");
+    File.WriteAllText(p1, "2026-11-27 10:00 [main/INFO]: Start\n...loading...\nCrash at the end here");
+    var p2 = Path.Combine(logRoot, "logs", "2026-01-01-1.log.gz");
+    using (var fs = File.Create(p2))
+    using (var gz = new GZipStream(fs, CompressionLevel.Optimal)) gz.Write("rolled gz log content"u8.ToArray());
+    var p3 = Path.Combine(logRoot, "crash-reports", "crash-2026-11-27.txt");
+    File.WriteAllText(p3, "---- Minecraft Crash Report ----");
+    var p4 = Path.Combine(logRoot, "versions", "1.20.1", "logs", "iso.log");
+    File.WriteAllText(p4, "isolated version log");
+    File.SetLastWriteTime(p1, new DateTime(2026, 11, 27, 10, 0, 0));
+    File.SetLastWriteTime(p2, new DateTime(2026, 1, 1, 0, 0, 0));
+    File.SetLastWriteTime(p3, new DateTime(2026, 11, 27, 9, 0, 0));
+    File.SetLastWriteTime(p4, new DateTime(2026, 11, 20, 0, 0, 0));
+    var logs = LogViewerService.ListLogs(logRoot);
+    Check("ListLogs：logs/.log + .log.gz + crash-reports/*.txt + 隔离版本齐收且新在前",
+        logs.Count == 4 && logs[0].Path == p1
+        && logs.Count(l => l.Kind == "crash") == 1
+        && logs.First(l => l.Path == p2).Kind == "log");
+    Check("ReadLog：普通 / .gz 解压 / 尾部截断（超大只留尾部 + 省略提示）",
+        LogViewerService.ReadLog(p1).EndsWith("Crash at the end here")
+        && LogViewerService.ReadLog(p2) == "rolled gz log content"
+        && LogViewerService.ReadLog(p1, maxBytes: 32).StartsWith("…（")
+        && LogViewerService.ReadLog(p1, maxBytes: 32).EndsWith("Crash at the end here"));
+
+    // mclo.gs 上传（拦截式 HttpClient）
+    string? mclogsUrl = null, mclogsReqBody = null, mclogsKeyBody = null, mclogsErrBody = null;
+    var httpOk = new HttpClient(new InterceptingHandler((req, _) =>
+    {
+        mclogsUrl = req.RequestUri?.ToString();
+        mclogsReqBody = req.Content != null ? req.Content.ReadAsStringAsync().Result : "";
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        { Content = new StringContent("{\"success\":true,\"url\":\"https://mclo.gs/AbCdEf\",\"key\":\"AbCdEf\"}") });
+    }));
+    Check("UploadToMclogsAsync：POST api.mclo.gs/1/log（form content）且返回分享 URL",
+        LogViewerService.UploadToMclogsAsync(httpOk, "log body").Result == "https://mclo.gs/AbCdEf"
+        && mclogsUrl == "https://api.mclo.gs/1/log" && mclogsReqBody.Contains("content="));
+    var httpKey = new HttpClient(new InterceptingHandler((_, _) =>
+        Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        { Content = new StringContent("{\"success\":true,\"key\":\"XyZ123\"}") })));
+    mclogsKeyBody = LogViewerService.UploadToMclogsAsync(httpKey, "b").Result;
+    Check("UploadToMclogsAsync：响应只有 key 时拼 https://mclo.gs/{key}", mclogsKeyBody == "https://mclo.gs/XyZ123");
+    var httpErr = new HttpClient(new InterceptingHandler((_, _) =>
+        Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        { Content = new StringContent("{\"success\":false,\"error\":\"log exceeds 10MB\"}") })));
+    var errCatched = false;
+    try { LogViewerService.UploadToMclogsAsync(httpErr, "b").Wait(); }
+    catch (Exception ex) { errCatched = ex.ToString().Contains("log exceeds 10MB"); }
+    mclogsErrBody = "checked";
+    Check("UploadToMclogsAsync：success=false 抛出携带 error 的异常", errCatched && mclogsErrBody == "checked");
+
+    // --- 性能档位 ---
+    Check("PerfProfiles：三档 Key 唯一，低内存 2048+SerialGC / 均衡 4096 无参数 / 高性能含低停顿调优",
+        LaunchArgs.PerfProfiles.Select(p => p.Key).Distinct().Count() == 3
+        && LaunchArgs.PerfProfiles.Any(p => p.Key == "low" && p.MemoryMb == 2048 && p.Args.Contains("-XX:+UseSerialGC"))
+        && LaunchArgs.PerfProfiles.Any(p => p.Key == "balanced" && p.MemoryMb == 4096 && p.Args == "")
+        && LaunchArgs.PerfProfiles.Any(p => p.Key == "high" && p.Args.Contains("-XX:MaxGCPauseMillis=50")));
+    Check("FindPerfProfile：空/未知返回 null，已知 Key 命中",
+        LaunchArgs.FindPerfProfile(null) == null && LaunchArgs.FindPerfProfile("") == null
+        && LaunchArgs.FindPerfProfile("nope") == null && LaunchArgs.FindPerfProfile("low") != null);
+    var lowArgs = LaunchArgs.FindPerfProfile("low")!;
+    Check("低内存档与优化参数共存无 GC 冲突（自定义已选 SerialGC → 跳过 UseG1GC）",
+        !LaunchArgs.BuildJvmExtra(true, lowArgs.Args).Contains("-XX:+UseG1GC")
+        && LaunchArgs.BuildJvmExtra(true, lowArgs.Args).Contains("-XX:+UseSerialGC"));
+    Check("AppSettings.PerfProfile 默认空 = 自定义", new AppSettings().PerfProfile == "");
+
+    // --- 源码断言：工具窗口 + 入口 + 词条 + csproj 链接 ---
+    var toolsXaml39 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml")));
+    var toolsCs39 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "ToolsPage.xaml.cs")));
+    Check("ToolsPage：12 宫格（世界存档 / 日志查看器入口就位，整卡可点）",
+        toolsXaml39.Contains("EntryWorlds") && toolsXaml39.Contains("EntryLog")
+        && toolsCs39.Contains("new WorldsTool()") && toolsCs39.Contains("new LogTool()"));
+    var worldsXaml = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "WorldsTool.xaml")));
+    var worldsCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "WorldsTool.xaml.cs")));
+    Check("WorldsTool：下拉 + 备份/恢复/打开/删除 + level.dat 解析接入",
+        worldsXaml.Contains("S.Tool.WorldsTitle") && worldsXaml.Contains("BtnWorldsDelete")
+        && worldsCs.Contains("WorldsService.ListWorlds") && worldsCs.Contains("WorldsService.MoveToTrash"));
+    var logToolCs = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Views", "Tools", "LogTool.xaml.cs")));
+    Check("LogTool：列表/查看/复制/mclo.gs 上传/定位五区齐备",
+        logToolCs.Contains("LogViewerService.ListLogs") && logToolCs.Contains("LogViewerService.ReadLog")
+        && logToolCs.Contains("UploadToMclogsAsync") && logToolCs.Contains("Clipboard.SetText"));
+    var zh39 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.zh-CN.xaml")));
+    var en39 = File.ReadAllText(RepoFile(Path.Combine("src", "HardmacroCraft", "Themes", "Languages", "Strings.en.xaml")));
+    var newKeys39 = new[] { "S.Tool.WorldsTitle", "S.Tool.WorldsDelete", "S.Tool.WorldsMode.survival",
+        "S.Tool.WorldsDiff.hard", "S.Tool.LogTitle", "S.Tool.LogUpload", "S.Set.PerfProfile", "S.Set.PerfHigh" };
+    Check("v0.16.8：新增词条双语成对（8 个关键键 zh/en 都在）",
+        newKeys39.All(k => zh39.Contains(k) && en39.Contains(k)));
+    var testCsproj39 = File.ReadAllText(RepoFile(Path.Combine("tests", "HmCoreTest", "HmCoreTest.csproj")));
+    Check("测试工程链接 WorldsService / LogViewerService（与启动器同一份代码）",
+        testCsproj39.Contains("Services/WorldsService.cs") && testCsproj39.Contains("Services/LogViewerService.cs"));
+    Directory.Delete(worldsRoot, true);
+    Directory.Delete(logRoot, true);
+}
+catch (Exception ex) { Check("第 39 节 v0.16.8（世界存档 / 日志查看 / 性能档位）", false, ex.Message); }
+
 // ==================== 汇总 ====================
 Console.WriteLine($"\n========== 结果：{pass} 通过 / {fail} 失败 / {skip} 跳过 ==========");
 return fail == 0 ? 0 : 1;
